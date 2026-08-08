@@ -37,6 +37,7 @@
 - A GitHub-plugin forward test selected the bundled `gh-address-comments` workflow and GitHub MCP for distinct future-execution roles, emitted one reusable instruction, created only the target's three progress files, and performed no provider call, test, implementation, staging, commit, or GitHub write.
 - A fresh-context recovery test reused the existing tracker and same `C-17` unit, updated only `progress.md`, and excluded this generator from executor capabilities.
 - Independent review found two ambiguous boundaries around implementation and self-recursion; both were made absolute. A second review found no high or medium issue, and its remaining low-risk progressive-disclosure wording was narrowed to selected skills, required resources, and selected tool schemas.
+- Created implementation commit `3ef5372` (`feat: add plugin-aware instruction generation`) after staged scope and whitespace checks passed.
 
 ## Evidence
 
@@ -60,7 +61,8 @@
 - Ambiguous-root zero-write test: passed for both candidate repositories.
 - Plugin-aware forward test and fresh-context tracker recovery test: passed with zero tracked target changes.
 - Independent final content review: no unresolved high or medium issue; the sole low-risk wording finding was corrected.
+- `v0.2.0` implementation commit: `3ef5372`.
 
 ## Pending
 
-- Commit the validated candidate and tag `v0.2.0`.
+- None for `v0.2.0`. The release-progress commit carrying this record will receive the annotated `v0.2.0` tag.

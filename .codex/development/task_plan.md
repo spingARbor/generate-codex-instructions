@@ -7,11 +7,11 @@ Deliver a lightweight, independently versioned Codex skill that generates ground
 ## Current Status
 
 - Phase: 6 - Plugin-aware lightweight revision
-- Status: in_progress
+- Status: completed
 
 ## Next Step
 
-Commit the validated plugin-aware contract, record release evidence, and create the annotated `v0.2.0` tag.
+No active development unit. Preserve this tracker for the next requested release.
 
 ## Requirements
 
@@ -32,7 +32,7 @@ Commit the validated plugin-aware contract, record release evidence, and create 
 3. [x] Validate structure, installer idempotence, progress behavior, and lightweight size.
 4. [x] Forward-test instruction generation and independently review the final artifacts.
 5. [x] Install locally, remove prototype artifacts from PYTHIA, commit, and tag the release.
-6. [ ] Add plugin/MCP coverage, fix blocker and role boundaries, compress the skill, validate, and release `v0.2.0`.
+6. [x] Add plugin/MCP coverage, fix blocker and role boundaries, compress the skill, validate, and release `v0.2.0`.
 
 ## Decisions
 
