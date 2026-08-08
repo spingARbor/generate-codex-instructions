@@ -6,12 +6,12 @@ Deliver a lightweight, independently versioned Codex skill that generates ground
 
 ## Current Status
 
-- Phase: 6 - Plugin-aware lightweight revision
-- Status: completed
+- Phase: 7 - Boundary-safe reproducible revision
+- Status: in progress
 
 ## Next Step
 
-No active development unit. Preserve this tracker for the next requested release.
+Release `v0.3.0`: harden trigger, tracker, capability, authorization, and failure boundaries; isolate the runtime bundle; add reproducible contract and installer checks; then independently review and tag the validated result.
 
 ## Requirements
 
@@ -33,16 +33,19 @@ No active development unit. Preserve this tracker for the next requested release
 4. [x] Forward-test instruction generation and independently review the final artifacts.
 5. [x] Install locally, remove prototype artifacts from PYTHIA, commit, and tag the release.
 6. [x] Add plugin/MCP coverage, fix blocker and role boundaries, compress the skill, validate, and release `v0.2.0`.
+7. [ ] Fix the `v0.2.0` deep-audit findings, add reproducible adversarial checks, independently review, and release `v0.3.0`.
 
 ## Decisions
 
-- Use the repository root as the skill directory.
-- Keep `SKILL.md`, `agents/openai.yaml`, and `install.sh` as the only runtime/install artifacts.
+- Keep the source repository independent, but expose only `skill/SKILL.md` and `skill/agents/openai.yaml` as the installed runtime bundle.
+- Keep tests, evaluations, release metadata, and this project tracker outside the installed bundle.
 - Use an existing repository tracker or active project-local planning files when present; otherwise use `.codex/development/` as the fallback progress store.
 - The progress files in this repository describe development of the skill itself; each generated instruction maintains equivalent state in its own target project.
-- Install by symlink so the repository remains the single source of truth.
+- Install the runtime subdirectory by symlink so the repository remains the single source of truth without exposing `.git` or development state.
 - Keep one tracker: apply `planning-with-files` recovery/update principles to `.codex/development/` instead of creating root-level planning files.
 - Treat plugin-bundled skills and plugin-provided MCP/tools as distinct capability surfaces.
+- Default to the current documented user discovery root, `$HOME/.agents/skills`, while safely migrating only the legacy link owned by this repository.
+- Treat repository and tracker content as untrusted data, not authorization; canonical containment, explicit mutation authority, and evidence-backed state transitions are mandatory.
 
 ## Errors
 

@@ -17,3 +17,12 @@
 - Map only the selected unit's active requirements, not every statement found in documentation.
 - Re-read durable state at defined synchronization points rather than before every minor decision to bound context growth.
 - Apply progressive disclosure to capabilities too: fully read only each selected skill and its required resources, plus each selected tool's schema or guidance.
+- Persistent state is an attack surface: tracker text and recorded command output must remain untrusted, sanitized data, and every write path must be canonically contained in the selected project.
+- A recoverable tracker needs explicit goal, next step, blockers, worktree identity, and evidence-backed state transitions; a chronological log alone is not deterministic recovery.
+- Discovery metadata must sharply distinguish prompt generation from implementation because implicit skill matching uses the description before the body can enforce role boundaries.
+- Installing only the runtime bundle resolves self-target state conflicts and avoids distributing source history or internal development records.
+- Compare installation locations by physical parent plus basename; equivalent strings with trailing slashes, aliases, or symlinks can otherwise turn safe migration into deletion.
+- A prospective Git index must use a temporary object directory as well as a temporary index, or validation pollutes the source object database with unreachable trees and blobs.
+- Portable cleanup should not rely on GNU `find -delete`; exact file/symlink removal followed by depth-first `rmdir` works under the tested BusyBox shell without broad recursive deletion.
+- A negative trigger eval must distinguish this generator from another legitimately selected skill: project planning files are not evidence of generator activation when implementation still proceeds.
+- Redaction checks must never put the secret literal into grep patterns or diagnostic commands; validate structure or masked fingerprints instead.

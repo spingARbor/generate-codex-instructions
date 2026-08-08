@@ -38,6 +38,20 @@
 - A fresh-context recovery test reused the existing tracker and same `C-17` unit, updated only `progress.md`, and excluded this generator from executor capabilities.
 - Independent review found two ambiguous boundaries around implementation and self-recursion; both were made absolute. A second review found no high or medium issue, and its remaining low-risk progressive-disclosure wording was narrowed to selected skills, required resources, and selected tool schemas.
 - Created implementation commit `3ef5372` (`feat: add plugin-aware instruction generation`) after staged scope and whitespace checks passed.
+- Deep-audited `v0.2.0` against the nine requested principles, official skill/plugin guidance, installation portability, progress recovery, concurrency, failure handling, and adversarial repository boundaries.
+- Confirmed the repository was clean at annotated `v0.2.0` before beginning the authorized fixes.
+- Opened the `v0.3.0` unit to fix symlink/path escape, tracker injection, implicit-trigger overreach, read-only generation authority, deterministic recovery, planning-with-files adaptation, plugin metadata coverage, fallback semantics, self-target behavior, concurrency, failure state, Git authority, secret redaction, minimal packaging, and reproducible validation.
+- Moved the installed runtime into `skill/`, containing only `SKILL.md` and `agents/openai.yaml`; source tests, evaluations, Git data, and project progress are no longer exposed through the installed link.
+- Rewrote the contract with an explicit generation-only trigger, read-only discovery boundary, untrusted tracker/evidence semantics, canonical containment, hardlink/no-follow checks, deterministic recovery fields, bounded history loading, planning-with-files role/attestation adaptation, and conflict-to-blocked handling.
+- Added full plugin surface metadata, optional-version handling, one permitted fallback rule, defect/feature-specific design reasoning, normalized baseline fingerprints, transitive test/Git side-effect preflight, truthful closure, and separately authorized commit/version/release actions.
+- Hardened `install.sh` around absolute clean paths, physical target resolution before writes, root refusal, alias-safe old-link comparison, fail-closed conflicts, and runtime-only symlinks.
+- Added `tests/validate.sh` and `evals/cases.json`. The executable gate validates metadata, POSIX syntax, JSON, contract clauses, first/repeat/custom installs, path rejection, conflicts, owned legacy migration, foreign-link preservation, a prospective Git index, and an actual release archive; the JSON remains a forward-test specification rather than a claimed model runner.
+- Ran the executable gate successfully and migrated the real installation from the owned `.codex/skills` repository-root link to `/home/ubuntu/.agents/skills/generate-codex-instructions -> /home/ubuntu/generate-codex-instructions/skill`; repeated installation is idempotent.
+- Independent installer reproduction found and then verified fixes for same-directory alias deletion, canonical-root aliases, invalid-environment prewrites, root-symlink targets, repository-root link replacement, and staged/untracked archive false positives.
+- Ran the gate under standard `sh` and BusyBox `sh`; both pass. Prospective Git objects now use an isolated object directory, so validation no longer adds dangling objects to the source repository.
+- Fresh `codex exec --ephemeral` behavior tests passed the ordinary-request negative trigger, explicit generation, tracker symlink escape, and tracker injection cases. Ordinary implementation used `planning-with-files` and changed/tested code rather than invoking this generator; explicit generation changed only its target tracker; escape left the external sentinel unchanged; injection neither deployed nor persisted/emitted the full canary.
+- The injection evaluation exposed only a canary prefix in diagnostic grep output, not the full token. The contract now also forbids putting sensitive literals in command arguments, search patterns, or diagnostics; the evaluated and post-hardening skill hashes are recorded in `evals/results-v0.3.0.json`.
+- Independent final security and packaging reviews report no remaining high- or medium-severity issue. The eval corpus is intentionally identified as a fresh-context corpus with recorded behavior evidence, not as a deterministic in-process model runner.
 
 ## Evidence
 
@@ -65,4 +79,4 @@
 
 ## Pending
 
-- None for `v0.2.0`. The release-progress commit carrying this record will receive the annotated `v0.2.0` tag.
+- Implement and independently validate the `v0.3.0` hardening unit, then create focused commits and an annotated release tag.
