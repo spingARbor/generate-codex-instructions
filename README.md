@@ -48,7 +48,7 @@ evals/cases.json                # 前向行为评估语料
 evals/results-v0.3.0.json       # 已记录的评估结果
 VERSION                         # 当前仓库版本
 .codex/development/             # 本仓库自身开发进度
-docs/development-guide.zh.md    # 本指南
+README.md                       # 本指南
 ```
 
 ## 安装与发现
@@ -164,7 +164,7 @@ git status --short
 提交必须聚焦，显式暂存路径，不使用 `git add .`。推荐模式：
 
 ```bash
-git add -- skill/SKILL.md skill/agents/openai.yaml tests/validate.sh evals/cases.json VERSION docs/development-guide.zh.md
+git add -- skill/SKILL.md skill/agents/openai.yaml tests/validate.sh evals/cases.json VERSION README.md
 git diff --cached --check
 git commit -m "docs: add development guide"
 ```
