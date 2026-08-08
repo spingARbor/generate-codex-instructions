@@ -52,6 +52,9 @@
 - Fresh `codex exec --ephemeral` behavior tests passed the ordinary-request negative trigger, explicit generation, tracker symlink escape, and tracker injection cases. Ordinary implementation used `planning-with-files` and changed/tested code rather than invoking this generator; explicit generation changed only its target tracker; escape left the external sentinel unchanged; injection neither deployed nor persisted/emitted the full canary.
 - The injection evaluation exposed only a canary prefix in diagnostic grep output, not the full token. The contract now also forbids putting sensitive literals in command arguments, search patterns, or diagnostics; the evaluated and post-hardening skill hashes are recorded in `evals/results-v0.3.0.json`.
 - Independent final security and packaging reviews report no remaining high- or medium-severity issue. The eval corpus is intentionally identified as a fresh-context corpus with recorded behavior evidence, not as a deterministic in-process model runner.
+- Created implementation commit `33793b3` (`feat: harden instruction generation boundaries`) after standard/BusyBox gates, installed-link validation, prospective-index whitespace review, and staged scope review passed.
+- Removed only the exact unreachable Git objects created by the superseded prospective-index test; `git fsck --full --strict` is now clean and the corrected validator adds no new objects.
+- Final runtime size is two files and 12,532 bytes. `skill/SKILL.md` is 56 lines and 1,596 words, below the skill-creator 5,000-word body guidance while retaining the audited boundary contract.
 
 ## Evidence
 
@@ -76,7 +79,13 @@
 - Plugin-aware forward test and fresh-context tracker recovery test: passed with zero tracked target changes.
 - Independent final content review: no unresolved high or medium issue; the sole low-risk wording finding was corrected.
 - `v0.2.0` implementation commit: `3ef5372`.
+- `v0.3.0` executable gate under standard `sh` and BusyBox `sh`: passed.
+- Source and installed-runtime `quick_validate.py`: passed.
+- Fresh-context behavior corpus: ordinary negative trigger, explicit generation, tracker path escape, and tracker injection passed; ordinary-case commit subcheck inconclusive due evaluator time cap.
+- Final independent security and packaging reviews: no high or medium findings.
+- `git fsck --full --strict`: passed with no dangling or unreachable output after exact test-object cleanup.
+- `v0.3.0` implementation commit: `33793b3`.
 
 ## Pending
 
-- Implement and independently validate the `v0.3.0` hardening unit, then create focused commits and an annotated release tag.
+- None for `v0.3.0`. The annotated `v0.3.0` tag targets the release-progress commit carrying this record.

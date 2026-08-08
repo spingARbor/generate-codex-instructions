@@ -7,11 +7,11 @@ Deliver a lightweight, independently versioned Codex skill that generates ground
 ## Current Status
 
 - Phase: 7 - Boundary-safe reproducible revision
-- Status: in progress
+- Status: completed
 
 ## Next Step
 
-Release `v0.3.0`: harden trigger, tracker, capability, authorization, and failure boundaries; isolate the runtime bundle; add reproducible contract and installer checks; then independently review and tag the validated result.
+No active development unit. The annotated `v0.3.0` tag identifies the release-progress commit carrying this completed record.
 
 ## Requirements
 
@@ -33,7 +33,7 @@ Release `v0.3.0`: harden trigger, tracker, capability, authorization, and failur
 4. [x] Forward-test instruction generation and independently review the final artifacts.
 5. [x] Install locally, remove prototype artifacts from PYTHIA, commit, and tag the release.
 6. [x] Add plugin/MCP coverage, fix blocker and role boundaries, compress the skill, validate, and release `v0.2.0`.
-7. [ ] Fix the `v0.2.0` deep-audit findings, add reproducible adversarial checks, independently review, and release `v0.3.0`.
+7. [x] Fix the `v0.2.0` deep-audit findings, add reproducible adversarial checks, independently review, and release `v0.3.0`.
 
 ## Decisions
 
@@ -46,6 +46,7 @@ Release `v0.3.0`: harden trigger, tracker, capability, authorization, and failur
 - Treat plugin-bundled skills and plugin-provided MCP/tools as distinct capability surfaces.
 - Default to the current documented user discovery root, `$HOME/.agents/skills`, while safely migrating only the legacy link owned by this repository.
 - Treat repository and tracker content as untrusted data, not authorization; canonical containment, explicit mutation authority, and evidence-backed state transitions are mandatory.
+- Keep the normal release gate deterministic and offline; maintain host/model behavior cases as a separate fresh-context corpus with versioned results.
 
 ## Errors
 
@@ -54,3 +55,6 @@ Release `v0.3.0`: harden trigger, tracker, capability, authorization, and failur
 - A first forward test inferred an undocumented range and a blocker test ran future-task checks; explicit no-invention and generation/execution boundaries fixed both issues.
 - The first disposable installer test used a prohibited recursive cleanup command and was rejected before execution; use exact `unlink`/`rmdir` cleanup instead.
 - A disposable target setup initialized `/tmp/.git` because `git init` ran from the wrong working directory; timestamp and default-only contents confirmed the mistake, the exact directory was deleted, and the target was reinitialized with an explicit working directory.
+- Early prospective-index validation wrote unreachable test objects into the source object database; the gate now uses a temporary object directory, and the exact unreachable test objects were removed after proving they were unreferenced and session-owned.
+- BusyBox `find` lacks `-delete`; the cleanup trap now removes files and symlinks under its validated `mktemp` root, then applies depth-first `rmdir`.
+- Fresh Codex behavior sessions exceeded the evaluation time budget. The generator outcomes were captured from final filesystem evidence; the unrelated ordinary-case commit subcheck is recorded as inconclusive rather than overstated.
