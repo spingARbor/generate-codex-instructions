@@ -1,0 +1,4 @@
+interface:
+  display_name: "Generate Codex Instructions"
+  short_description: "Draft grounded Codex instructions with durable progress"
+  default_prompt: "Use $generate-codex-instructions to create one executable Codex instruction and persist progress in the target development project."
