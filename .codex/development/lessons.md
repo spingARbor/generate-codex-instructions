@@ -11,3 +11,9 @@
 - Use exact, non-recursive cleanup operations in disposable installer tests so safety policy can verify every target.
 - Set the working directory explicitly for every repository command; creating a target directory does not move the shell into it.
 - Test persistence with a fresh agent context: recovery is proven only when the same unit and tracker survive without relying on conversation history.
+- An installed plugin may expose skills, MCP tools, or both; capability discovery must cover each surface explicitly.
+- If the target root is unresolved, report the blocker without writing project state because no safe owner exists yet.
+- Separate capabilities used to generate an instruction from those required by its future executor; never select the generator merely because it is active.
+- Map only the selected unit's active requirements, not every statement found in documentation.
+- Re-read durable state at defined synchronization points rather than before every minor decision to bound context growth.
+- Apply progressive disclosure to capabilities too: fully read only each selected skill and its required resources, plus each selected tool's schema or guidance.

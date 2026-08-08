@@ -6,17 +6,17 @@ Deliver a lightweight, independently versioned Codex skill that generates ground
 
 ## Current Status
 
-- Phase: 5 - Release
-- Status: completed
+- Phase: 6 - Plugin-aware lightweight revision
+- Status: in_progress
 
 ## Next Step
 
-No active development unit. Preserve this tracker for the next requested release.
+Commit the validated plugin-aware contract, record release evidence, and create the annotated `v0.2.0` tag.
 
 ## Requirements
 
 - Keep the repository in `/home/ubuntu/generate-codex-instructions`.
-- Reuse relevant installed skills and repository-native capabilities.
+- Reuse relevant installed skills, plugins, MCP tools, and repository-native capabilities.
 - Ground instructions in design documents, owner code, tests, and current state.
 - Select one convergent work unit and solve root causes.
 - Validate syntax, behavior, redundancy, and scope.
@@ -32,6 +32,7 @@ No active development unit. Preserve this tracker for the next requested release
 3. [x] Validate structure, installer idempotence, progress behavior, and lightweight size.
 4. [x] Forward-test instruction generation and independently review the final artifacts.
 5. [x] Install locally, remove prototype artifacts from PYTHIA, commit, and tag the release.
+6. [ ] Add plugin/MCP coverage, fix blocker and role boundaries, compress the skill, validate, and release `v0.2.0`.
 
 ## Decisions
 
@@ -40,6 +41,8 @@ No active development unit. Preserve this tracker for the next requested release
 - Use an existing repository tracker or active project-local planning files when present; otherwise use `.codex/development/` as the fallback progress store.
 - The progress files in this repository describe development of the skill itself; each generated instruction maintains equivalent state in its own target project.
 - Install by symlink so the repository remains the single source of truth.
+- Keep one tracker: apply `planning-with-files` recovery/update principles to `.codex/development/` instead of creating root-level planning files.
+- Treat plugin-bundled skills and plugin-provided MCP/tools as distinct capability surfaces.
 
 ## Errors
 

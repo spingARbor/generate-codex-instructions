@@ -25,6 +25,18 @@
 - Created implementation commit `4736d52` (`feat: add Codex instruction generator skill`) after staged diff and whitespace checks passed.
 - Used PYTHIA's graph-first change analysis, verified the old prototype paths were task-owned and untracked, then removed only those paths; targeted Git status is clean and unrelated PYTHIA changes remain untouched.
 - Re-ran skill schema, `sh`/`dash` syntax, installed-bundle, marker, requirement-coverage, and staged diff checks successfully.
+- Audited `v0.1.0` against the nine requested principles and lightweight criteria: eight were explicit; plugin/MCP reuse was only partial.
+- Confirmed from official OpenAI documentation that a plugin may provide skills, an MCP server, or both, so the skill catalog alone is insufficient.
+- Identified four revision requirements: plugin/MCP discovery, unresolved-root no-write behavior, generation/executor capability separation, and active-requirement scoping.
+- Measured `v0.1.0` `SKILL.md` at 59 lines and 952 words; selected a no-reference, direct-compression revision to avoid adding files.
+- Rewrote the contract to inspect standalone and plugin-bundled skills plus plugin MCP/tools, map only active unit requirements, and keep generation aids out of executor capability lists.
+- Made unresolved project-root selection fail without writes and limited full tracker reloads to session start plus defined synchronization points.
+- Compressed `SKILL.md` to 44 lines and 701 words: 25.4% fewer lines and 26.4% fewer words than `v0.1.0`, without adding runtime references.
+- Raised `VERSION` to `0.2.0` and aligned the UI metadata with plugin-aware capability reuse.
+- A two-root black-box test returned a precise blocker and created no files in either candidate repository.
+- A GitHub-plugin forward test selected the bundled `gh-address-comments` workflow and GitHub MCP for distinct future-execution roles, emitted one reusable instruction, created only the target's three progress files, and performed no provider call, test, implementation, staging, commit, or GitHub write.
+- A fresh-context recovery test reused the existing tracker and same `C-17` unit, updated only `progress.md`, and excluded this generator from executor capabilities.
+- Independent review found two ambiguous boundaries around implementation and self-recursion; both were made absolute. A second review found no high or medium issue, and its remaining low-risk progressive-disclosure wording was narrowed to selected skills, required resources, and selected tool schemas.
 
 ## Evidence
 
@@ -42,7 +54,13 @@
 - Local Codex installation and repeat-install check: passed.
 - Initial implementation commit: `4736d52`.
 - Superseded PYTHIA prototype paths: absent; targeted status clean.
+- `v0.2.0` source and installed-link `quick_validate.py`: passed.
+- `sh -n install.sh`, `dash -n install.sh`, `git diff --check`, metadata-length, placeholder, and nine-principle contract assertions: passed.
+- Repeat installation through `./install.sh`: idempotent; the installed link still resolves to this independent repository.
+- Ambiguous-root zero-write test: passed for both candidate repositories.
+- Plugin-aware forward test and fresh-context tracker recovery test: passed with zero tracked target changes.
+- Independent final content review: no unresolved high or medium issue; the sole low-risk wording finding was corrected.
 
 ## Pending
 
-- None for `v0.1.0`. The release-progress commit carrying this record will receive the `v0.1.0` tag.
+- Commit the validated candidate and tag `v0.2.0`.
