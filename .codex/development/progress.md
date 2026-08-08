@@ -22,6 +22,9 @@
 - A second agent with no prior context reloaded the same tracker, recovered the same sole Ready unit, updated only `progress.md`, and created no duplicate tracker.
 - Independent review found no functional or installer defect; its only release blocker was the planned missing commit and tag.
 - Installed the skill into `/home/ubuntu/.codex/skills/generate-codex-instructions`; repeat installation was idempotent and validation through the installed symlink passed.
+- Created implementation commit `4736d52` (`feat: add Codex instruction generator skill`) after staged diff and whitespace checks passed.
+- Used PYTHIA's graph-first change analysis, verified the old prototype paths were task-owned and untracked, then removed only those paths; targeted Git status is clean and unrelated PYTHIA changes remain untouched.
+- Re-ran skill schema, `sh`/`dash` syntax, installed-bundle, marker, requirement-coverage, and staged diff checks successfully.
 
 ## Evidence
 
@@ -37,8 +40,9 @@
 - Context-recovery generation: same progress source and Ready unit recovered, zero tracked target changes, no second tracker.
 - Independent review: no high-severity issue; commit/tag remained pending.
 - Local Codex installation and repeat-install check: passed.
+- Initial implementation commit: `4736d52`.
+- Superseded PYTHIA prototype paths: absent; targeted status clean.
 
 ## Pending
 
-- Create focused repository commits and `v0.1.0` tag.
-- Remove only the superseded prototype and planning artifacts created for this task in PYTHIA.
+- None for `v0.1.0`. The release-progress commit carrying this record will receive the `v0.1.0` tag.

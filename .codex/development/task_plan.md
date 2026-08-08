@@ -7,11 +7,11 @@ Deliver a lightweight, independently versioned Codex skill that generates ground
 ## Current Status
 
 - Phase: 5 - Release
-- Status: in_progress
+- Status: completed
 
 ## Next Step
 
-Create the focused initial commit, remove only superseded PYTHIA prototype artifacts, record release evidence, and tag `v0.1.0`.
+No active development unit. Preserve this tracker for the next requested release.
 
 ## Requirements
 
@@ -31,7 +31,7 @@ Create the focused initial commit, remove only superseded PYTHIA prototype artif
 2. [x] Create the independent repository, skill bundle, installer, and persistent-progress contract.
 3. [x] Validate structure, installer idempotence, progress behavior, and lightweight size.
 4. [x] Forward-test instruction generation and independently review the final artifacts.
-5. [ ] Install locally, remove prototype artifacts from PYTHIA, commit, and tag the release.
+5. [x] Install locally, remove prototype artifacts from PYTHIA, commit, and tag the release.
 
 ## Decisions
 
