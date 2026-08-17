@@ -73,7 +73,9 @@
         "count every unique registry gate globally but list only unpassed or unknown gates referenced by non-Complete units, so G2/G3 appear once and closed-only G4 does not",
         "show U4's blocker and recovery condition",
         "render claimless Ready as localized unclaimed and valid claimless open Blocked or Failed as localized none, never select Blocked or Failed, and reject missing blank or duplicate active claims before any executable template",
-        "persist the idempotency key normalized plan-summary digest and instruction-body digest from the same snapshot",
+        "for ordinary trackers use first-delivery-only: persist only the canonical digest/length audit, never the full idempotency key or artifact payload",
+        "treat a matching ordinary digest audit as terminal before generation: emit no instruction fence or replay and append no duplicate audit",
+        "permit exact replay only with authenticated adapter/host provenance and an authorized out-of-repository full-payload sink",
         "do not execute the future task"
       ]
     },

@@ -43,7 +43,8 @@ do
     python3 -m json.tool "$eval_json" >/dev/null
 done
 
-python3 - "$repo_root/evals/replay-vectors.json" "$repo_root/evals/cases.json" <<'PY'
+python3 - "$repo_root/evals/replay-vectors.json" "$repo_root/evals/cases.json" \
+    "$repo_root/docs/superpowers/specs/2026-08-16-plan-convergence-output-design.md" <<'PY'
 import base64
 import binascii
 import copy
@@ -187,6 +188,38 @@ BODY_SECTIONS = (
     "owners、invariants 与 non-goals", "验证与 gates", "失败处理",
     "完成总结", "commit/version permissions",
 )
+PLAN_CONVERGENCE_ORDINARY_EXPECTATION = (
+    "for ordinary trackers use first-delivery-only: persist only the canonical "
+    "digest/length audit, never the full idempotency key or artifact payload"
+)
+PLAN_CONVERGENCE_TERMINAL_EXPECTATION = (
+    "treat a matching ordinary digest audit as terminal before generation: emit "
+    "no instruction fence or replay and append no duplicate audit"
+)
+PLAN_CONVERGENCE_AUTHENTICATED_EXPECTATION = (
+    "permit exact replay only with authenticated adapter/host provenance and an "
+    "authorized out-of-repository full-payload sink"
+)
+STALE_PLAN_CONVERGENCE_EXPECTATION = (
+    "persist the idempotency key normalized plan-summary digest and "
+    "instruction-body digest from the same snapshot"
+)
+DESIGN_ORDINARY_REPLAY_MARKER = (
+    "Ordinary trackers use `first-delivery-only`: persist only the "
+    "idempotency-key SHA-256, validated snapshot digest, and normalized "
+    "summary/body digests and lengths in the mode-authorized audit."
+)
+DESIGN_AUTHENTICATED_REPLAY_MARKER = (
+    "Exact replay is permitted only when an adapter/host provides authenticated "
+    "provenance rooted outside repository-controlled data and an already "
+    "authorized out-of-repository full-payload sink."
+)
+STALE_DESIGN_REPLAY_CLAUSES = (
+    "Persist the idempotency key, a digest of the normalized plan summary, and "
+    "the instruction-body digest.",
+    "On replay, reuse the recorded pair only when the idempotency key and "
+    "validated input snapshot still match.",
+)
 REQUIRED_CASE_CAPABILITIES = {
     "exact-replay": (
         "bind provenance to the exact received raw store capture and reject reordered whitespace-altered extra-LF invalid-UTF-8 or otherwise noncanonical bytes before current validation even when capture and receipt digests are recomputed",
@@ -283,6 +316,9 @@ REQUIRED_CASE_CAPABILITIES = {
         "count every unique registry gate globally but list only unpassed or unknown gates referenced by non-Complete units, so G2/G3 appear once and closed-only G4 does not",
         "show U4's blocker and recovery condition",
         "render claimless Ready as localized unclaimed and valid claimless open Blocked or Failed as localized none, never select Blocked or Failed, and reject missing blank or duplicate active claims before any executable template",
+        PLAN_CONVERGENCE_ORDINARY_EXPECTATION,
+        PLAN_CONVERGENCE_TERMINAL_EXPECTATION,
+        PLAN_CONVERGENCE_AUTHENTICATED_EXPECTATION,
     ),
 }
 
@@ -2461,6 +2497,37 @@ def validate_cases_document(document):
     return ids
 
 
+def validate_replay_semantics_sources(cases_document, design_text):
+    if not isinstance(design_text, str):
+        fail("replay semantics design type")
+    cases = cases_document.get("cases") if isinstance(cases_document, dict) else None
+    if not isinstance(cases, list):
+        fail("replay semantics cases type")
+    plan_cases = [case for case in cases if isinstance(case, dict) and case.get("id") == "plan-convergence-preamble"]
+    if len(plan_cases) != 1 or not isinstance(plan_cases[0].get("expected"), list):
+        fail("replay semantics plan-convergence case")
+    expectations = plan_cases[0]["expected"]
+    problems = []
+    if STALE_PLAN_CONVERGENCE_EXPECTATION in expectations:
+        problems.append("stale plan-convergence full-key persistence")
+    for expectation in (
+        PLAN_CONVERGENCE_ORDINARY_EXPECTATION,
+        PLAN_CONVERGENCE_TERMINAL_EXPECTATION,
+        PLAN_CONVERGENCE_AUTHENTICATED_EXPECTATION,
+    ):
+        if expectations.count(expectation) != 1:
+            problems.append("missing plan-convergence replay boundary")
+            break
+    if any(clause in design_text for clause in STALE_DESIGN_REPLAY_CLAUSES):
+        problems.append("stale design ordinary full-key replay")
+    for marker in (DESIGN_ORDINARY_REPLAY_MARKER, DESIGN_AUTHENTICATED_REPLAY_MARKER):
+        if design_text.count(marker) != 1:
+            problems.append("missing design replay boundary")
+            break
+    if problems:
+        fail("replay semantics: " + ", ".join(problems))
+
+
 def expect_cases_failure(name, candidate, expected):
     try:
         validate_cases_document(candidate)
@@ -2869,6 +2936,9 @@ try:
 
     with open(sys.argv[2], encoding="utf-8") as source:
         cases_document = json.load(source, object_pairs_hook=reject_duplicates)
+    with open(sys.argv[3], encoding="utf-8") as source:
+        design_text = source.read()
+    validate_replay_semantics_sources(cases_document, design_text)
     case_ids = validate_cases_document(cases_document)
     required_case_ids = {
         "exact-replay", "replay-corruption", "replay-input-drift",
@@ -4220,7 +4290,7 @@ class ReadmeFailure(Exception):
 
 
 README_SOURCE_MAX_BYTES = 131072
-ORDINARY_TRACKER_MARKER = "ordinary tracker contract: `first-delivery-only`; sanitized digest audit only; no full payload checkpoint or exact replay; `no delivery guarantee`"
+ORDINARY_TRACKER_MARKER = "ordinary tracker contract: `first-delivery-only`; persist only sanitized schema/digest/length audit, never the full idempotency key or artifact payload; matching audit is terminal with no instruction, fence, or replay"
 AUTHENTICATED_REPLAY_MARKER = "authenticated adapter/host provenance contract: exact replay only through an authorized out-of-repository full-payload sink"
 NEGATIVE_DELIVERY_MARKER = "delivery contract: `no delivery guarantee`; `at-least-once` is not guaranteed"
 STATUS_DUAL_ENCODER_MARKER = "`status-canon-v1` self-check: two independent in-memory encoders must agree on exact bytes, byte length, and SHA-256 before fingerprint, snapshot, audit, or checkpoint acceptance"

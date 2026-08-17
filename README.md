@@ -107,14 +107,14 @@ State 与 claim 必须同时有效：`Ready` 可以没有 claim，且只有它�
 7. 按有序状态规则判定整体结果（信息不足、已收敛、部分受阻、进行中），并只在整体仍开放且恰有一个 independently executable unit 时选择该单元；状态矛盾、前置不满足、能力缺失、权限不足或没有可执行单元时阻塞。
 8. 对可执行输出先生成脱敏的 plan-convergence preamble，再生成一个可复用指令。两者由同一 pre-checkpoint snapshot 派生，并受实际 invocation-owned、tracker-bound、safe top-relative lock 保护。若独立 adapter ownership 不提供合规 lock，就在其内部创建 fallback；持锁完成验证/framing，逆序释放全部 ownership 后才输出已准备字节。摘要包含快照、整体状态、精确 unit/gate counts、选中 unit、全部开放项及 blocker/recovery。
 9. 以 `request-canon-v1`、`status-canon-v1`、`idempotency-v1` 和 `snapshot-manifest-v1` 对请求、真实 Git/物理文件观察、身份字段和完整输入覆盖做确定性字节绑定；禁止隐式 trim、locale 排序、未限定对象格式的 HEAD/OID 或模糊的 component coverage。
-10. 普通 tracker 只做 first delivery：在 mode-authorized progress/ledger sink 写入脱敏且有界的 schema/digest/length audit，不保存完整 key、summary/body payload 或 raw request，不承诺跨上下文精确恢复，也不创建 sidecar、第二 tracker 或 chronological full payload。
+10. 普通 tracker 只做 first delivery：在 mode-authorized progress/ledger sink 写入脱敏且有界的 schema/digest/length audit，只保存 full idempotency key 的 SHA-256 而不保存 key 本身、summary/body payload 或 raw request，也不创建 sidecar、第二 tracker 或 chronological full payload。tracker identity、key digest 与 validated snapshot digest 全部匹配的 ordinary audit 是 terminal evidence：必须在 generation/artifact preparation/state append 前返回无 instruction、无 fence、无 replay 的简洁决策文本，并且不得追加重复 audit。
 11. 只有 adapter/host 同时提供仓库外认证 provenance 与已授权的仓库外 full-payload sink 时才启用 exact replay。先认证 receipt/store，再完整验证 stored intrinsic，之后验证 current request/status/snapshot/actual lock，最后比较 key/digest；任何缺失 provenance 或 corruption 都在 decode、emit、regenerate/model 和 state append 前 fail closed。全部验证和 framing decision 在 ownership 与实际 lock 下完成，验证并释放 unchanged same-object lock 后才 emit exact prepared bytes，并且不作 delivery 保证。
 
 ## 确定性绑定、首次交付与认证重放协议
 
 下面十七行是 README gate 使用的稳定契约索引；每行随后各有完整中文规则，不是可执行示例或替代说明。
 
-ordinary tracker contract: `first-delivery-only`; sanitized digest audit only; no full payload checkpoint or exact replay; `no delivery guarantee`
+ordinary tracker contract: `first-delivery-only`; persist only sanitized schema/digest/length audit, never the full idempotency key or artifact payload; matching audit is terminal with no instruction, fence, or replay
 
 authenticated adapter/host provenance contract: exact replay only through an authorized out-of-repository full-payload sink
 

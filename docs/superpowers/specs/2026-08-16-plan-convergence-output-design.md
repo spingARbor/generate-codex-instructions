@@ -32,9 +32,13 @@ For a blocker, retain the existing concise plain-text response. Do not fabricate
 
 ## Snapshot And Consistency
 
-Build the summary and instruction under the same adapter ownership or `.instruction-generation.lock` after rechecking tracker revision, branch, HEAD, and status fingerprint. Both artifacts use the same validated input snapshot, before generation-checkpoint bookkeeping changes the tracker revision.
+Build the summary and instruction under the same adapter ownership or `.instruction-generation.lock` after rechecking tracker revision, branch, HEAD, and status fingerprint. Both artifacts use the same validated effective pre-write input snapshot.
 
-Persist the idempotency key, a digest of the normalized plan summary, and the instruction-body digest. Normalize the summary as its exact UTF-8 preamble bytes with LF line endings, no trailing spaces, and one final LF. On replay, reuse the recorded pair only when the idempotency key and validated input snapshot still match. Never append duplicate generation state or claim delivery.
+Ordinary trackers use `first-delivery-only`: persist only the idempotency-key SHA-256, validated snapshot digest, and normalized summary/body digests and lengths in the mode-authorized audit. Never persist the full idempotency key, summary/body payload, or raw request in ordinary mode. A matching ordinary digest audit is terminal before generation: emit no instruction or fence, append no duplicate audit, and make no replay, payload, delivery, or regeneration claim.
+
+Exact replay is permitted only when an adapter/host provides authenticated provenance rooted outside repository-controlled data and an already authorized out-of-repository full-payload sink. In that mode, authenticate and validate the stored payload before current-state comparison, emit exact stored artifact bytes only for a valid match, append no duplicate state, and make no delivery guarantee.
+
+Normalize the summary as its exact UTF-8 preamble bytes with LF line endings, no trailing spaces, and one final LF. Derive and validate both artifacts and their audit/checkpoint binding from the same snapshot.
 
 ## Summary Derivation
 
