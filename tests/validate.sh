@@ -240,7 +240,7 @@ try:
         fail("release results runner")
     exact_keys(document["mode"], MODE_FIELDS, "release results mode")
     if document["mode"] != {
-        "session_isolation": "one new codex exec --ephemeral process per case",
+        "session_isolation": "each session fresh ephemeral process; ordinary-matching-terminal exactly two sequential sessions",
         "fixture_isolation": "one disposable Git repository per case",
         "context": "fresh",
     }:

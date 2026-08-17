@@ -296,7 +296,7 @@ git diff --check
 
 `tests/validate.sh` 能证明静态契约 marker、固定 schema/vector 和 mutation oracle，但不执行模型行为，也不证明 skill 在真实 tracker 上完成端到端输出。对于 `skill/SKILL.md` 的行为性修改，必须另行使用 fresh-context 对 eval corpus 和相关 edge scenarios 做 forward evaluations，并记录 normalized result；适用覆盖包括 mixed state、summary-before-fence、整份响应恰好一个 fence、same-snapshot binding、完整 open inventory、gate deduplication/unknown、localization/absence、injection/redaction、non-executable，以及普通 tracker first delivery、认证 exact replay、corruption fail-closed、request/snapshot drift 和 negative delivery boundary。此外还须覆盖普通实现请求不误触发、路径逃逸、并发冲突、plugin prerequisites、提交权限拆分和 fence safety。静态向量与 fresh-context eval 不能互相替代。
 
-`tests/run-forward-evals.sh` 先为整个 run 冻结一份只读 snapshot，再为每个 case 创建独立 disposable Git repository 并启动新的 `codex exec --ephemeral` 进程。runner 自动核对输出结构、audit artifact binding、lock、权限和 Git/application 副作用；publisher 只复制规范化后的 repository eval assets。示例：
+`tests/run-forward-evals.sh` 先为整个 run 冻结一份只读 snapshot，再为每个 case 创建独立 disposable Git repository。每个 session 都由新的 `codex exec --ephemeral` 进程执行；`ordinary-matching-terminal` 恰好包含两个串行 session，其余 case 各包含一个 session。runner 自动核对输出结构、audit artifact binding、lock、权限和 Git/application 副作用；publisher 只复制规范化后的 repository eval assets。示例：
 
 ```bash
 eval_root=$(mktemp -d /tmp/gci-forward-evals-XXXXXX)
