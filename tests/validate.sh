@@ -4,6 +4,7 @@ set -eu
 repo_root=$(CDPATH= cd "$(dirname "$0")/.." && pwd -P)
 skill_dir=$repo_root/skill
 installer=$repo_root/install.sh
+forward_eval_runner=$repo_root/tests/run-forward-evals.sh
 skill_name=generate-codex-instructions
 
 fail() {
@@ -29,19 +30,169 @@ fi
 
 python3 "$validator" "$skill_dir" >/dev/null
 sh -n "$installer"
+sh -n "$forward_eval_runner"
 if command -v dash >/dev/null 2>&1; then
     dash -n "$installer"
+    dash -n "$forward_eval_runner"
 fi
 if command -v bash >/dev/null 2>&1; then
     bash --posix -n "$installer"
+    bash --posix -n "$forward_eval_runner"
 fi
 if command -v shellcheck >/dev/null 2>&1; then
     shellcheck -s sh "$installer"
+    shellcheck -s sh "$forward_eval_runner"
 fi
 for eval_json in "$repo_root"/evals/*.json
 do
     python3 -m json.tool "$eval_json" >/dev/null
 done
+
+python3 - "$repo_root/VERSION" "$repo_root/skill/SKILL.md" "$repo_root/evals" <<'PY'
+import hashlib
+import json
+from pathlib import Path
+import re
+import sys
+
+
+class ResultFailure(Exception):
+    pass
+
+
+def fail(message):
+    raise ResultFailure(message)
+
+
+def reject_duplicates(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            fail("release results duplicate key")
+        result[key] = value
+    return result
+
+
+def exact_keys(value, keys, label):
+    if not isinstance(value, dict) or tuple(value) != tuple(keys):
+        fail(label + " fields")
+
+
+def string_list(value, label):
+    if not isinstance(value, list) or not value or any(
+        not isinstance(item, str) or not item.strip() for item in value
+    ):
+        fail(label)
+
+
+VERSION_RE = re.compile(r"(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)")
+DATE_RE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}")
+RESULT_FIELDS = (
+    "schema_version", "release_candidate", "date", "runner", "mode",
+    "current_skill_sha256", "post_evaluation_skill_sha256", "cases",
+    "limitations",
+)
+RUNNER_FIELDS = ("binary", "version", "command_template")
+MODE_FIELDS = ("session_isolation", "fixture_isolation", "context")
+CASE_FIELDS = (
+    "id", "outcome", "session_command", "fixture", "evidence",
+    "limitations",
+)
+REQUIRED_FORWARD_CASE_IDS = {
+    "chinese-mixed-state-first-delivery",
+    "english-localization",
+    "ordinary-matching-terminal",
+    "complete-plan",
+    "insufficient-information",
+    "generic-blocker",
+    "tracker-injection",
+    "authenticated-exact-replay-capability-unavailable",
+}
+COMMAND_TEMPLATE = (
+    "codex exec --ephemeral --sandbox workspace-write "
+    "--add-dir <disposable-fixture> "
+    "-C <disposable-fixture> -o <evaluator-output> -"
+)
+
+
+try:
+    version = Path(sys.argv[1]).read_text(encoding="utf-8").strip()
+    if VERSION_RE.fullmatch(version) is None:
+        fail("release version")
+    eval_dir = Path(sys.argv[3])
+    result_files = sorted(eval_dir.glob("results-v*.json"))
+    parsed_versions = []
+    for path in result_files:
+        match = re.fullmatch(r"results-v(.+)\.json", path.name)
+        if match is None or VERSION_RE.fullmatch(match.group(1)) is None:
+            fail("release results filename")
+        parsed_versions.append((tuple(int(part) for part in match.group(1).split(".")), path))
+    if not parsed_versions or max(parsed_versions)[1].name != "results-v" + version + ".json":
+        fail("release results latest version")
+    current_paths = [path for _, path in parsed_versions if path.name == "results-v" + version + ".json"]
+    if len(current_paths) != 1:
+        fail("release results current cardinality")
+    with current_paths[0].open(encoding="utf-8") as source:
+        document = json.load(source, object_pairs_hook=reject_duplicates)
+    if not isinstance(document, dict):
+        fail("release results fields")
+    current_skill_sha256 = hashlib.sha256(Path(sys.argv[2]).read_bytes()).hexdigest()
+    recorded_current = document.get("current_skill_sha256", document.get("evaluated_skill_sha256"))
+    if recorded_current != current_skill_sha256:
+        fail("release results current skill sha256")
+    if document.get("post_evaluation_skill_sha256") != current_skill_sha256:
+        fail("release results post skill sha256")
+
+    exact_keys(document, RESULT_FIELDS, "release results")
+    if document["schema_version"] != 2 or document["release_candidate"] != version:
+        fail("release results identity")
+    if not isinstance(document["date"], str) or DATE_RE.fullmatch(document["date"]) is None:
+        fail("release results date")
+    exact_keys(document["runner"], RUNNER_FIELDS, "release results runner")
+    if (
+        document["runner"]["binary"] != "codex"
+        or not isinstance(document["runner"]["version"], str)
+        or not document["runner"]["version"].startswith("codex-cli ")
+        or document["runner"]["command_template"] != COMMAND_TEMPLATE
+    ):
+        fail("release results runner")
+    exact_keys(document["mode"], MODE_FIELDS, "release results mode")
+    if document["mode"] != {
+        "session_isolation": "one new codex exec --ephemeral process per case",
+        "fixture_isolation": "one disposable Git repository per case",
+        "context": "fresh",
+    }:
+        fail("release results mode")
+    if not isinstance(document["cases"], list):
+        fail("release results cases")
+    case_ids = set()
+    for case in document["cases"]:
+        exact_keys(case, CASE_FIELDS, "release results case")
+        if (
+            not isinstance(case["id"], str)
+            or not case["id"].strip()
+            or case["id"] in case_ids
+            or case["outcome"] != "pass"
+            or case["session_command"] != COMMAND_TEMPLATE
+            or not isinstance(case["fixture"], str)
+            or not case["fixture"].strip()
+        ):
+            fail("release results case")
+        string_list(case["evidence"], "release results case evidence")
+        string_list(case["limitations"], "release results case limitations")
+        case_ids.add(case["id"])
+    if case_ids != REQUIRED_FORWARD_CASE_IDS:
+        fail("release results required cases")
+    unavailable = next(
+        case for case in document["cases"]
+        if case["id"] == "authenticated-exact-replay-capability-unavailable"
+    )
+    if not any("failed closed without replay" in item for item in unavailable["evidence"]):
+        fail("release results unavailable replay evidence")
+    string_list(document["limitations"], "release results limitations")
+except (OSError, UnicodeError, json.JSONDecodeError, ResultFailure) as error:
+    raise SystemExit("FAIL: " + str(error))
+PY
 
 python3 - "$repo_root/evals/replay-vectors.json" "$repo_root/evals/cases.json" \
     "$repo_root/docs/superpowers/specs/2026-08-16-plan-convergence-output-design.md" <<'PY'

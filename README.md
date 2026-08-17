@@ -46,9 +46,10 @@ skill/SKILL.md                  # Codex 实际读取的 skill 契约
 skill/agents/openai.yaml        # Codex skill metadata / invocation policy
 install.sh                      # 一键安装脚本
 tests/validate.sh               # 本地验证入口
+tests/run-forward-evals.sh      # disposable fixture 前向行为评测 runner
 evals/cases.json                # 前向行为评估语料
 evals/replay-vectors.json       # 版本化重放协议的确定性字节/schema 向量
-evals/results-v0.3.0.json       # 已记录的评估结果
+evals/results-v0.4.0.json       # 当前版本的 fresh-session 评估结果
 VERSION                         # 当前仓库版本
 .codex/development/             # 本仓库自身开发进度
 README.md                       # 本指南
@@ -276,8 +277,10 @@ git diff --check
 
 - `skill-creator` 的 quick validation。
 - `install.sh` 的 `sh` / `dash` / `bash --posix` 语法检查。
+- `tests/run-forward-evals.sh` 的 `sh` / `dash` / `bash --posix` 语法检查。
 - 可用时运行 `shellcheck`。
 - 校验 `evals/*.json` 可解析。
+- 要求 `VERSION` 对应唯一最新的 `evals/results-v<version>.json`，且结果记录的评测前后 skill SHA-256 都精确匹配当前 `skill/SKILL.md`；同时锁定结果 schema、runner、fresh/disposable mode 和必需 case IDs。
 - 检查 `SKILL.md` 中关键安全和行为契约 marker。
 - 校验 eval JSON 可解析、required case IDs 完整，并以 `evals/replay-vectors.json` 对 canonical request/idempotency/snapshot bytes、identity binding、component order/containment、artifact normalization、Base64、length/hash、Unicode/control edge cases 和 checkpoint envelope mutation 做确定性 oracle 校验。
 - 检查 runtime bundle 只包含两个文件。
@@ -286,12 +289,20 @@ git diff --check
 
 `tests/validate.sh` 能证明静态契约 marker、固定 schema/vector 和 mutation oracle，但不执行模型行为，也不证明 skill 在真实 tracker 上完成端到端输出。对于 `skill/SKILL.md` 的行为性修改，必须另行使用 fresh-context 对 eval corpus 和相关 edge scenarios 做 forward evaluations，并记录 normalized result；适用覆盖包括 mixed state、summary-before-fence、整份响应恰好一个 fence、same-snapshot binding、完整 open inventory、gate deduplication/unknown、localization/absence、injection/redaction、non-executable，以及普通 tracker first delivery、认证 exact replay、corruption fail-closed、request/snapshot drift 和 negative delivery boundary。此外还须覆盖普通实现请求不误触发、路径逃逸、并发冲突、plugin prerequisites、提交权限拆分和 fence safety。静态向量与 fresh-context eval 不能互相替代。
 
+`tests/run-forward-evals.sh` 每次为一个 case 创建独立 disposable Git repository，并启动新的 `codex exec --ephemeral` 进程。runner 只物化 fixture、prompt、模型输出和 evaluator-local log；评测者仍须逐 case 核对输出结构、audit、lock、权限和 Git/application 副作用，再把归一化证据写入当前版本结果文件。示例：
+
+```bash
+eval_root=$(mktemp -d /tmp/gci-forward-evals-XXXXXX)
+tests/run-forward-evals.sh chinese-mixed-state-first-delivery "$eval_root"
+```
+
 ## 版本与发布
 
-当前版本由 `VERSION` 管理。发布版本时保持三件事一致：
+当前版本由 `VERSION` 管理。发布版本时保持四件事一致：
 
 - `VERSION`
-- Git annotated tag，例如 `v0.3.0`
+- 唯一最新的 `evals/results-v<version>.json`，其中 current/post skill SHA-256 都等于当前 `skill/SKILL.md`
+- Git annotated tag，例如 `v0.4.0`
 - 安装后的 skill runtime 内容
 
 发布前确认：
@@ -309,7 +320,7 @@ git status --short
 提交必须聚焦，显式暂存路径，不使用 `git add .`。推荐模式：
 
 ```bash
-git add -- skill/SKILL.md skill/agents/openai.yaml tests/validate.sh evals/cases.json VERSION README.md
+git add -- skill/SKILL.md skill/agents/openai.yaml tests/validate.sh tests/run-forward-evals.sh evals/cases.json evals/results-v0.4.0.json VERSION README.md
 git diff --cached --check
 git commit -m "docs: add development guide"
 ```
