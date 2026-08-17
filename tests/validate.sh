@@ -750,11 +750,25 @@ REQUIRED_CASE_CAPABILITIES = {
     "plan-convergence-preamble": (
         "print a sanitized plain-text plan summary before exactly one reusable text instruction block",
         "show the validated tracker revision branch HEAD and status fingerprint",
+        "require plan status fingerprint to be exactly sha256 colon plus 64 lowercase hexadecimal digits while retaining full status-canon validation",
         "show exact canonical unit-state and gate-status counts",
-        "identify U2 separately and list U2 U3 and U4 in governing tracker order",
-        "count every unique registry gate globally but list only unpassed or unknown gates referenced by non-Complete units, so G2/G3 appear once and closed-only G4 does not",
-        "show U4's blocker and recovery condition",
+        "identify U2 separately and list U2 U3 and U4 in normalized UTF-8 ID byte order with every per-unit required gate ID and localized status",
+        "derive the exact open-gate union from per-unit gate annotations and require bullets in canonical ID order, so G2/G3 appear once and closed-only G4 does not",
+        "show B1 and B2 separately with blocker ID owner unit owner claim detail and recovery even though their detail and recovery match",
         "render claimless Ready as localized unclaimed and valid claimless open Blocked or Failed as localized none, never select Blocked or Failed, and reject missing blank or duplicate active claims before any executable template",
+        "take trusted aggregate counts plus every open-unit detail without requiring Complete-unit detail, and require each non-Complete aggregate to equal its open-detail count",
+        "accept an empty global required-gate registry with zero counts and localized none, without inventing gates",
+        "bind every nonnull claim and active blocker through unique top-level ownership/evidence registries, rejecting duplicate missing unreferenced or cross-unit evidence",
+        "reject a stored duplicate non-absence claim across open units even when all owner blocker claim fields are synchronized and current request has valid drift",
+        "reject exact reserved absence tokens none unclaimed 无 未认领 as nonnull unit or claim-evidence owner values before summary while preserving claimless localized rendering",
+        "accept a normal ownership claim and round-trip its generated summary through stored intrinsic grammar",
+        "localize every state claim required-gates next-step next-convergence gate-status gate-detail blocker-id owner detail recovery field label plus overall gate status unclaimed and none to Chinese or English while preserving canonical unit states and tracker fact text",
+        "bind an independent exact-byte nonempty English oracle with Unpassed and Unknown gates plus distinct B1 B2 blocker identities, rejecting deleted changed or mixed Chinese field labels",
+        "reject the exact pipe-field separator in every rendered plan scalar and comma or colon in gate annotation IDs before summary while accepting unspaced pipe and ordinary punctuation elsewhere",
+        "allow controlled non-rendered ownership and blocker evidence containing backticks and the pipe-field separator while proving normalized summary bytes and stored round-trip are unchanged",
+        "validate fresh current in fixed request status-dual-encoder idempotency snapshot plan ownership/lock order before stored comparison and report the first combined error",
+        "validate stored Chinese or English summary scalar and open-unit gate blocker tokens intrinsically before current drift rejecting arbitrary mixed missing duplicate malformed or reordered lines including a removed referenced G3 or swapped U3 U4",
+        "compare stored key and snapshot immediately after ownership/lock before any current artifact phase, classify valid drift first, then validate fresh-generation artifacts while exact match rejects invalid artifact binding",
         PLAN_CONVERGENCE_ORDINARY_EXPECTATION,
         PLAN_CONVERGENCE_TERMINAL_EXPECTATION,
         PLAN_CONVERGENCE_AUTHENTICATED_EXPECTATION,
@@ -780,6 +794,23 @@ def validate_worktree(value, label):
 def validate_scalar(value, label):
     if not strict_utf8_encodable(value) or not value.strip() or value != value.strip() or "\n" in value or "\r" in value or any(ord(char) < 32 or 127 <= ord(char) <= 159 or unicodedata.category(char) in FORBIDDEN_CATEGORIES for char in value):
         fail(label + " scalar")
+
+
+def validate_rendered_scalar(value, label):
+    validate_scalar(value, label)
+    if " | " in value or "`" in value:
+        fail(label + " rendered delimiter")
+
+
+def validate_gate_annotation_id(value, label):
+    validate_rendered_scalar(value, label)
+    if "," in value or ":" in value:
+        fail(label + " gate delimiter")
+
+
+def validate_plan_status_fingerprint(value):
+    if not isinstance(value, str) or re.fullmatch(r"sha256:[0-9a-f]{64}", value) is None:
+        fail("plan status fingerprint")
 
 
 def validate_top_relative_path(value, label):
@@ -1804,10 +1835,38 @@ def expect_ordinary_classification_failure(name, audits, current, expected):
     fail("ordinary classification mutation accepted: " + name)
 
 
-def render_claim(unit):
+PLAN_LANGUAGES = ("zh-CN", "en")
+RESERVED_CLAIM_VALUES = frozenset(("none", "unclaimed", "无", "未认领"))
+OVERALL_SEMANTICS = (
+    "insufficient-information", "converged", "partially-blocked", "in-progress",
+)
+
+
+def canonical_id_order(values):
+    return values == sorted(values, key=lambda value: value.encode("utf-8"))
+
+
+def render_claim(unit, language):
     if unit["claim"] is not None:
         return unit["claim"]
-    return "未认领" if unit["state"] == "Ready" else "无"
+    if language == "zh-CN":
+        return "未认领" if unit["state"] == "Ready" else "无"
+    return "unclaimed" if unit["state"] == "Ready" else "none"
+
+
+def render_required_gates(unit, projection, language):
+    if not unit["required_gate_refs"]:
+        return "无" if language == "zh-CN" else "none"
+    gate_by_id = {gate["id"]: gate for gate in projection["required_gates"]}
+    labels = (
+        {"Passed": "已通过", "Unpassed": "未通过", "Unknown": "未知"}
+        if language == "zh-CN"
+        else {"Passed": "Passed", "Unpassed": "Unpassed", "Unknown": "Unknown"}
+    )
+    return ",".join(
+        gate_id + ":" + labels[gate_by_id[gate_id]["status"]]
+        for gate_id in unit["required_gate_refs"]
+    )
 
 
 def build_plan_summary(projection):
@@ -1815,52 +1874,97 @@ def build_plan_summary(projection):
     unit_counts = projection["unit_state_counts"]
     gate_counts = projection["gate_status_counts"]
     units = projection["units"]
+    language = projection["request_language"]
     selected = next(unit for unit in units if unit["id"] == projection["selected_unit_id"])
-    lines = [
-        "开发计划收敛情况",
-        "- 快照：tracker revision={tracker_revision} | branch={branch} | HEAD={head} | status fingerprint={status_fingerprint}".format(**identity),
-        "- 整体状态：" + projection["overall"],
-        "- 单元统计：" + " | ".join(state + "=" + str(unit_counts[state]) for state in UNIT_COUNT_ORDER),
-        "- Gate 统计：已通过={} | 未通过={} | 未知={}".format(gate_counts["Passed"], gate_counts["Unpassed"], gate_counts["Unknown"]),
-        "",
-        "整体开放进度",
-        "- 本次选中单元：{id} | state={state} | claim={claim} | next step={next_condition}".format(**dict(selected, claim=render_claim(selected))),
-        "- 全部未完成单元：",
-    ]
-    for unit in units:
-        if unit["state"] == "Complete":
-            continue
-        lines.append("  - {id} | state={state} | claim={claim} | next convergence condition={next_condition}".format(**dict(unit, claim=render_claim(unit))))
-    lines.append("- 开放 Gate：")
-    gate_labels = {"Unpassed": "未通过", "Unknown": "未知"}
-    open_gate_ids = {reference for unit in units if unit["state"] != "Complete" for reference in unit["required_gate_refs"]}
+    if language == "en":
+        overall_labels = {
+            "insufficient-information": "Insufficient information",
+            "converged": "Converged",
+            "partially-blocked": "Partially blocked",
+            "in-progress": "In progress",
+        }
+        lines = [
+            "Development plan convergence",
+            "- Snapshot: tracker revision={tracker_revision} | branch={branch} | HEAD={head} | status fingerprint={status_fingerprint}".format(**identity),
+            "- Overall status: " + overall_labels[projection["overall_semantic"]],
+            "- Unit counts: " + " | ".join(state + "=" + str(unit_counts[state]) for state in UNIT_COUNT_ORDER),
+            "- Gate counts: Passed={} | Unpassed={} | Unknown={}".format(gate_counts["Passed"], gate_counts["Unpassed"], gate_counts["Unknown"]),
+            "",
+            "Overall open progress",
+            "- Selected unit: {id} | state={state} | claim={claim} | required gates={required_gates} | next step={next_condition}".format(**dict(selected, claim=render_claim(selected, language), required_gates=render_required_gates(selected, projection, language))),
+            "- All open units:",
+        ]
+        for unit in units:
+            lines.append("  - {id} | state={state} | claim={claim} | required gates={required_gates} | next convergence condition={next_condition}".format(**dict(unit, claim=render_claim(unit, language), required_gates=render_required_gates(unit, projection, language))))
+        gate_heading = "- Open gates:"
+        blocker_heading = "- Blockers:"
+        none_label = "none"
+        gate_labels = {"Unpassed": "Unpassed", "Unknown": "Unknown"}
+    else:
+        overall_labels = {
+            "insufficient-information": "信息不足",
+            "converged": "已收敛",
+            "partially-blocked": "部分受阻",
+            "in-progress": "进行中",
+        }
+        lines = [
+            "开发计划收敛情况",
+            "- 快照：tracker revision={tracker_revision} | branch={branch} | HEAD={head} | status fingerprint={status_fingerprint}".format(**identity),
+            "- 整体状态：" + overall_labels[projection["overall_semantic"]],
+            "- 单元统计：" + " | ".join(state + "=" + str(unit_counts[state]) for state in UNIT_COUNT_ORDER),
+            "- Gate 统计：已通过={} | 未通过={} | 未知={}".format(gate_counts["Passed"], gate_counts["Unpassed"], gate_counts["Unknown"]),
+            "",
+            "整体开放进度",
+            "- 本次选中单元：{id} | 状态={state} | 认领={claim} | 所需 Gate={required_gates} | 下一步={next_condition}".format(**dict(selected, claim=render_claim(selected, language), required_gates=render_required_gates(selected, projection, language))),
+            "- 全部未完成单元：",
+        ]
+        for unit in units:
+            lines.append("  - {id} | 状态={state} | 认领={claim} | 所需 Gate={required_gates} | 下一收敛条件={next_condition}".format(**dict(unit, claim=render_claim(unit, language), required_gates=render_required_gates(unit, projection, language))))
+        gate_heading = "- 开放 Gate："
+        blocker_heading = "- 阻塞项："
+        none_label = "无"
+        gate_labels = {"Unpassed": "未通过", "Unknown": "未知"}
+    lines.append(gate_heading)
+    open_gate_ids = {reference for unit in units for reference in unit["required_gate_refs"]}
     rendered_gate = False
     for gate in projection["required_gates"]:
         if gate["id"] in open_gate_ids and gate["status"] != "Passed":
-            lines.append("  - {id} | status={status} | detail={detail}".format(**dict(gate, status=gate_labels[gate["status"]])))
+            if language == "zh-CN":
+                lines.append("  - {id} | 状态={status} | 详情={detail}".format(**dict(gate, status=gate_labels[gate["status"]])))
+            else:
+                lines.append("  - {id} | status={status} | detail={detail}".format(**dict(gate, status=gate_labels[gate["status"]])))
             rendered_gate = True
     if not rendered_gate:
-        lines.append("  - 无")
-    lines.append("- 阻塞项：")
-    blockers = []
-    for unit in units:
-        if unit["blocker"] is not None and (unit["blocker"], unit["recovery"]) not in blockers:
-            blockers.append((unit["blocker"], unit["recovery"]))
-    if blockers:
-        for blocker, recovery in blockers:
-            lines.append("  - " + blocker + " | recovery condition=" + recovery)
+        lines.append("  - " + none_label)
+    lines.append(blocker_heading)
+    if projection["blockers"]:
+        unit_by_id = {unit["id"]: unit for unit in units}
+        for blocker in projection["blockers"]:
+            owner = unit_by_id[blocker["unit_id"]]
+            if language == "zh-CN":
+                lines.append(
+                    "  - 阻塞 ID={id} | 所属单元={unit_id} | 认领={claim} | 详情={detail} | 恢复条件={recovery}".format(
+                        **dict(blocker, claim=render_claim(owner, language))
+                    )
+                )
+            else:
+                lines.append(
+                    "  - blocker id={id} | owner unit={unit_id} | claim={claim} | detail={detail} | recovery condition={recovery}".format(
+                        **dict(blocker, claim=render_claim(owner, language))
+                    )
+                )
     else:
-        lines.append("  - 无")
+        lines.append("  - " + none_label)
     return "\n".join(lines) + "\n"
 
 
 def classify_plan_overall(unit_counts, gate_counts):
     open_count = sum(unit_counts[state] for state in UNIT_STATES if state != "Complete")
     if open_count == 0:
-        return "信息不足" if gate_counts["Unpassed"] or gate_counts["Unknown"] else "已收敛"
+        return "insufficient-information" if gate_counts["Unpassed"] or gate_counts["Unknown"] else "converged"
     if unit_counts["Blocked"] or unit_counts["Failed"]:
-        return "部分受阻"
-    return "进行中"
+        return "partially-blocked"
+    return "in-progress"
 
 
 def build_instruction_body(vector):
@@ -1936,16 +2040,21 @@ def validate_instruction_body(vector, body):
 
 
 def validate_plan_projection(projection, snapshot, idempotency):
-    exact_keys(projection, ("version", "snapshot_identity", "overall", "unit_state_counts", "gate_status_counts", "selected_unit_id", "units", "required_gates"), "plan projection")
-    if projection["version"] != "plan-projection-v1":
+    exact_keys(projection, ("version", "request_language", "snapshot_identity", "overall_semantic", "unit_state_counts", "gate_status_counts", "selected_unit_id", "units", "required_gates", "claim_evidence", "blockers"), "plan projection")
+    if projection["version"] != "plan-projection-v2":
         fail("plan projection version")
+    if projection["request_language"] not in PLAN_LANGUAGES:
+        fail("plan request language")
     identity = projection["snapshot_identity"]
     exact_keys(identity, ("physical_worktree", "branch", "head", "tracker_revision", "status_fingerprint"), "plan snapshot identity")
     validate_worktree(identity["physical_worktree"], "plan")
+    validate_rendered_scalar(identity["branch"], "plan branch")
     validate_branch(identity["branch"])
+    validate_rendered_scalar(identity["head"], "plan head")
     validate_oid(identity["head"], "plan")
-    validate_scalar(identity["tracker_revision"], "plan revision")
-    if identity != {name: snapshot["fields"][name] for name in identity}:
+    validate_rendered_scalar(identity["tracker_revision"], "plan revision")
+    validate_plan_status_fingerprint(identity["status_fingerprint"])
+    if snapshot is not None and identity != {name: snapshot["fields"][name] for name in identity}:
         fail("plan snapshot binding")
     exact_keys(projection["unit_state_counts"], UNIT_STATES, "unit counts")
     exact_keys(projection["gate_status_counts"], GATE_STATES, "gate counts")
@@ -1955,69 +2064,149 @@ def validate_plan_projection(projection, snapshot, idempotency):
         fail("plan units")
     unit_ids = []
     active_claims = set()
-    calculated = {state: 0 for state in UNIT_STATES}
+    calculated_open = {state: 0 for state in UNIT_STATES if state != "Complete"}
     for unit in projection["units"]:
-        exact_keys(unit, ("id", "state", "claim", "next_condition", "required_gate_refs", "blocker", "recovery"), "plan unit")
-        for name in ("id", "state", "next_condition"):
-            validate_scalar(unit[name], "plan unit " + name)
-        for name in ("blocker", "recovery"):
-            if unit[name] is not None:
-                validate_scalar(unit[name], "plan unit " + name)
-        if unit["state"] not in UNIT_STATES:
+        exact_keys(unit, ("id", "state", "claim", "next_condition", "required_gate_refs", "active_blocker_refs"), "plan unit")
+        validate_rendered_scalar(unit["id"], "plan unit id")
+        validate_scalar(unit["state"], "plan unit state")
+        validate_rendered_scalar(unit["next_condition"], "plan unit next_condition")
+        if unit["state"] not in calculated_open:
             fail("plan unit state")
         if unit["state"] in ("Claimed", "In Progress") and (
             not isinstance(unit["claim"], str) or not unit["claim"].strip()
         ):
             fail("plan active claim")
         if unit["claim"] is not None:
-            validate_scalar(unit["claim"], "plan unit claim")
-            if unit["state"] != "Complete":
-                if unit["claim"] in active_claims:
-                    fail("duplicate active claim")
-                active_claims.add(unit["claim"])
-        if unit["state"] == "Blocked" and (unit["blocker"] is None or unit["recovery"] is None):
-            fail("blocked recovery")
-        if unit["state"] != "Blocked" and (unit["blocker"] is not None or unit["recovery"] is not None):
-            fail("nonblocked blocker")
+            validate_rendered_scalar(unit["claim"], "plan unit claim")
+            if unit["claim"] in RESERVED_CLAIM_VALUES:
+                fail("plan claim reserved")
+            if unit["claim"] in active_claims:
+                fail("duplicate active claim")
+            active_claims.add(unit["claim"])
         if not isinstance(unit["required_gate_refs"], list):
             fail("plan gate references")
         for gate_id in unit["required_gate_refs"]:
-            validate_scalar(gate_id, "plan gate reference")
+            validate_gate_annotation_id(gate_id, "plan gate reference")
         if len(unit["required_gate_refs"]) != len(set(unit["required_gate_refs"])):
             fail("plan gate references")
-        calculated[unit["state"]] += 1
+        if not canonical_id_order(unit["required_gate_refs"]):
+            fail("plan gate reference order")
+        if not isinstance(unit["active_blocker_refs"], list):
+            fail("plan blocker references")
+        for blocker_id in unit["active_blocker_refs"]:
+            validate_rendered_scalar(blocker_id, "plan blocker reference")
+        if len(unit["active_blocker_refs"]) != len(set(unit["active_blocker_refs"])):
+            fail("plan blocker references")
+        if not canonical_id_order(unit["active_blocker_refs"]):
+            fail("plan blocker reference order")
+        if unit["state"] == "Blocked" and not unit["active_blocker_refs"]:
+            fail("blocked recovery")
+        if unit["state"] != "Blocked" and unit["active_blocker_refs"]:
+            fail("nonblocked blocker")
+        calculated_open[unit["state"]] += 1
         unit_ids.append(unit["id"])
     if len(unit_ids) != len(set(unit_ids)):
         fail("duplicate unit")
-    if calculated != projection["unit_state_counts"]:
+    if not canonical_id_order(unit_ids):
+        fail("plan unit order")
+    if any(
+        calculated_open[state] != projection["unit_state_counts"][state]
+        for state in calculated_open
+    ):
         fail("unit counts")
-    validate_scalar(projection["selected_unit_id"], "selected unit")
-    if projection["selected_unit_id"] not in unit_ids or projection["selected_unit_id"] != idempotency["fields"]["unit_id"]:
+    validate_rendered_scalar(projection["selected_unit_id"], "selected unit")
+    if projection["selected_unit_id"] not in unit_ids or (
+        idempotency is not None
+        and projection["selected_unit_id"] != idempotency["fields"]["unit_id"]
+    ):
         fail("selected binding")
     selected = next(unit for unit in projection["units"] if unit["id"] == projection["selected_unit_id"])
     if selected["state"] not in ("Ready", "Claimed", "In Progress"):
         fail("selected executable state")
-    expected_overall = classify_plan_overall(calculated, projection["gate_status_counts"])
-    if projection["overall"] != expected_overall:
+    expected_overall = classify_plan_overall(projection["unit_state_counts"], projection["gate_status_counts"])
+    if projection["overall_semantic"] not in OVERALL_SEMANTICS or projection["overall_semantic"] != expected_overall:
         fail("plan overall")
-    if not isinstance(projection["required_gates"], list) or not projection["required_gates"]:
+    if not isinstance(projection["required_gates"], list):
         fail("plan gates")
     gate_counts = {state: 0 for state in GATE_STATES}
     gate_ids = set()
+    gate_id_order = []
     for gate in projection["required_gates"]:
         exact_keys(gate, ("id", "status", "detail"), "plan gate")
-        for name in ("id", "status", "detail"):
-            validate_scalar(gate[name], "plan gate " + name)
+        validate_gate_annotation_id(gate["id"], "plan gate id")
+        validate_scalar(gate["status"], "plan gate status")
+        validate_rendered_scalar(gate["detail"], "plan gate detail")
         if gate["status"] not in GATE_STATES:
             fail("plan gate status")
         gate_counts[gate["status"]] += 1
         if gate["id"] in gate_ids:
             fail("duplicate required gate")
         gate_ids.add(gate["id"])
+        gate_id_order.append(gate["id"])
+    if not canonical_id_order(gate_id_order):
+        fail("plan gate order")
     if gate_counts != projection["gate_status_counts"]:
         fail("gate counts")
     if any(reference not in gate_ids for unit in projection["units"] for reference in unit["required_gate_refs"]):
         fail("unknown gate reference")
+
+    if not isinstance(projection["claim_evidence"], list):
+        fail("claim evidence")
+    evidence_by_unit = {}
+    evidence_unit_order = []
+    for evidence in projection["claim_evidence"]:
+        exact_keys(evidence, ("unit_id", "claim", "evidence"), "claim evidence")
+        for name in ("unit_id", "claim"):
+            validate_rendered_scalar(evidence[name], "claim evidence " + name)
+        validate_scalar(evidence["evidence"], "claim evidence evidence")
+        if evidence["claim"] in RESERVED_CLAIM_VALUES:
+            fail("plan claim reserved")
+        if evidence["unit_id"] in evidence_by_unit:
+            fail("duplicate claim evidence")
+        evidence_by_unit[evidence["unit_id"]] = evidence
+        evidence_unit_order.append(evidence["unit_id"])
+    if not canonical_id_order(evidence_unit_order):
+        fail("claim evidence order")
+    claimed_units = {unit["id"]: unit for unit in projection["units"] if unit["claim"] is not None}
+    if set(evidence_by_unit) != set(claimed_units) or any(
+        evidence_by_unit[unit_id]["claim"] != unit["claim"]
+        for unit_id, unit in claimed_units.items()
+    ):
+        fail("claim evidence binding")
+
+    if not isinstance(projection["blockers"], list):
+        fail("blocker registry")
+    blockers_by_id = {}
+    blocker_id_order = []
+    for blocker in projection["blockers"]:
+        exact_keys(blocker, ("id", "unit_id", "detail", "recovery", "evidence"), "blocker")
+        for name in ("id", "unit_id", "detail", "recovery"):
+            validate_rendered_scalar(blocker[name], "blocker " + name)
+        validate_scalar(blocker["evidence"], "blocker evidence")
+        if blocker["id"] in blockers_by_id:
+            fail("duplicate blocker")
+        blockers_by_id[blocker["id"]] = blocker
+        blocker_id_order.append(blocker["id"])
+    if not canonical_id_order(blocker_id_order):
+        fail("plan blocker order")
+    referenced_blockers = []
+    for unit in projection["units"]:
+        for blocker_id in unit["active_blocker_refs"]:
+            if blocker_id not in blockers_by_id or blockers_by_id[blocker_id]["unit_id"] != unit["id"]:
+                fail("blocker evidence binding")
+            referenced_blockers.append(blocker_id)
+    if len(referenced_blockers) != len(set(referenced_blockers)) or set(referenced_blockers) != set(blockers_by_id):
+        fail("blocker evidence binding")
+
+
+def expect_plan_projection_failure(name, projection, expected):
+    try:
+        validate_plan_projection(projection, None, None)
+    except VectorFailure as error:
+        if str(error) == expected:
+            return
+        fail("plan oracle mutation " + name + " failed at " + str(error))
+    fail("plan oracle mutation accepted: " + name)
 
 
 def canonical_checkpoint(checkpoint):
@@ -2183,6 +2372,325 @@ def validate_stored_idempotency(checkpoint, provenance, store, resolved_target, 
     return stored_key
 
 
+PLAN_SUMMARY_GRAMMARS = (
+    {
+        "heading": "开发计划收敛情况",
+        "snapshot": "- 快照：",
+        "overall": "- 整体状态：",
+        "overall_values": {
+            "in-progress": "进行中", "partially-blocked": "部分受阻",
+        },
+        "unit_counts": "- 单元统计：",
+        "gate_counts": "- Gate 统计：",
+        "gate_count_labels": ("已通过", "未通过", "未知"),
+        "open_heading": "整体开放进度",
+        "selected": "- 本次选中单元：",
+        "units": "- 全部未完成单元：",
+        "gates": "- 开放 Gate：",
+        "blockers": "- 阻塞项：",
+        "state_field": "状态=",
+        "claim_field": "认领=",
+        "required_gates_field": "所需 Gate=",
+        "next_step_field": "下一步=",
+        "next_condition_field": "下一收敛条件=",
+        "gate_status_field": "状态=",
+        "gate_detail_field": "详情=",
+        "blocker_id_field": "阻塞 ID=",
+        "blocker_owner_field": "所属单元=",
+        "blocker_detail_field": "详情=",
+        "blocker_recovery_field": "恢复条件=",
+        "gate_status_values": {
+            "Passed": "已通过", "Unpassed": "未通过", "Unknown": "未知",
+        },
+        "unclaimed": "未认领",
+        "none": "无",
+    },
+    {
+        "heading": "Development plan convergence",
+        "snapshot": "- Snapshot: ",
+        "overall": "- Overall status: ",
+        "overall_values": {
+            "in-progress": "In progress", "partially-blocked": "Partially blocked",
+        },
+        "unit_counts": "- Unit counts: ",
+        "gate_counts": "- Gate counts: ",
+        "gate_count_labels": ("Passed", "Unpassed", "Unknown"),
+        "open_heading": "Overall open progress",
+        "selected": "- Selected unit: ",
+        "units": "- All open units:",
+        "gates": "- Open gates:",
+        "blockers": "- Blockers:",
+        "state_field": "state=",
+        "claim_field": "claim=",
+        "required_gates_field": "required gates=",
+        "next_step_field": "next step=",
+        "next_condition_field": "next convergence condition=",
+        "gate_status_field": "status=",
+        "gate_detail_field": "detail=",
+        "blocker_id_field": "blocker id=",
+        "blocker_owner_field": "owner unit=",
+        "blocker_detail_field": "detail=",
+        "blocker_recovery_field": "recovery condition=",
+        "gate_status_values": {
+            "Passed": "Passed", "Unpassed": "Unpassed", "Unknown": "Unknown",
+        },
+        "unclaimed": "unclaimed",
+        "none": "none",
+    },
+)
+SUMMARY_INTEGER = re.compile(r"(?:0|[1-9][0-9]*)")
+
+
+def safe_summary_value(value):
+    return (
+        strict_utf8_encodable(value)
+        and bool(value)
+        and value == value.strip()
+        and " | " not in value
+        and "`" not in value
+        and not any(
+            ord(character) < 32
+            or 127 <= ord(character) <= 159
+            or unicodedata.category(character) in FORBIDDEN_CATEGORIES
+            for character in value
+        )
+    )
+
+
+def parse_summary_record(line, line_prefix, field_prefixes):
+    if not line.startswith(line_prefix):
+        return None
+    fields = line[len(line_prefix):].split(" | ")
+    if len(fields) != len(field_prefixes):
+        return None
+    values = []
+    for field, prefix in zip(fields, field_prefixes):
+        if not field.startswith(prefix):
+            return None
+        value = field[len(prefix):]
+        if not safe_summary_value(value):
+            return None
+        values.append(value)
+    return tuple(values)
+
+
+def parse_summary_counts(line, prefix, labels):
+    values = parse_summary_record(
+        line, prefix, tuple(label + "=" for label in labels)
+    )
+    if values is None or any(SUMMARY_INTEGER.fullmatch(value) is None for value in values):
+        return None
+    return {label: int(value) for label, value in zip(labels, values)}
+
+
+def summary_claim_matches_language(state, claim, grammar):
+    if claim in RESERVED_CLAIM_VALUES - {grammar["unclaimed"], grammar["none"]}:
+        return False
+    if state == "Ready":
+        return claim != grammar["none"]
+    if state in ("Claimed", "In Progress"):
+        return claim not in RESERVED_CLAIM_VALUES
+    return claim != grammar["unclaimed"]
+
+
+def parse_summary_required_gates(value, grammar):
+    if value == grammar["none"]:
+        return ()
+    statuses = set(grammar["gate_status_values"].values())
+    gates = []
+    for item in value.split(","):
+        if item.count(":") != 1:
+            return None
+        gate_id, status = item.split(":", 1)
+        if (
+            not safe_summary_value(gate_id)
+            or not safe_summary_value(status)
+            or status not in statuses
+        ):
+            return None
+        gates.append((gate_id, status))
+    gate_ids = [gate[0] for gate in gates]
+    if len(gate_ids) != len(set(gate_ids)) or not canonical_id_order(gate_ids):
+        return None
+    return tuple(gates)
+
+
+def matches_plan_summary_grammar(lines, grammar):
+    if (
+        len(lines) < 14
+        or lines[0] != grammar["heading"]
+        or lines[5] != ""
+        or lines[6] != grammar["open_heading"]
+    ):
+        return False
+    fixed_headers = (grammar["heading"], grammar["open_heading"], grammar["units"], grammar["gates"], grammar["blockers"])
+    if any(lines.count(header) != 1 for header in fixed_headers):
+        return False
+    if lines[8] != grammar["units"]:
+        return False
+    try:
+        gate_index = lines.index(grammar["gates"], 9)
+        blocker_index = lines.index(grammar["blockers"], gate_index + 1)
+    except ValueError:
+        return False
+    if gate_index == 9 or blocker_index == gate_index + 1 or blocker_index == len(lines) - 1:
+        return False
+
+    snapshot = parse_summary_record(
+        lines[1], grammar["snapshot"],
+        ("tracker revision=", "branch=", "HEAD=", "status fingerprint="),
+    )
+    if snapshot is None or re.fullmatch(r"(?:sha1:[0-9a-f]{40}|sha256:[0-9a-f]{64})", snapshot[2]) is None or re.fullmatch(r"sha256:[0-9a-f]{64}", snapshot[3]) is None:
+        return False
+    if not lines[2].startswith(grammar["overall"]):
+        return False
+    overall = lines[2][len(grammar["overall"]):]
+    if overall not in grammar["overall_values"].values():
+        return False
+    unit_counts = parse_summary_counts(lines[3], grammar["unit_counts"], UNIT_COUNT_ORDER)
+    gate_counts = parse_summary_counts(lines[4], grammar["gate_counts"], grammar["gate_count_labels"])
+    if unit_counts is None or gate_counts is None:
+        return False
+
+    selected = parse_summary_record(
+        lines[7], grammar["selected"],
+        (
+            "", grammar["state_field"], grammar["claim_field"],
+            grammar["required_gates_field"], grammar["next_step_field"],
+        ),
+    )
+    if (
+        selected is None
+        or selected[1] not in ("Ready", "Claimed", "In Progress")
+        or not summary_claim_matches_language(selected[1], selected[2], grammar)
+        or parse_summary_required_gates(selected[3], grammar) is None
+    ):
+        return False
+
+    units = []
+    for line in lines[9:gate_index]:
+        unit = parse_summary_record(
+            line, "  - ",
+            (
+                "", grammar["state_field"], grammar["claim_field"],
+                grammar["required_gates_field"], grammar["next_condition_field"],
+            ),
+        )
+        if (
+            unit is None
+            or unit[1] not in UNIT_STATES
+            or unit[1] == "Complete"
+            or not summary_claim_matches_language(unit[1], unit[2], grammar)
+            or parse_summary_required_gates(unit[3], grammar) is None
+        ):
+            return False
+        units.append(unit)
+    unit_ids = [unit[0] for unit in units]
+    if len(unit_ids) != len(set(unit_ids)) or not canonical_id_order(unit_ids):
+        return False
+    active_claims = [
+        unit[2]
+        for unit in units
+        if unit[2] not in (grammar["unclaimed"], grammar["none"])
+    ]
+    if len(active_claims) != len(set(active_claims)):
+        return False
+    calculated_open = {
+        state: sum(unit[1] == state for unit in units)
+        for state in UNIT_STATES if state != "Complete"
+    }
+    if any(calculated_open[state] != unit_counts[state] for state in calculated_open):
+        return False
+    expected_overall = (
+        "partially-blocked"
+        if unit_counts["Blocked"] or unit_counts["Failed"]
+        else "in-progress"
+    )
+    if overall != grammar["overall_values"][expected_overall]:
+        return False
+    selected_units = [unit for unit in units if unit[0] == selected[0]]
+    if len(selected_units) != 1 or selected_units[0][1:] != selected[1:]:
+        return False
+
+    required_gate_statuses = {}
+    for unit in units:
+        for gate_id, status in parse_summary_required_gates(unit[3], grammar):
+            if gate_id in required_gate_statuses and required_gate_statuses[gate_id] != status:
+                return False
+            required_gate_statuses[gate_id] = status
+    passed_label = grammar["gate_status_values"]["Passed"]
+    expected_open_gates = [
+        (gate_id, required_gate_statuses[gate_id])
+        for gate_id in sorted(required_gate_statuses, key=lambda value: value.encode("utf-8"))
+        if required_gate_statuses[gate_id] != passed_label
+    ]
+
+    gate_lines = lines[gate_index + 1:blocker_index]
+    if gate_lines == ["  - " + grammar["none"]]:
+        gates = []
+    else:
+        gates = []
+        for line in gate_lines:
+            gate = parse_summary_record(
+                line, "  - ",
+                ("", grammar["gate_status_field"], grammar["gate_detail_field"]),
+            )
+            if gate is None or gate[1] not in (
+                grammar["gate_status_values"]["Unpassed"],
+                grammar["gate_status_values"]["Unknown"],
+            ):
+                return False
+            gates.append(gate)
+        gate_ids = [gate[0] for gate in gates]
+        if len(gate_ids) != len(set(gate_ids)) or not canonical_id_order(gate_ids):
+            return False
+    if [(gate[0], gate[1]) for gate in gates] != expected_open_gates:
+        return False
+    for status, label in grammar["gate_status_values"].items():
+        count_label = grammar["gate_count_labels"][("Passed", "Unpassed", "Unknown").index(status)]
+        if sum(value == label for value in required_gate_statuses.values()) > gate_counts[count_label]:
+            return False
+
+    blocker_lines = lines[blocker_index + 1:]
+    if blocker_lines == ["  - " + grammar["none"]]:
+        blockers = []
+    else:
+        blockers = []
+        for line in blocker_lines:
+            blocker = parse_summary_record(
+                line, "  - ",
+                (
+                    grammar["blocker_id_field"], grammar["blocker_owner_field"],
+                    grammar["claim_field"], grammar["blocker_detail_field"],
+                    grammar["blocker_recovery_field"],
+                ),
+            )
+            if blocker is None:
+                return False
+            blockers.append(blocker)
+        blocker_ids = [blocker[0] for blocker in blockers]
+        if len(blocker_ids) != len(set(blocker_ids)) or not canonical_id_order(blocker_ids):
+            return False
+    unit_by_id = {unit[0]: unit for unit in units}
+    if any(
+        blocker[1] not in unit_by_id
+        or unit_by_id[blocker[1]][1] != "Blocked"
+        or blocker[2] != unit_by_id[blocker[1]][2]
+        for blocker in blockers
+    ):
+        return False
+    blocker_owner_ids = {blocker[1] for blocker in blockers}
+    blocked_unit_ids = {unit[0] for unit in units if unit[1] == "Blocked"}
+    if blocker_owner_ids != blocked_unit_ids:
+        return False
+    return True
+
+
+def has_plan_summary_structure(text):
+    lines = text.splitlines()
+    return any(matches_plan_summary_grammar(lines, grammar) for grammar in PLAN_SUMMARY_GRAMMARS)
+
+
 def validate_stored_artifact(entry, artifact_name, limits):
     exact_keys(entry, CHECKPOINT_ARTIFACT_FIELDS, "checkpoint " + artifact_name)
     if (
@@ -2211,29 +2719,8 @@ def validate_stored_artifact(entry, artifact_name, limits):
         fail("checkpoint " + artifact_name + " control")
     reject_sentinel(text, "checkpoint " + artifact_name)
     if artifact_name == "summary":
-        lines = text.splitlines()
-        headings = ("开发计划收敛情况", "整体开放进度")
-        scalar_prefixes = ("- 快照：", "- 整体状态：", "- 单元统计：", "- Gate 统计：", "- 本次选中单元：")
-        list_headers = ("- 全部未完成单元：", "- 开放 Gate：", "- 阻塞项：")
-        anchors = headings[:1] + scalar_prefixes[:4] + headings[1:] + scalar_prefixes[4:] + list_headers
-        positions = []
-        for anchor in anchors:
-            matches = [index for index, line in enumerate(lines) if line == anchor or (anchor in scalar_prefixes and line.startswith(anchor))]
-            if len(matches) != 1:
-                fail("checkpoint summary structure")
-            if anchor in scalar_prefixes and not lines[matches[0]][len(anchor):].strip():
-                fail("checkpoint summary structure")
-            positions.append(matches[0])
-        if positions != sorted(positions) or "`" in text:
+        if not has_plan_summary_structure(text):
             fail("checkpoint summary structure")
-        anchor_positions = dict(zip(anchors, positions))
-        for header in list_headers:
-            start = anchor_positions[header] + 1
-            later = [position for position in positions if position >= start]
-            end = min(later) if later else len(lines)
-            items = lines[start:end]
-            if not items or any(not line.startswith("  - ") or not line[4:].strip() for line in items):
-                fail("checkpoint summary structure")
     else:
         lines = text.splitlines()
         offsets = []
@@ -2412,7 +2899,7 @@ def reject_sentinel(text, artifact_name):
             fail(artifact_name + " " + label)
 
 
-def _validate_vector_core(vector):
+def _validate_vector_core(vector, validate_drift_artifacts):
     stored_key = validate_outer_envelope(vector)
 
     request = vector["request"]
@@ -2431,6 +2918,10 @@ def _validate_vector_core(vector):
     validate_sha256(request["sha256"], "request")
     if hashlib.sha256(request_bytes).hexdigest() != request["sha256"]:
         fail("request digest")
+
+    computed_status_fingerprint = validate_status(
+        vector["status"], vector["lock"]["owned_lock_path"]
+    )
 
     idempotency = vector["idempotency"]
     exact_keys(idempotency, ("fields", "canonical", "sha256"), "idempotency")
@@ -2497,10 +2988,6 @@ def _validate_vector_core(vector):
         fail("snapshot duplicate component")
     if component_ids != sorted(component_ids, key=lambda value: value.encode("utf-8")):
         fail("snapshot component order")
-    if vector["lock"]["tracker_identity"] not in component_ids:
-        fail("lock tracker binding")
-    validate_lock(vector["lock"], vector["provenance"])
-    computed_status_fingerprint = validate_status(vector["status"], vector["lock"]["owned_lock_path"])
     status_fingerprint = snapshot["fields"]["status_fingerprint"]
     if not isinstance(status_fingerprint, str) or re.fullmatch(r"sha256:[0-9a-f]{64}", status_fingerprint) is None or status_fingerprint != computed_status_fingerprint:
         fail("snapshot status fingerprint")
@@ -2529,6 +3016,20 @@ def _validate_vector_core(vector):
         fail("checkpoint resolved target binding")
 
     validate_plan_projection(vector["plan_projection"], snapshot, idempotency)
+
+    if vector["lock"]["tracker_identity"] not in component_ids:
+        fail("lock tracker binding")
+    validate_lock(vector["lock"], vector["provenance"])
+
+    checkpoint = checkpoint_of(vector)
+    decision = (
+        "replay"
+        if checkpoint["idempotency_key"] == idempotency["canonical"]
+        and checkpoint["snapshot_digest"] == snapshot["sha256"]
+        else "drift"
+    )
+    if decision == "drift" and not validate_drift_artifacts:
+        return decision
 
     artifacts = vector["artifacts"]
     exact_keys(artifacts, ("summary", "body"), "artifacts")
@@ -2580,7 +3081,6 @@ def _validate_vector_core(vector):
         fail("summary projection")
     validate_instruction_body(vector, artifacts["body"]["normalized"])
 
-    checkpoint = checkpoint_of(vector)
     if (
         checkpoint["idempotency_key"] == idempotency["canonical"]
         and checkpoint["snapshot_digest"] == snapshot["sha256"]
@@ -2593,23 +3093,24 @@ def _validate_vector_core(vector):
             }
             if entry != expected:
                 fail("checkpoint " + artifact_name + " binding")
+    return decision
 
 
-def validate_vector_core(vector):
+def run_vector_core(vector, validate_drift_artifacts):
     try:
-        _validate_vector_core(vector)
+        return _validate_vector_core(vector, validate_drift_artifacts)
     except VectorFailure:
         raise
     except (TypeError, AttributeError, KeyError, IndexError, UnicodeError, ValueError) as error:
         fail("vector type: " + type(error).__name__)
 
 
+def validate_vector_core(vector):
+    return run_vector_core(vector, True)
+
+
 def classify_replay(vector):
-    validate_vector_core(vector)
-    checkpoint = checkpoint_of(vector)
-    if checkpoint["idempotency_key"] == vector["idempotency"]["canonical"] and checkpoint["snapshot_digest"] == vector["snapshot_manifest"]["sha256"]:
-        return "replay"
-    return "drift"
+    return run_vector_core(vector, False)
 
 def validate_vector_coverage(vector):
     request = vector["request"]
@@ -2731,6 +3232,23 @@ def replace_artifact_text(vector, name, text):
     refresh_checkpoint(vector)
 
 
+def replace_current_artifact_text(vector, name, text):
+    vector["artifacts"][name]["input"] = text
+    vector["artifacts"][name]["normalized"] = normalize_artifact(text)
+    refresh_artifact(vector["artifacts"][name])
+
+
+def replace_stored_artifact_text(vector, name, text):
+    payload = normalize_artifact(text).encode("utf-8")
+    checkpoint_of(vector)[name] = {
+        "encoding": "base64",
+        "payload": base64.b64encode(payload).decode("ascii"),
+        "byte_length": len(payload),
+        "sha256": hashlib.sha256(payload).hexdigest(),
+    }
+    refresh_receipt(vector)
+
+
 def expect_failure(name, candidate, expected):
     try:
         validate_vector_core(candidate)
@@ -2823,6 +3341,19 @@ def rebind_unit(vector, value):
     old = vector["plan_projection"]["selected_unit_id"]
     vector["plan_projection"]["selected_unit_id"] = value
     next(unit for unit in vector["plan_projection"]["units"] if unit["id"] == old)["id"] = value
+    for evidence in vector["plan_projection"]["claim_evidence"]:
+        if evidence["unit_id"] == old:
+            evidence["unit_id"] = value
+    for blocker in vector["plan_projection"]["blockers"]:
+        if blocker["unit_id"] == old:
+            blocker["unit_id"] = value
+    vector["plan_projection"]["units"].sort(key=lambda unit: unit["id"].encode("utf-8"))
+    vector["plan_projection"]["claim_evidence"].sort(
+        key=lambda evidence: evidence["unit_id"].encode("utf-8")
+    )
+    vector["plan_projection"]["blockers"].sort(
+        key=lambda blocker: blocker["id"].encode("utf-8")
+    )
     vector["idempotency"]["fields"]["unit_id"] = value
     refresh_request_and_idempotency(vector)
     refresh_summary(vector)
@@ -2842,8 +3373,8 @@ def build_all_limit_candidate(vector, high_escape):
     unit_id = ('"' * (remaining // 2) + ("K" if remaining % 2 else "")) if high_escape else "K" * remaining
     rebind_unit(candidate, unit_id)
 
-    first = candidate["plan_projection"]["units"][1]
-    third = candidate["plan_projection"]["units"][2]
+    first = candidate["plan_projection"]["units"][0]
+    third = candidate["plan_projection"]["units"][1]
     first["next_condition"] = ""
     third["next_condition"] = ""
     summary_base = len(build_plan_summary(candidate["plan_projection"]).encode("utf-8"))
@@ -2878,12 +3409,14 @@ def expect_coverage_failure(name, candidate, expected):
 
 
 def validate_document(document):
-    exact_keys(document, ("schema_version", "safe_canaries", "status_oracles", "ordinary_audit_oracles", "vectors"), "document")
-    if type(document["schema_version"]) is not int or document["schema_version"] != 4:
+    if not isinstance(document, dict) or "plan_projection_oracles" not in document:
+        fail("plan projection oracle registry")
+    exact_keys(document, ("schema_version", "safe_canaries", "status_oracles", "ordinary_audit_oracles", "plan_projection_oracles", "vectors"), "document")
+    if type(document["schema_version"]) is not int or document["schema_version"] != 5:
         fail("document schema")
     if not isinstance(document["safe_canaries"], list) or not document["safe_canaries"] or any(
         not isinstance(value, str) or not value for value in document["safe_canaries"]
-    ) or not isinstance(document["status_oracles"], list) or not document["status_oracles"] or not isinstance(document["ordinary_audit_oracles"], list) or not document["ordinary_audit_oracles"] or not isinstance(document["vectors"], list) or not document["vectors"]:
+    ) or not isinstance(document["status_oracles"], list) or not document["status_oracles"] or not isinstance(document["ordinary_audit_oracles"], list) or not document["ordinary_audit_oracles"] or not isinstance(document["plan_projection_oracles"], list) or len(document["plan_projection_oracles"]) != 3 or not isinstance(document["vectors"], list) or not document["vectors"]:
         fail("document vectors")
 
 
@@ -2901,6 +3434,24 @@ def validate_vector_document(document):
     validate_document(document)
     if tuple(document["safe_canaries"]) != REQUIRED_CANARIES:
         fail("required canaries")
+    oracle_ids = []
+    oracle_languages = []
+    for oracle in document["plan_projection_oracles"]:
+        exact_keys(oracle, ("id", "projection", "expected_summary"), "plan oracle")
+        validate_scalar(oracle["id"], "plan oracle id")
+        if not isinstance(oracle["expected_summary"], str):
+            fail("plan oracle summary type")
+        validate_plan_projection(oracle["projection"], None, None)
+        if build_plan_summary(oracle["projection"]) != oracle["expected_summary"]:
+            fail("plan oracle summary")
+        oracle_ids.append(oracle["id"])
+        oracle_languages.append(oracle["projection"]["request_language"])
+    if oracle_ids != ["zh-CN-mixed-open", "en-empty-global-gates", "en-mixed-open"]:
+        fail("plan oracle ids")
+    if oracle_languages != ["zh-CN", "en", "en"]:
+        fail("plan oracle languages")
+    if document["vectors"][0]["plan_projection"] != document["plan_projection_oracles"][0]["projection"]:
+        fail("plan oracle vector binding")
 
 
 def expect_vector_document_failure(name, candidate, expected):
@@ -3437,11 +3988,600 @@ try:
     candidate_document["schema_version"] = True
     expect_document_failure("boolean schema version", candidate_document, "document schema")
 
+    chinese_plan = document["plan_projection_oracles"][0]["projection"]
+    english_plan = document["plan_projection_oracles"][1]["projection"]
+    english_mixed_plan = document["plan_projection_oracles"][2]["projection"]
+    validate_plan_projection(chinese_plan, None, None)
+    validate_plan_projection(english_plan, None, None)
+    validate_plan_projection(english_mixed_plan, None, None)
+    english_summary_bytes = document["plan_projection_oracles"][1]["expected_summary"].encode("utf-8")
+    validate_stored_artifact(
+        {
+            "encoding": "base64",
+            "payload": base64.b64encode(english_summary_bytes).decode("ascii"),
+            "byte_length": len(english_summary_bytes),
+            "sha256": hashlib.sha256(english_summary_bytes).hexdigest(),
+        },
+        "summary",
+        LIMITS,
+    )
+    if has_plan_summary_structure(
+        document["plan_projection_oracles"][1]["expected_summary"].replace(
+            "Development plan convergence", "开发计划收敛情况", 1
+        )
+    ):
+        fail("mixed plan localization grammar")
+    if (
+        "\n- Open gates:\n  - none\n- Blockers:\n  - none\n"
+        not in build_plan_summary(english_plan)
+        or "claim=unclaimed" not in build_plan_summary(english_plan)
+        or "required gates=none" not in build_plan_summary(english_plan)
+        or "开发计划收敛情况" in build_plan_summary(english_plan)
+    ):
+        fail("English plan localization")
+    english_mixed_summary = document["plan_projection_oracles"][2]["expected_summary"]
+    english_mixed_summary_bytes = english_mixed_summary.encode("utf-8")
+    validate_stored_artifact(
+        {
+            "encoding": "base64",
+            "payload": base64.b64encode(english_mixed_summary_bytes).decode("ascii"),
+            "byte_length": len(english_mixed_summary_bytes),
+            "sha256": hashlib.sha256(english_mixed_summary_bytes).hexdigest(),
+        },
+        "summary",
+        LIMITS,
+    )
+    if (
+        "  - G2 | status=Unpassed | detail=schema approval missing\n" not in english_mixed_summary
+        or "  - G3 | status=Unknown | detail=no authoritative status\n" not in english_mixed_summary
+        or "  - blocker id=B1 | owner unit=U4 | claim=worker-b | detail=missing schema approval | recovery condition=owner records approval\n" not in english_mixed_summary
+        or "  - blocker id=B2 | owner unit=U4 | claim=worker-b | detail=missing schema approval | recovery condition=owner records approval\n" not in english_mixed_summary
+        or "required gates=G2:Unpassed,G3:Unknown" not in english_mixed_summary
+        or any(token in english_mixed_summary for token in ("状态=", "认领=", "所需 Gate=", "下一步=", "下一收敛条件=", "详情=", "阻塞 ID=", "所属单元=", "恢复条件="))
+    ):
+        fail("nonempty English plan localization")
+    if has_plan_summary_structure(
+        english_mixed_summary.replace("owner unit=U4", "所属单元=U4", 1)
+    ):
+        fail("mixed English blocker localization grammar")
+    for name, original, replacement in (
+        ("changed English blocker owner label", "owner unit=U4", "owner=U4"),
+        ("deleted English gate detail label", "detail=schema approval missing", "schema approval missing"),
+    ):
+        candidate_document = copy.deepcopy(document)
+        candidate_document["plan_projection_oracles"][2]["expected_summary"] = (
+            candidate_document["plan_projection_oracles"][2]["expected_summary"].replace(
+                original, replacement, 1
+            )
+        )
+        expect_vector_document_failure(name, candidate_document, "plan oracle summary")
+    chinese_summary = build_plan_summary(chinese_plan)
+    if (
+        "\n- 开放 Gate：\n" not in build_plan_summary(chinese_plan)
+        or "\n- 阻塞项：\n" not in build_plan_summary(chinese_plan)
+        or "认领=未认领" not in chinese_summary
+        or "状态=In Progress" not in chinese_summary
+        or "所需 Gate=G1:已通过,G2:未通过" not in chinese_summary
+        or "下一步=focused contract test passes" not in chinese_summary
+        or "下一收敛条件=claim after U2 completes" not in chinese_summary
+        or "  - G2 | 状态=未通过 | 详情=schema approval missing" not in chinese_summary
+        or "阻塞 ID=B1 | 所属单元=U4 | 认领=worker-b" not in chinese_summary
+        or "恢复条件=owner records approval" not in chinese_summary
+        or "Development plan convergence" in build_plan_summary(chinese_plan)
+        or any(
+            token in chinese_summary
+            for token in (
+                " | state=", " | claim=", "required gates=", "next step=",
+                "next convergence condition=", " | status=", " | detail=",
+                "blocker id=", "owner unit=", "recovery condition=",
+            )
+        )
+    ):
+        fail("Chinese plan localization")
+
+    candidate_plan = copy.deepcopy(chinese_plan)
+    candidate_plan["units"][1], candidate_plan["units"][2] = (
+        candidate_plan["units"][2], candidate_plan["units"][1]
+    )
+    expect_plan_projection_failure(
+        "unit canonical order", candidate_plan, "plan unit order"
+    )
+    candidate_plan = copy.deepcopy(chinese_plan)
+    candidate_plan["units"][0]["required_gate_refs"].reverse()
+    expect_plan_projection_failure(
+        "gate reference canonical order", candidate_plan, "plan gate reference order"
+    )
+    candidate_plan = copy.deepcopy(chinese_plan)
+    candidate_plan["units"][2]["active_blocker_refs"].reverse()
+    expect_plan_projection_failure(
+        "blocker reference canonical order", candidate_plan, "plan blocker reference order"
+    )
+    candidate_plan = copy.deepcopy(chinese_plan)
+    candidate_plan["claim_evidence"].reverse()
+    expect_plan_projection_failure(
+        "claim evidence canonical order", candidate_plan, "claim evidence order"
+    )
+    for field, value, expected in (
+        ("boolean", True, "plan status fingerprint"),
+        ("missing prefix", "0" * 64, "plan status fingerprint"),
+        ("uppercase hex", "sha256:" + "A" * 64, "plan status fingerprint"),
+        ("short digest", "sha256:1234", "plan status fingerprint"),
+    ):
+        candidate_plan = copy.deepcopy(chinese_plan)
+        candidate_plan["snapshot_identity"]["status_fingerprint"] = value
+        expect_plan_projection_failure(
+            "status fingerprint " + field, candidate_plan, expected
+        )
+    candidate_plan = copy.deepcopy(chinese_plan)
+    del candidate_plan["snapshot_identity"]["status_fingerprint"]
+    expect_plan_projection_failure(
+        "missing status fingerprint", candidate_plan, "plan snapshot identity fields"
+    )
+
+    rendered_delimiter_mutations = (
+        ("unit id", ("units", 1, "id"), "U3 | injected", "plan unit id rendered delimiter"),
+        ("unit claim", ("units", 0, "claim"), "worker | injected", "plan unit claim rendered delimiter"),
+        ("unit next condition", ("units", 0, "next_condition"), "test | injected", "plan unit next_condition rendered delimiter"),
+        ("gate detail", ("required_gates", 1, "detail"), "schema | injected", "plan gate detail rendered delimiter"),
+        ("blocker owner", ("blockers", 0, "unit_id"), "U4 | injected", "blocker unit_id rendered delimiter"),
+        ("blocker detail", ("blockers", 0, "detail"), "missing | injected", "blocker detail rendered delimiter"),
+        ("blocker recovery", ("blockers", 0, "recovery"), "owner | injected", "blocker recovery rendered delimiter"),
+        ("claim evidence unit", ("claim_evidence", 0, "unit_id"), "U2 | injected", "claim evidence unit_id rendered delimiter"),
+        ("claim evidence claim", ("claim_evidence", 0, "claim"), "worker | injected", "claim evidence claim rendered delimiter"),
+    )
+    for name, path, value, expected in rendered_delimiter_mutations:
+        candidate_plan = copy.deepcopy(chinese_plan)
+        candidate_plan[path[0]][path[1]][path[2]] = value
+        expect_plan_projection_failure(name + " pipe delimiter", candidate_plan, expected)
+    candidate_plan = copy.deepcopy(chinese_plan)
+    candidate_plan["units"][0]["next_condition"] = "test `owner` boundary"
+    expect_plan_projection_failure(
+        "rendered next condition backtick",
+        candidate_plan,
+        "plan unit next_condition rendered delimiter",
+    )
+    for delimiter_name, gate_id, expected in (
+        ("pipe", "G2 | injected", "plan gate reference rendered delimiter"),
+        ("comma", "G2,injected", "plan gate reference gate delimiter"),
+        ("colon", "G2:injected", "plan gate reference gate delimiter"),
+    ):
+        candidate_plan = copy.deepcopy(chinese_plan)
+        for unit in candidate_plan["units"]:
+            unit["required_gate_refs"] = [
+                gate_id if reference == "G2" else reference
+                for reference in unit["required_gate_refs"]
+            ]
+        candidate_plan["required_gates"][1]["id"] = gate_id
+        expect_plan_projection_failure(
+            "gate id " + delimiter_name + " delimiter",
+            candidate_plan,
+            expected,
+        )
+    candidate_plan = copy.deepcopy(chinese_plan)
+    candidate_plan["units"][2]["active_blocker_refs"][0] = "B1 | injected"
+    candidate_plan["blockers"][0]["id"] = "B1 | injected"
+    expect_plan_projection_failure(
+        "blocker id pipe delimiter",
+        candidate_plan,
+        "plan blocker reference rendered delimiter",
+    )
+
+    evidence_punctuation_plan = copy.deepcopy(chinese_plan)
+    evidence_punctuation_plan["claim_evidence"][0]["evidence"] = (
+        "tracker cites `owner` | authoritative record"
+    )
+    evidence_punctuation_plan["blockers"][0]["evidence"] = (
+        "tracker cites `blocker` | authoritative record"
+    )
+    validate_plan_projection(evidence_punctuation_plan, None, None)
+    evidence_punctuation_summary = build_plan_summary(evidence_punctuation_plan)
+    if evidence_punctuation_summary != chinese_summary:
+        fail("non-rendered evidence changed summary bytes")
+    evidence_punctuation_bytes = evidence_punctuation_summary.encode("utf-8")
+    validate_stored_artifact(
+        {
+            "encoding": "base64",
+            "payload": base64.b64encode(evidence_punctuation_bytes).decode("ascii"),
+            "byte_length": len(evidence_punctuation_bytes),
+            "sha256": hashlib.sha256(evidence_punctuation_bytes).hexdigest(),
+        },
+        "summary",
+        LIMITS,
+    )
+
+    legitimate_punctuation_plan = copy.deepcopy(chinese_plan)
+    legitimate_punctuation_plan["units"][0]["claim"] = "worker|a"
+    legitimate_punctuation_plan["claim_evidence"][0]["claim"] = "worker|a"
+    legitimate_punctuation_plan["claim_evidence"][0]["evidence"] = "tracker: owner, record|U2"
+    legitimate_punctuation_plan["units"][1]["id"] = "U3:phase,2"
+    legitimate_punctuation_plan["units"][1]["next_condition"] = "claim: after, U2|complete"
+    legitimate_punctuation_plan["required_gates"][1]["detail"] = "schema: owner, evidence|pending"
+    legitimate_punctuation_plan["blockers"][0]["detail"] = "missing: schema, approval|owner"
+    legitimate_punctuation_plan["blockers"][0]["recovery"] = "owner: records, approval|now"
+    legitimate_punctuation_plan["blockers"][0]["evidence"] = "tracker: blocker, B1|record"
+    validate_plan_projection(legitimate_punctuation_plan, None, None)
+    legitimate_punctuation_summary = build_plan_summary(legitimate_punctuation_plan)
+    legitimate_punctuation_bytes = legitimate_punctuation_summary.encode("utf-8")
+    validate_stored_artifact(
+        {
+            "encoding": "base64",
+            "payload": base64.b64encode(legitimate_punctuation_bytes).decode("ascii"),
+            "byte_length": len(legitimate_punctuation_bytes),
+            "sha256": hashlib.sha256(legitimate_punctuation_bytes).hexdigest(),
+        },
+        "summary",
+        LIMITS,
+    )
+    candidate_plan = copy.deepcopy(chinese_plan)
+    candidate_plan["required_gates"][1], candidate_plan["required_gates"][2] = (
+        candidate_plan["required_gates"][2], candidate_plan["required_gates"][1]
+    )
+    expect_plan_projection_failure(
+        "gate canonical order", candidate_plan, "plan gate order"
+    )
+    candidate_plan = copy.deepcopy(chinese_plan)
+    candidate_plan["blockers"].append({
+        "id": "B0", "unit_id": "U4", "detail": "earlier blocker",
+        "recovery": "resolve earlier blocker", "evidence": "tracker blocker B0",
+    })
+    candidate_plan["units"][2]["active_blocker_refs"] = ["B0", "B1", "B2"]
+    expect_plan_projection_failure(
+        "blocker canonical order", candidate_plan, "plan blocker order"
+    )
+
+    candidate_plan = copy.deepcopy(english_plan)
+    candidate_plan["unit_state_counts"]["Complete"] += 7
+    validate_plan_projection(candidate_plan, None, None)
+    candidate_plan = copy.deepcopy(english_plan)
+    candidate_plan["units"].append({
+        "id": "closed-detail", "state": "Complete", "claim": None,
+        "next_condition": "already complete", "required_gate_refs": [],
+        "active_blocker_refs": [],
+    })
+    expect_plan_projection_failure(
+        "closed detail supplied", candidate_plan, "plan unit state"
+    )
+    candidate_plan = copy.deepcopy(english_plan)
+    candidate_plan["unit_state_counts"]["Ready"] += 1
+    expect_plan_projection_failure(
+        "aggregate open detail mismatch", candidate_plan, "unit counts"
+    )
+
+    candidate_plan = copy.deepcopy(chinese_plan)
+    candidate_plan["claim_evidence"] = candidate_plan["claim_evidence"][:-1]
+    expect_plan_projection_failure(
+        "missing claim evidence", candidate_plan, "claim evidence binding"
+    )
+    candidate_plan = copy.deepcopy(chinese_plan)
+    candidate_plan["claim_evidence"].append(copy.deepcopy(candidate_plan["claim_evidence"][0]))
+    expect_plan_projection_failure(
+        "duplicate claim evidence", candidate_plan, "duplicate claim evidence"
+    )
+    candidate_plan = copy.deepcopy(chinese_plan)
+    candidate_plan["claim_evidence"][0]["claim"] = "another-worker"
+    expect_plan_projection_failure(
+        "mismatched claim evidence", candidate_plan, "claim evidence binding"
+    )
+    candidate_plan = copy.deepcopy(chinese_plan)
+    candidate_plan["claim_evidence"][0]["evidence"] = ""
+    expect_plan_projection_failure(
+        "blank claim evidence", candidate_plan, "claim evidence evidence scalar"
+    )
+    for reserved_claim in ("none", "unclaimed", "无", "未认领"):
+        candidate_plan = copy.deepcopy(chinese_plan)
+        candidate_plan["units"][0]["claim"] = reserved_claim
+        candidate_plan["claim_evidence"][0]["claim"] = reserved_claim
+        expect_plan_projection_failure(
+            "reserved unit claim " + reserved_claim,
+            candidate_plan,
+            "plan claim reserved",
+        )
+        candidate_plan = copy.deepcopy(chinese_plan)
+        candidate_plan["claim_evidence"][0]["claim"] = reserved_claim
+        expect_plan_projection_failure(
+            "reserved claim evidence " + reserved_claim,
+            candidate_plan,
+            "plan claim reserved",
+        )
+
+    legal_claim_plan = copy.deepcopy(chinese_plan)
+    legal_claim_plan["units"][0]["claim"] = "worker-valid-42"
+    legal_claim_plan["claim_evidence"][0]["claim"] = "worker-valid-42"
+    validate_plan_projection(legal_claim_plan, None, None)
+    legal_claim_summary = build_plan_summary(legal_claim_plan)
+    legal_claim_summary_bytes = legal_claim_summary.encode("utf-8")
+    validate_stored_artifact(
+        {
+            "encoding": "base64",
+            "payload": base64.b64encode(legal_claim_summary_bytes).decode("ascii"),
+            "byte_length": len(legal_claim_summary_bytes),
+            "sha256": hashlib.sha256(legal_claim_summary_bytes).hexdigest(),
+        },
+        "summary",
+        LIMITS,
+    )
+    same_text_blockers_plan = copy.deepcopy(chinese_plan)
+    validate_plan_projection(same_text_blockers_plan, None, None)
+    same_text_blockers_summary = build_plan_summary(same_text_blockers_plan)
+    if (
+        same_text_blockers_summary.count("阻塞 ID=B1") != 1
+        or same_text_blockers_summary.count("阻塞 ID=B2") != 1
+    ):
+        fail("blocker identity summary projection")
+    same_text_blockers_bytes = same_text_blockers_summary.encode("utf-8")
+    validate_stored_artifact(
+        {
+            "encoding": "base64",
+            "payload": base64.b64encode(same_text_blockers_bytes).decode("ascii"),
+            "byte_length": len(same_text_blockers_bytes),
+            "sha256": hashlib.sha256(same_text_blockers_bytes).hexdigest(),
+        },
+        "summary",
+        LIMITS,
+    )
+    candidate_plan = copy.deepcopy(chinese_plan)
+    candidate_plan["blockers"] = []
+    expect_plan_projection_failure(
+        "missing blocker registry", candidate_plan, "blocker evidence binding"
+    )
+    candidate_plan = copy.deepcopy(chinese_plan)
+    candidate_plan["blockers"].append(copy.deepcopy(candidate_plan["blockers"][0]))
+    expect_plan_projection_failure(
+        "duplicate blocker registry", candidate_plan, "duplicate blocker"
+    )
+    candidate_plan = copy.deepcopy(chinese_plan)
+    candidate_plan["blockers"][0]["unit_id"] = "U3"
+    expect_plan_projection_failure(
+        "wrong blocker owner", candidate_plan, "blocker evidence binding"
+    )
+    candidate_plan = copy.deepcopy(chinese_plan)
+    candidate_plan["blockers"].append({
+        "id": "B3", "unit_id": "U3", "detail": "unreferenced blocker",
+        "recovery": "remove stale evidence", "evidence": "stale record",
+    })
+    expect_plan_projection_failure(
+        "unreferenced blocker", candidate_plan, "blocker evidence binding"
+    )
+    candidate_plan = copy.deepcopy(chinese_plan)
+    candidate_plan["blockers"][0]["evidence"] = ""
+    expect_plan_projection_failure(
+        "blank blocker evidence", candidate_plan, "blocker evidence scalar"
+    )
+    candidate_plan = copy.deepcopy(chinese_plan)
+    candidate_plan["units"][2]["active_blocker_refs"] = []
+    expect_plan_projection_failure(
+        "claimless blocked without blocker", candidate_plan, "blocked recovery"
+    )
+
     for vector in document["vectors"]:
         validate_vector_core(vector)
         validate_vector_coverage(vector)
         if classify_replay(vector) != "replay":
             fail("pristine replay classification")
+
+        stored_summary = checkpoint_of(vector)["summary"]
+        stored_summary_text = strict_base64(
+            stored_summary["payload"], "stored summary RED fixture"
+        ).decode("utf-8")
+        english_stored = copy.deepcopy(vector)
+        replace_stored_artifact_text(
+            english_stored,
+            "summary",
+            document["plan_projection_oracles"][1]["expected_summary"],
+        )
+        english_stored["request"]["input"] += "\nnew English request"
+        refresh_request_and_idempotency(english_stored)
+        if classify_replay(english_stored) != "drift":
+            fail("English stored summary intrinsic classification")
+
+        stored_u3_line = (
+            "  - U3 | 状态=Ready | 认领=未认领 | 所需 Gate=G2:未通过,G3:未知"
+            " | 下一收敛条件=claim after U2 completes"
+        )
+        stored_u4_line = (
+            "  - U4 | 状态=Blocked | 认领=worker-b | 所需 Gate=G2:未通过"
+            " | 下一收敛条件=schema approval"
+        )
+        stored_blocker_line = (
+            "  - 阻塞 ID=B1 | 所属单元=U4 | 认领=worker-b"
+            " | 详情=missing schema approval | 恢复条件=owner records approval"
+        )
+        stored_blocker_line_b2 = (
+            "  - 阻塞 ID=B2 | 所属单元=U4 | 认领=worker-b"
+            " | 详情=missing schema approval | 恢复条件=owner records approval"
+        )
+        stored_summary_corruptions = (
+            (
+                "duplicate active claim with synchronized blockers",
+                stored_summary_text.replace("认领=worker-b", "认领=worker-a"),
+            ),
+            (
+                "arbitrary open-unit bullet",
+                stored_summary_text.replace(
+                    stored_u3_line,
+                    "  - arbitrary bullet",
+                    1,
+                ),
+            ),
+            (
+                "arbitrary gate bullet",
+                stored_summary_text.replace(
+                    "  - G2 | 状态=未通过 | 详情=schema approval missing",
+                    "  - arbitrary gate bullet",
+                    1,
+                ),
+            ),
+            (
+                "arbitrary blocker bullet",
+                stored_summary_text.replace(
+                    stored_blocker_line,
+                    "  - arbitrary blocker bullet",
+                    1,
+                ),
+            ),
+            (
+                "mixed Chinese claim label",
+                stored_summary_text.replace("认领=未认领", "claim=unclaimed", 1),
+            ),
+            (
+                "mixed Chinese gate status",
+                stored_summary_text.replace("状态=未通过", "status=Unpassed", 1),
+            ),
+            (
+                "mixed Chinese required-gates label",
+                stored_summary_text.replace("所需 Gate=", "required gates=", 1),
+            ),
+            (
+                "malformed overall status",
+                stored_summary_text.replace("- 整体状态：部分受阻", "- 整体状态：任意", 1),
+            ),
+            (
+                "malformed snapshot token",
+                stored_summary_text.replace(" | HEAD=sha1:", " | head=sha1:", 1),
+            ),
+            (
+                "missing gate section",
+                stored_summary_text.replace("- 开放 Gate：\n", "", 1),
+            ),
+            (
+                "missing referenced G3 gate",
+                stored_summary_text.replace(
+                    "  - G3 | 状态=未知 | 详情=no authoritative status\n",
+                    "",
+                    1,
+                ),
+            ),
+            (
+                "noncanonical per-unit gate annotations",
+                stored_summary_text.replace(
+                    "所需 Gate=G2:未通过,G3:未知",
+                    "所需 Gate=G3:未知,G2:未通过",
+                    1,
+                ),
+            ),
+            (
+                "noncanonical open-gate bullet order",
+                stored_summary_text.replace(
+                    "  - G2 | 状态=未通过 | 详情=schema approval missing\n"
+                    "  - G3 | 状态=未知 | 详情=no authoritative status",
+                    "  - G3 | 状态=未知 | 详情=no authoritative status\n"
+                    "  - G2 | 状态=未通过 | 详情=schema approval missing",
+                    1,
+                ),
+            ),
+            (
+                "missing open unit",
+                stored_summary_text.replace(
+                    stored_u3_line + "\n",
+                    "",
+                    1,
+                ),
+            ),
+            (
+                "missing active blocker",
+                stored_summary_text.replace(
+                    stored_blocker_line,
+                    "  - 无",
+                    1,
+                ),
+            ),
+            (
+                "duplicate gate section",
+                stored_summary_text.replace("- 开放 Gate：\n", "- 开放 Gate：\n- 开放 Gate：\n", 1),
+            ),
+            (
+                "wrong gate blocker order",
+                stored_summary_text.replace("- 开放 Gate：", "TEMP", 1).replace(
+                    "- 阻塞项：", "- 开放 Gate：", 1
+                ).replace("TEMP", "- 阻塞项：", 1),
+            ),
+            (
+                "duplicate open unit",
+                stored_summary_text.replace(
+                    stored_u3_line,
+                    stored_u3_line + "\n" + stored_u3_line,
+                    1,
+                ),
+            ),
+            (
+                "noncanonical open-unit order",
+                stored_summary_text.replace(
+                    stored_u3_line + "\n" + stored_u4_line,
+                    stored_u4_line + "\n" + stored_u3_line,
+                    1,
+                ),
+            ),
+            (
+                "duplicate blocker",
+                stored_summary_text.replace(
+                    stored_blocker_line,
+                    stored_blocker_line + "\n" + stored_blocker_line,
+                    1,
+                ),
+            ),
+            (
+                "noncanonical blocker order",
+                stored_summary_text.replace(
+                    stored_blocker_line + "\n" + stored_blocker_line_b2,
+                    stored_blocker_line_b2 + "\n" + stored_blocker_line,
+                    1,
+                ),
+            ),
+            (
+                "mixed English none label",
+                document["plan_projection_oracles"][1]["expected_summary"].replace(
+                    "  - none", "  - 无", 1
+                ),
+            ),
+            (
+                "mixed English overall status",
+                document["plan_projection_oracles"][1]["expected_summary"].replace(
+                    "- Overall status: In progress",
+                    "- Overall status: 进行中",
+                    1,
+                ),
+            ),
+            (
+                "mixed English required-gates label",
+                document["plan_projection_oracles"][1]["expected_summary"].replace(
+                    "required gates=none", "所需 Gate=无", 1
+                ),
+            ),
+        )
+        for name, corrupted_summary in stored_summary_corruptions:
+            candidate = copy.deepcopy(vector)
+            replace_stored_artifact_text(candidate, "summary", corrupted_summary)
+            candidate["request"]["input"] += "\nvalid request drift"
+            refresh_request_and_idempotency(candidate)
+            expect_classification_failure(
+                "stored summary " + name + " before request drift",
+                candidate,
+                "checkpoint summary structure",
+            )
+
+        exact_bad_artifact = copy.deepcopy(vector)
+        exact_bad_artifact["artifacts"]["summary"]["normalized"] += "invalid"
+        expect_classification_failure(
+            "exact match invalid current artifact",
+            exact_bad_artifact,
+            "summary normalization",
+        )
+
+        drift_bad_artifact = copy.deepcopy(vector)
+        drift_bad_artifact["request"]["input"] += "\nvalid artifact-order drift"
+        refresh_request_and_idempotency(drift_bad_artifact)
+        drift_bad_artifact["artifacts"]["summary"]["normalized"] += "invalid"
+        try:
+            drift_bad_decision = classify_replay(drift_bad_artifact)
+        except VectorFailure as error:
+            fail("current artifact ran before stored compare: " + str(error))
+        if drift_bad_decision != "drift":
+            fail("current artifact drift classification")
+        expect_failure(
+            "first-generation invalid current artifact",
+            drift_bad_artifact,
+            "summary normalization",
+        )
 
         candidate = copy.deepcopy(vector)
         candidate["store"] = None
@@ -3466,13 +4606,54 @@ try:
         expect_classification_failure("current snapshot null", candidate, "snapshot fields")
 
         candidate = copy.deepcopy(vector)
+        candidate["request"]["version"] = "request-canon-v0"
+        candidate["status"]["object_format"] = {}
+        expect_failure(
+            "validation order request before status",
+            candidate,
+            "request line ending coverage",
+        )
+        candidate = copy.deepcopy(vector)
+        candidate["status"]["object_format"] = {}
+        candidate["idempotency"]["fields"]["version"] = "idempotency-v0"
+        expect_failure(
+            "validation order status before idempotency",
+            candidate,
+            "status object format",
+        )
+        candidate = copy.deepcopy(vector)
+        candidate["idempotency"]["fields"]["version"] = "idempotency-v0"
+        candidate["snapshot_manifest"]["fields"]["version"] = "snapshot-manifest-v0"
+        expect_failure(
+            "validation order idempotency before snapshot",
+            candidate,
+            "idempotency version",
+        )
+        candidate = copy.deepcopy(vector)
+        candidate["snapshot_manifest"]["fields"]["version"] = "snapshot-manifest-v0"
+        candidate["plan_projection"]["version"] = "plan-projection-v0"
+        expect_failure(
+            "validation order snapshot before plan",
+            candidate,
+            "snapshot version",
+        )
+        candidate = copy.deepcopy(vector)
+        candidate["plan_projection"]["version"] = "plan-projection-v0"
+        candidate["lock"]["release_identity"]["dev"] += 1
+        expect_failure(
+            "validation order plan before ownership lock",
+            candidate,
+            "plan projection version",
+        )
+
+        candidate = copy.deepcopy(vector)
         candidate["status"]["object_format"] = {}
         expect_failure("status object format wrong type", candidate, "status object format")
         candidate = copy.deepcopy(vector)
         candidate["snapshot_manifest"]["fields"]["object_format"] = []
         expect_failure("snapshot object format wrong type", candidate, "snapshot object format")
         candidate = copy.deepcopy(vector)
-        candidate["plan_projection"]["units"][1]["required_gate_refs"] = [{}]
+        candidate["plan_projection"]["units"][0]["required_gate_refs"] = [{}]
         expect_failure("gate reference wrong type", candidate, "plan gate reference scalar")
         candidate = copy.deepcopy(vector)
         candidate["provenance"]["tracker_identity"] = "\ud800"
@@ -3482,7 +4663,7 @@ try:
             "checkpoint provenance tracker_identity scalar",
         )
         candidate = copy.deepcopy(vector)
-        candidate["plan_projection"]["units"][1]["claim"] = "\ud800"
+        candidate["plan_projection"]["units"][0]["claim"] = "\ud800"
         expect_classification_failure(
             "non-UTF-8 nested plan scalar",
             candidate,
@@ -3946,7 +5127,7 @@ try:
 
         for name, lock_path, expected in (
             ("basename", ".instruction-generation.lock", "lock tracker binding"),
-            ("traversal", "plan/../.instruction-generation.lock", "lock owned path"),
+            ("traversal", "plan/../.instruction-generation.lock", "status exclusion path"),
             ("unbound", "other/.instruction-generation.lock", "lock tracker binding"),
         ):
             candidate = copy.deepcopy(vector)
@@ -3964,29 +5145,34 @@ try:
 
         closed_counts = {state: 0 for state in UNIT_STATES}
         closed_counts["Complete"] = 4
-        if classify_plan_overall(closed_counts, {"Passed": 1, "Unpassed": 1, "Unknown": 0}) != "信息不足":
+        if classify_plan_overall(closed_counts, {"Passed": 1, "Unpassed": 1, "Unknown": 0}) != "insufficient-information":
             fail("closed plan with open gate classification")
-        if classify_plan_overall(closed_counts, {"Passed": 2, "Unpassed": 0, "Unknown": 0}) != "已收敛":
+        if classify_plan_overall(closed_counts, {"Passed": 2, "Unpassed": 0, "Unknown": 0}) != "converged":
             fail("closed converged classification")
 
         if "worktree=" in vector["artifacts"]["summary"]["normalized"] or "G4 |" in vector["artifacts"]["summary"]["normalized"]:
             fail("summary leaks worktree or closed-only gate")
 
         claimless_blocked = copy.deepcopy(vector["plan_projection"])
-        claimless_blocked["units"][3]["claim"] = None
+        claimless_blocked["units"][2]["claim"] = None
+        claimless_blocked["claim_evidence"] = [
+            evidence for evidence in claimless_blocked["claim_evidence"]
+            if evidence["unit_id"] != "U4"
+        ]
         claimless_blocked_summary = build_plan_summary(claimless_blocked)
         if (
-            "  - U3 | state=Ready | claim=未认领 |" not in claimless_blocked_summary
-            or "  - U4 | state=Blocked | claim=无 |" not in claimless_blocked_summary
-            or "  - U4 | state=Blocked | claim=未认领 |" in claimless_blocked_summary
+            "  - U3 | 状态=Ready | 认领=未认领 |" not in claimless_blocked_summary
+            or "  - U4 | 状态=Blocked | 认领=无 |" not in claimless_blocked_summary
+            or "  - U4 | 状态=Blocked | 认领=未认领 |" in claimless_blocked_summary
+            or "阻塞 ID=B1 | 所属单元=U4 | 认领=无 |" not in claimless_blocked_summary
         ):
             fail("claimless open state rendering")
 
         candidate = copy.deepcopy(vector)
-        candidate["plan_projection"]["units"][2]["required_gate_refs"].append("G4")
+        candidate["plan_projection"]["units"][1]["required_gate_refs"].append("G4")
         refresh_summary(candidate)
         refresh_checkpoint(candidate)
-        if "  - G4 | status=未通过 | detail=closed-only archival gate\n" not in candidate["artifacts"]["summary"]["normalized"]:
+        if "  - G4 | 状态=未通过 | 详情=closed-only archival gate\n" not in candidate["artifacts"]["summary"]["normalized"]:
             fail("open G4 was not rendered")
         validate_vector_core(candidate)
 
@@ -4002,7 +5188,7 @@ try:
         validate_vector_core(candidate)
 
         candidate = copy.deepcopy(vector)
-        candidate["plan_projection"]["units"][1]["state"] = "Claimed"
+        candidate["plan_projection"]["units"][0]["state"] = "Claimed"
         candidate["plan_projection"]["unit_state_counts"]["In Progress"] -= 1
         candidate["plan_projection"]["unit_state_counts"]["Claimed"] += 1
         refresh_summary(candidate)
@@ -4013,9 +5199,9 @@ try:
         for active_state in ("In Progress", "Claimed"):
             for invalid_claim, label in ((None, "missing"), ("", "empty"), ("  ", "blank")):
                 candidate = copy.deepcopy(vector)
-                candidate["plan_projection"]["units"][1]["claim"] = invalid_claim
+                candidate["plan_projection"]["units"][0]["claim"] = invalid_claim
                 if active_state == "Claimed":
-                    candidate["plan_projection"]["units"][1]["state"] = active_state
+                    candidate["plan_projection"]["units"][0]["state"] = active_state
                     candidate["plan_projection"]["unit_state_counts"]["In Progress"] -= 1
                     candidate["plan_projection"]["unit_state_counts"]["Claimed"] += 1
                 expect_plan_failure_without_template(
@@ -4025,8 +5211,8 @@ try:
                 )
 
         candidate = copy.deepcopy(vector)
-        candidate["plan_projection"]["units"][2]["state"] = "Claimed"
-        candidate["plan_projection"]["units"][2]["claim"] = "worker-a"
+        candidate["plan_projection"]["units"][1]["state"] = "Claimed"
+        candidate["plan_projection"]["units"][1]["claim"] = "worker-a"
         candidate["plan_projection"]["unit_state_counts"]["Ready"] -= 1
         candidate["plan_projection"]["unit_state_counts"]["Claimed"] += 1
         expect_plan_failure_without_template(
@@ -4037,17 +5223,21 @@ try:
 
         for claimless_state in ("Blocked", "Failed"):
             claimless_candidate = copy.deepcopy(vector)
-            claimless_unit = claimless_candidate["plan_projection"]["units"][3]
+            claimless_unit = claimless_candidate["plan_projection"]["units"][2]
             claimless_unit["claim"] = None
+            claimless_candidate["plan_projection"]["claim_evidence"] = [
+                evidence for evidence in claimless_candidate["plan_projection"]["claim_evidence"]
+                if evidence["unit_id"] != "U4"
+            ]
             if claimless_state == "Failed":
                 claimless_unit["state"] = "Failed"
-                claimless_unit["blocker"] = None
-                claimless_unit["recovery"] = None
+                claimless_unit["active_blocker_refs"] = []
+                claimless_candidate["plan_projection"]["blockers"] = []
                 claimless_candidate["plan_projection"]["unit_state_counts"]["Blocked"] -= 1
                 claimless_candidate["plan_projection"]["unit_state_counts"]["Failed"] += 1
             refresh_summary(claimless_candidate)
             refresh_checkpoint(claimless_candidate)
-            expected_claim_line = "  - U4 | state=" + claimless_state + " | claim=无 |"
+            expected_claim_line = "  - U4 | 状态=" + claimless_state + " | 认领=无 |"
             if expected_claim_line not in claimless_candidate["artifacts"]["summary"]["normalized"]:
                 fail("claimless " + claimless_state + " localized none rendering")
             validate_vector_core(claimless_candidate)
@@ -4058,7 +5248,6 @@ try:
             refresh_request_and_idempotency(selected_candidate)
             refresh_summary(selected_candidate)
             refresh_body(selected_candidate)
-            refresh_checkpoint(selected_candidate)
             expect_plan_failure_without_template(
                 "selected claimless " + claimless_state,
                 selected_candidate,
@@ -4066,20 +5255,25 @@ try:
             )
 
         summary = vector["artifacts"]["summary"]["normalized"]
+        summary_u3_line = (
+            "  - U3 | 状态=Ready | 认领=未认领 | 所需 Gate=G2:未通过,G3:未知"
+            " | 下一收敛条件=claim after U2 completes"
+        )
+        summary_g2_line = "  - G2 | 状态=未通过 | 详情=schema approval missing"
         summary_mutations = (
-            ("missing open unit", summary.replace("  - U3 | state=Ready | claim=未认领 | next convergence condition=claim after U2 completes\n", ""), "summary projection"),
-            ("duplicate open unit", summary.replace("  - U3 | state=Ready", "  - U3 | state=Ready\n  - U3 | state=Ready", 1), "summary projection"),
-            ("missing open gate", summary.replace("  - G3 | status=未知 | detail=no authoritative status\n", ""), "summary projection"),
-            ("duplicate open gate", summary.replace("  - G2 | status=未通过 | detail=schema approval missing\n", "  - G2 | status=未通过 | detail=schema approval missing\n  - G2 | status=未通过 | detail=schema approval missing\n", 1), "summary projection"),
-            ("wrong heading", summary.replace("开发计划收敛情况", "计划摘要", 1), "checkpoint summary structure"),
-            ("wrong heading order", summary.replace("开发计划收敛情况", "TEMP", 1).replace("整体开放进度", "开发计划收敛情况", 1).replace("TEMP", "整体开放进度", 1), "checkpoint summary structure"),
+            ("missing open unit", summary.replace(summary_u3_line + "\n", ""), "summary projection"),
+            ("duplicate open unit", summary.replace(summary_u3_line, summary_u3_line + "\n" + summary_u3_line, 1), "summary projection"),
+            ("missing open gate", summary.replace("  - G3 | 状态=未知 | 详情=no authoritative status\n", ""), "summary projection"),
+            ("duplicate open gate", summary.replace(summary_g2_line + "\n", summary_g2_line + "\n" + summary_g2_line + "\n", 1), "summary projection"),
+            ("wrong heading", summary.replace("开发计划收敛情况", "计划摘要", 1), "summary projection"),
+            ("wrong heading order", summary.replace("开发计划收敛情况", "TEMP", 1).replace("整体开放进度", "开发计划收敛情况", 1).replace("TEMP", "整体开放进度", 1), "summary projection"),
             ("wrong summary fingerprint", summary.replace(vector["status"]["sha256"], "0" * 64, 1), "summary projection"),
-            ("closed-only gate leaked", summary.replace("- 阻塞项：", "  - G4 | status=未通过 | detail=closed-only archival gate\n- 阻塞项：", 1), "summary projection"),
-            ("partial summary", "开发计划收敛情况\n", "checkpoint summary structure"),
+            ("closed-only gate leaked", summary.replace("- 阻塞项：", "  - G4 | 状态=未通过 | 详情=closed-only archival gate\n- 阻塞项：", 1), "summary projection"),
+            ("partial summary", "开发计划收敛情况\n", "summary projection"),
         )
         for name, text_value, expected in summary_mutations:
             candidate = copy.deepcopy(vector)
-            replace_artifact_text(candidate, "summary", text_value)
+            replace_current_artifact_text(candidate, "summary", text_value)
             expect_failure(name, candidate, expected)
 
         body = vector["artifacts"]["body"]["normalized"]
@@ -4120,8 +5314,8 @@ try:
         expect_failure("selected mismatch", candidate, "selected binding")
 
         candidate = copy.deepcopy(vector)
-        candidate["plan_projection"]["units"][3]["recovery"] = None
-        expect_failure("blocked without recovery", candidate, "blocked recovery")
+        candidate["plan_projection"]["blockers"][0]["recovery"] = None
+        expect_failure("blocked without recovery", candidate, "blocker recovery scalar")
 
         candidate = copy.deepcopy(vector)
         candidate["plan_projection"]["required_gates"].append(copy.deepcopy(candidate["plan_projection"]["required_gates"][1]))
@@ -4182,7 +5376,7 @@ try:
         legitimate_drift["idempotency"]["fields"]["tracker_revision"] = "43"
         legitimate_drift["snapshot_manifest"]["fields"]["tracker_revision"] = "43"
         legitimate_drift["plan_projection"]["snapshot_identity"]["tracker_revision"] = "43"
-        legitimate_drift["plan_projection"]["units"][1]["next_condition"] = "new focused contract passes"
+        legitimate_drift["plan_projection"]["units"][0]["next_condition"] = "new focused contract passes"
         legitimate_drift["instruction_contract"]["task"] = "Validate the newly selected U2 contract."
         legitimate_drift["instruction_contract"]["action"] = "validate only the new U2 contract while preserving unrelated work."
         refresh_request_and_idempotency(legitimate_drift)
@@ -4191,6 +5385,13 @@ try:
         refresh_body(legitimate_drift)
         if classify_replay(legitimate_drift) != "drift":
             fail("legitimate authenticated drift classification")
+        lock_before_compare = copy.deepcopy(legitimate_drift)
+        lock_before_compare["lock"]["release_identity"]["dev"] += 1
+        expect_classification_failure(
+            "validation order ownership lock before stored compare",
+            lock_before_compare,
+            "lock release identity",
+        )
 
         exact_match_with_different_current_body = copy.deepcopy(vector)
         exact_match_with_different_current_body["instruction_contract"]["task"] = "Validate a different current task."
@@ -4573,8 +5774,8 @@ try:
         expect_failure("idempotency over cap", candidate, "checkpoint idempotency key cap")
 
         candidate = copy.deepcopy(vector)
-        first = candidate["plan_projection"]["units"][1]
-        third = candidate["plan_projection"]["units"][2]
+        first = candidate["plan_projection"]["units"][0]
+        third = candidate["plan_projection"]["units"][1]
         first["next_condition"] = ""
         third["next_condition"] = ""
         base_size = len(build_plan_summary(candidate["plan_projection"]).encode("utf-8"))
@@ -4723,6 +5924,23 @@ require_text "backtick fence longer"
 require_text "same validated input snapshot"
 require_text "normalized plan-summary digest"
 require_text 'List every non-`Complete` unit'
+require_text 'require the five non-`Complete` aggregate counts to match those open details exactly'
+require_text 'that registry may be empty and then all three gate counts are zero'
+require_text 'Normalize claims into one top-level ownership-evidence registry.'
+require_text 'The exact localized absence display values `none`, `unclaimed`, `无`, and `未认领` are reserved after controlled single-line normalization'
+require_text 'Normalize active blockers into one top-level blocker registry'
+require_text 'Validate Git status through both independent `status-canon-v1` encoders'
+require_text 'Only then compare the validated current key and snapshot digest with the validated stored checkpoint.'
+require_text 'Validate a stored summary intrinsically without fresh-current facts'
+require_text 'Require open-unit IDs, each unit'
+require_text 'Reconstruct the exact unique open-gate union from every open-unit required-gate ID plus localized status'
+require_text 'Bind each blocker ID to its rendered owner unit and owner claim'
+require_text 'Every non-absence open-unit claim is nonempty and globally unique across all open units'
+require_text 'In the plan projection helper, `status_fingerprint` is exactly the controlled string `sha256:` plus 64 lowercase hexadecimal digits'
+require_text 'Use one shared rendered-scalar domain only for snapshot identity fields and the fields actually interpolated into summary'
+require_text 'Ownership-evidence and blocker-evidence payloads are not interpolated into summary'
+require_text 'Preserve sanitized tracker fact text such as next conditions, gate details, blocker details, and recovery conditions without translating it.'
+require_text 'Do not validate, bind, prepare, or use a current candidate summary/body between lock validation and this comparison.'
 require_text "before the reusable"
 require_text "status-canon-v1"
 require_text "Cf"
@@ -4759,6 +5977,11 @@ FALLBACK_LOCK_DERIVATION_MARKER = "fallback lock derivation contract: derive the
 AUTHENTICATED_RAW_STORE_MARKER = "authenticated raw store contract: provenance binds exact received canonical store bytes with strict UTF-8, duplicate-free exact nested key order, minified direct Unicode JSON, and exactly one final LF before current validation"
 AUTHENTICATED_RAW_BEFORE_PARSED_MARKER = "authenticated raw-before-parsed order contract: enforce the declared store cap before Base64 decode and decoded actual cap before UTF-8 or JSON, then complete every raw intrinsic before any fixture parsed-store access"
 AUTHENTICATED_RESOLVED_TARGET_MARKER = "authenticated resolved target contract: provenance, stored idempotency-key physical target, and canonical sink target digest bind to the independently validated invocation-resolved physical target before current validation"
+FRESH_CURRENT_ORDER_MARKER = "fresh current validation order: request -> status dual encoders -> idempotency -> snapshot -> plan -> ownership/lock -> stored compare"
+STORED_SUMMARY_GRAMMAR_MARKER = "stored summary intrinsic grammar: validate one complete Chinese or English scalar/unit/gate/blocker token grammar without fresh-current facts; reject arbitrary, mixed-language, missing, duplicate, reordered, or malformed lines before drift"
+PLAN_SUMMARY_ORDER_MARKER = "plan summary canonical ordering: normalized open-unit, per-unit gate reference, open-gate, and blocker IDs use ascending UTF-8 byte order; stored gate bullets exactly equal the unmet-or-unknown union derived from open-unit annotations"
+PLAN_SUMMARY_LOCALIZATION_MARKER = "plan summary localization: Chinese and English use their exact state, claim, required-gates, next-step, next-convergence, gate-status, gate-detail, blocker-id, owner, detail, and recovery field labels; canonical unit states and tracker fact text are not translated"
+STORED_COMPARISON_BOUNDARY_MARKER = "stored comparison boundary: after ownership/lock compare current idempotency and snapshot to stored before any current-artifact phase; valid drift precedes fresh artifact generation"
 OLD_README_MARKERS = (
     ORDINARY_TRACKER_MARKER,
     AUTHENTICATED_REPLAY_MARKER,
@@ -4776,7 +5999,13 @@ README_MARKERS = (
     AUTHENTICATED_RAW_STORE_MARKER,
     AUTHENTICATED_RAW_BEFORE_PARSED_MARKER,
     AUTHENTICATED_RESOLVED_TARGET_MARKER,
-    *OLD_README_MARKERS[2:8],
+    *OLD_README_MARKERS[2:4],
+    FRESH_CURRENT_ORDER_MARKER,
+    STORED_SUMMARY_GRAMMAR_MARKER,
+    PLAN_SUMMARY_ORDER_MARKER,
+    PLAN_SUMMARY_LOCALIZATION_MARKER,
+    STORED_COMPARISON_BOUNDARY_MARKER,
+    *OLD_README_MARKERS[4:8],
     ORDINARY_AUDIT_PROJECTION_MARKER,
     ORDINARY_AUDIT_EFFECTIVE_MARKER,
     FALLBACK_LOCK_DERIVATION_MARKER,
@@ -4785,9 +6014,9 @@ README_MARKERS = (
 )
 MARKER_SECTION_HEADING = "## 确定性绑定、首次交付与认证重放协议"
 OLD_MARKER_SECTION_INTRO = "下面十行是 README gate 使用的稳定契约索引；每行随后各有完整中文规则，不是可执行示例或替代说明。"
-MARKER_SECTION_INTRO = "下面十七行是 README gate 使用的稳定契约索引；每行随后各有完整中文规则，不是可执行示例或替代说明。"
+MARKER_SECTION_INTRO = "下面二十二行是 README gate 使用的稳定契约索引；每行随后各有完整中文规则，不是可执行示例或替代说明。"
 OLD_MARKER_SECTION_OUTRO = "这些索引分别固定普通模式、认证重放、delivery、校验顺序、status、Unicode 与输出 framing 的边界。"
-MARKER_SECTION_OUTRO = "这些索引分别固定普通模式、认证重放、raw store、raw-before-parsed order、resolved target、delivery、校验顺序、status、ordinary audit projection、audit sink identity、fallback lock derivation、Unicode 与输出 framing 的边界。"
+MARKER_SECTION_OUTRO = "这些索引分别固定普通模式、认证重放、raw store、raw-before-parsed order、resolved target、delivery、stored summary intrinsic grammar、plan summary ordering/localization、fresh-current 与 stored comparison 顺序、status、ordinary audit projection、audit sink identity、fallback lock derivation、Unicode 与输出 framing 的边界。"
 MARKER_SECTION_NEXT_HEADING = "### Canonical request、identity 与 snapshot"
 OLD_README_MARKER_SOURCE_BLOCK = "\n\n".join(
     (
