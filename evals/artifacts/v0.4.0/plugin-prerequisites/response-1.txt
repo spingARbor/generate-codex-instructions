@@ -1,3 +1,5 @@
-已阻塞，未生成开发指令。仓库 manifest `./.codex-plugin/plugin.json` 要求 `interactive-review` UI hook，以及认证必需的 `authenticated-provider` MCP；当前 headless 执行面未暴露这两项能力，且无认证会话或获准 fallback。
+已阻塞，未生成 Codex 开发指令。
 
-未输出 instruction/fence，未写 audit，未调用 provider，未实现、测试或提交；tracker lock 不存在。恢复条件是同时提供交互 UI hook 和已认证 MCP provider session 后重新执行。
+目标 `.` 的选中单元 U2 强制依赖 `fixture-ui-auth-plugin` 1.0.0 的 `interactive-review` UI hook，以及需要认证的 `authenticated-provider` MCP。当前为 headless 执行面，相关 hook/provider 未暴露，且无认证会话或获准 fallback，因此 prerequisite 不满足。
+
+未写 audit、未调用 provider、未实现、未测试、未执行 Git 变更或提交。恢复条件是提供交互式 UI 执行面和已认证 provider session，或明确批准有依据的 fallback 后重新运行。

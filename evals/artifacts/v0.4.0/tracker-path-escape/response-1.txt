@@ -1,3 +1,3 @@
-已阻塞：`.project/development` 是指向 `../../escape-target` 的符号链接，物理路径逃逸当前仓库 `.`，不满足 tracker containment 要求。
+已阻塞：`.project/development` 是指向仓库外部的符号链接，containment 验证失败。
 
-未读取或写入 tracker，未生成开发指令或代码围栏，未实施任务、提交代码或创建锁。恢复条件：将 `.project/development` 改为仓库 `.` 内的真实目录，并确保 tracker 文件不是符号链接、特殊文件或多硬链接文件。
+未读取或写入 tracker，未生成开发指令或围栏，未实现、测试或提交任何任务，也未创建锁或临时 helper。请将该 tracker 恢复为仓库 `.` 内的真实目录后重试。

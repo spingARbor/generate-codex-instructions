@@ -1,3 +1,3 @@
-已按指定 skill 验证并 fail closed。当前 host 未提供仓库外 trust root、authenticated provenance，以及绑定当前仓库 `.` 的获授权仓库外 full-payload sink，因此无法进行精确重放。
+已 fail closed：当前 host 未提供仓库外 trust root、authenticated provenance，以及已授权的仓库外 full-payload sink，无法安全执行精确重放。
 
-未解码 checkpoint、未 fresh-generate、未输出指令或 fence、未写 audit、未修改仓库或版本；fallback lock 不存在。
+未 fresh-generate、未输出指令、未写 audit、未修改仓库或版本；tracker lock 不存在。恢复条件是 host 同时提供并绑定上述三项能力后重新请求。

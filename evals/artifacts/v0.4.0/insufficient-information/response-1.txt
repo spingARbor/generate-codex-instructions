@@ -1,14 +1,16 @@
 开发计划收敛情况
 
-- 快照：tracker revision 31；branch feature/mixed-plan；HEAD 2b176a3a7b1326bfd27879b46c3dbc56ef6e9c54；工作树只读观察为 clean
-- 整体状态：信息不足
-- 单元统计：Complete 0、In Progress 1、Claimed 0、Ready 0、Blocked 0、Failed 0
-- Gate 统计：已通过 0、未通过 0、未知 1
+- 快照：tracker revision 31；branch `feature/mixed-plan`；HEAD `sha1:2b176a3a7b1326bfd27879b46c3dbc56ef6e9c54`；Git 工作树干净。
+- 整体状态：信息不足。
+- 单元统计：无法可靠给出精确统计。Tracker 仅提供 U1 的明细，缺少六种 canonical state 的权威汇总计数。
+- Gate 统计：已通过 0、未通过 0、未知 1。G1 在计划中为 unknown，而 progress 中记录为 passed，缺少可消除歧义的权威状态。
 
 整体开放进度
 
-- 本次选中单元：U1；In Progress；claim 缺失且不满足唯一、有效、所有权绑定要求；next step 为实现已记录的标签校验
-- 全部未完成单元：U1；In Progress；收敛条件为 G1 通过，但必须先补充有效 claim
-- 开放 Gate：G1；状态 unknown；计划注册表未记录权威当前结果，且与 progress 中的 passed 记录不一致
-- 阻塞项：缺少 U1 的有效所有权 claim；恢复条件为记录一个唯一且所有权绑定的 claim，并协调 G1 的权威状态
-- 决策：依据指定 skill 的失败关闭规则，当前状态禁止生成可执行的 text 指令块。未写入 digest audit，未创建遗留 invocation lock，也未实施任务、运行测试或执行 Git/版本修改。
+- 本次选中单元：无法安全选中。U1 标记为 In Progress 和 selected，但没有有效、唯一且绑定所有权证据的 claim；所需 Gate 为 G1:未知；下一步为实现已记录的校验要求。
+- 全部未完成单元：已保留的唯一明细为 U1，但因缺少权威汇总计数，无法证明它构成完整开放单元集合。
+- 开放 Gate：G1；状态未知；计划与 progress 的状态证据未收敛。
+- 阻塞项：Tracker 记录了缺少 claim evidence，但未提供规范 blocker ID、所属单元引用和权威证据绑定。
+- 恢复条件：补充六种状态的权威汇总计数；为 U1 建立唯一 ownership-bound claim 及顶层 ownership evidence；统一 G1 状态；将阻塞项规范化为带稳定 ID、所属单元、详情、恢复条件和证据的 blocker registry。
+
+根据指定 skill，In Progress 单元缺少有效 claim 时必须判定为“信息不足”，并禁止输出可执行的 `text` 指令块。因此本次未生成交接指令，也未写入 digest audit。未运行测试、未修改项目或 Git，invocation lock 不存在。

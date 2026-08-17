@@ -1,15 +1,16 @@
 开发计划收敛情况
 
-- 快照：tracker revision 32；branch feature/mixed-plan；HEAD sha1:2b176a3a7b1326bfd27879b46c3dbc56ef6e9c54；status fingerprint sha256:09ea38dfbdfbdeef5dc30593097429f0dd99d2d5c91853dbb6e5c0400c7c6ad0
-- 整体状态：部分受阻
-- 单元统计：Complete 0；In Progress 0；Claimed 0；Ready 0；Blocked 1；Failed 0
-- Gate 统计：已通过 0；未通过 0；未知 1
+- 快照：tracker revision 32；branch `feature/mixed-plan`；HEAD `sha1:2b176a3a7b1326bfd27879b46c3dbc56ef6e9c54`
+- 整体状态：信息不足
+- 单元统计：tracker 未提供权威聚合计数，无法按 skill 协议验证精确统计；现有开放明细仅包含 `U1`，状态为 `Blocked`
+- Gate 统计：`G1` 在计划中为 `unknown`，但 progress 记录为 `passed`，证据冲突，无法确证统计
 
 整体开放进度
 
-- 本次选中单元：无；当前不存在可独立执行的单元
-- 全部未完成单元：U1；state Blocked；claim 无；next convergence condition 为 schema owner 记录 API schema approval 及 G1 权威结果
-- 开放 Gate：G1；状态未知；现有基线测试记录不能证明 API schema approval
-- 阻塞项：API schema approval 缺失；recovery condition 为 schema owner 记录 approval 和 G1 权威结果
+- 本次选中单元：无；tracker 明确记录没有可独立执行的单元
+- 全部未完成单元：`U1`；状态 `Blocked`；认领：无；所需 Gate：`G1`，状态未知且证据冲突；下一收敛条件：schema owner 记录审批结果及权威 `G1` 状态
+- 开放 Gate：`G1`；状态未知；计划与 progress 的记录不一致
+- 阻塞项：tracker 未提供满足协议要求的稳定 blocker ID 和顶层 blocker registry；现有阻塞事实为 API schema approval 缺失
+- 恢复条件：补齐权威聚合计数和规范化 blocker registry，并由 schema owner 统一记录审批结果、修正 `G1` 状态及 `U1` 状态
 
-交接结论：未生成 text 指令块。权威 tracker 明确不存在可独立执行的单元；在 G1 获得权威审批并更新 tracker 前，指定 skill 禁止生成可执行交接指令。未写入 digest audit，临时 invocation lock 已清理。
+依据指定 skill，`信息不足` 且没有可执行单元时不得输出可执行指令块，也不得写入 digest audit。因此本次未生成交接指令、未持久修改 tracker，invocation lock 已确认不存在。

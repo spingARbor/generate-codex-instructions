@@ -1,5 +1,5 @@
 开发计划收敛情况
-- 快照：tracker revision 30；branch feature/mixed-plan；HEAD sha1:001b9081f2ac7f49b693543828c36f4c946024e4；工作区干净
+- 快照：tracker revision 30；branch feature/mixed-plan；HEAD sha1:001b9081f2ac7f49b693543828c36f4c946024e4；status fingerprint sha256:56de25a6db54e14b7a779d2f44d98fa123b9ed471aeea2d236a46b18d5cbaa79
 - 整体状态：已收敛
 - 单元统计：Complete 1；In Progress 0；Claimed 0；Ready 0；Blocked 0；Failed 0
 - Gate 统计：已通过 1；未通过 0；未知 0
@@ -10,4 +10,4 @@
 - 开放 Gate：无
 - 阻塞项：无
 
-交接决定：不生成 text 指令块。U1 已为 Complete，唯一必需 Gate G1 已记录为 passed，且 tracker 明确声明没有开放单元。指定 skill 禁止在“已收敛”状态下生成可执行模板；恢复条件是先由项目所有者在 tracker 中建立或重新开放一个具备明确收敛条件的可执行单元。本次按要求未运行目标测试，未写入 digest audit，invocation lock 不存在，未产生持久修改。
+决策：当前唯一单元 U1 已为 Complete，唯一 required gate G1 已通过，tracker 明确记录没有开放单元。没有可安全交接的下一开发任务，因此不生成 text 指令块，也不写入 digest audit。恢复条件：先在权威 tracker 中新增或重新打开一个具备明确下一收敛条件的可执行单元。
