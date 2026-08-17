@@ -1,6 +1,6 @@
 ---
 name: generate-codex-instructions
-description: "Generate one repository-grounded Codex development instruction and persist target-project progress. Use only when asked to draft, refine, or hand off an implementation instruction or next-step engineering prompt from docs and code. Do not use for requests to implement, edit, test, review, or execute the task itself. Reuse relevant installed skills and enabled plugin capabilities; select one convergent unit; require design/root-cause reasoning, validation, closure, and authorized version control."
+description: "Use when asked to draft, refine, or hand off a repository-grounded Codex implementation instruction or next-step engineering prompt from project design, code, tests, and development tracking; not for implementing, editing, testing, reviewing, or executing the task itself."
 ---
 
 # Generate Codex Instructions

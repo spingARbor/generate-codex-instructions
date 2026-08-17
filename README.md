@@ -35,7 +35,9 @@ skill/SKILL.md
 skill/agents/openai.yaml
 ```
 
-开发指南、测试、评估语料、安装脚本、发布记录和项目进度属于仓库开发资产，不应复制进 `skill/` runtime bundle。修改时运行 `tests/validate.sh`，它会检查 runtime 文件数量，避免把 `.git`、`.codex`、docs 或测试误暴露给 Codex runtime。
+这也是 runtime 的精确 entry tree：目录只能是 `skill/` 和 `skill/agents/`，文件只能是上述两个 regular file。repo、安装源和安装 target 的物理 gate 还要求预期 owner 与 single link，并拒绝额外 entry、symlink、FIFO/socket/device 或 hardlink；prospective archive gate 锁定同一组 exact names 和 archive types。不得用会跟随 symlink 的文件计数代替物理校验。
+
+开发指南、测试、评估语料、安装脚本、发布记录和项目进度属于仓库开发资产，不应复制进 `skill/` runtime bundle。`SKILL.md` frontmatter description 只描述 `Use when...` 触发条件，不概述执行流程；`agents/openai.yaml` 由结构化 YAML 校验锁定精确 keys、types 和 UI values，拒绝 unknown/duplicate key。修改时运行 `tests/validate.sh`，避免把 `.git`、`.codex`、docs 或测试误暴露给 Codex runtime。
 
 优先改清楚契约文字和小型测试语料。不要新增庞大参考文件、重复脚本或隐式执行器；如果某条规则可以用 shell/JSON/schema 校验稳定表达，优先放进验证脚本或评估语料，而不是堆进 `SKILL.md`。
 
@@ -300,7 +302,8 @@ git diff --check
 - repository eval assets 只保留必要的规范化证据，不发布 raw evaluator logs、敏感 canary 内容或随机 evaluator 绝对路径。validator 从真实文件重算 hash/length、fence cardinality 与 response-to-audit summary/body binding。
 - 检查 `SKILL.md` 中关键安全和行为契约 marker。
 - 校验 eval JSON 可解析、required case IDs 完整，并以 `evals/replay-vectors.json` 对 canonical request/idempotency/snapshot bytes、identity binding、component order/containment、artifact normalization、Base64、length/hash、Unicode/control edge cases 和 checkpoint envelope mutation 做确定性 oracle 校验。
-- 检查 runtime bundle 只包含两个文件。
+- 检查 repo、安装源和安装后 physical surface 精确只含两个目录和两个 owned、single-link regular file；prospective archive 精确绑定同一组 names/types，并以 mutation 拒绝额外 entry、symlink、special file、hardlink 和适用 surface 上的非预期 owner。
+- 用结构化 YAML parser 校验 frontmatter 与 `agents/openai.yaml`，拒绝 duplicate/unknown key、错误类型和值漂移，并锁定纯 trigger-only description 与 Codex UI metadata。
 - 验证默认安装、自定义安装、无 HOME 安装、重复安装、legacy 迁移、冲突拒绝和路径安全。
 - 用 prospective archive 确认不会暴露 `.codex/development/`。
 

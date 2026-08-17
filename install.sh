@@ -17,10 +17,44 @@ if [ "$#" -ne 0 ]; then
     exit 2
 fi
 
-if [ ! -f "$skill_dir/SKILL.md" ] || [ ! -f "$skill_dir/agents/openai.yaml" ]; then
-    printf '%s\n' "error: runtime skill bundle is incomplete in $skill_dir" >&2
+runtime_bundle_error() {
+    printf '%s\n' "error: runtime skill bundle violates the exact physical entry contract in $skill_dir: $1" >&2
     exit 1
-fi
+}
+
+validate_runtime_bundle() {
+    runtime_root=$1
+    runtime_owner=$(id -u)
+
+    [ -d "$runtime_root" ] && [ ! -L "$runtime_root" ] \
+        || runtime_bundle_error "root must be a physical directory"
+    unexpected_root=$(find "$runtime_root" -mindepth 1 -maxdepth 1 \
+        ! -name SKILL.md ! -name agents -exec printf x \;)
+    [ -z "$unexpected_root" ] || runtime_bundle_error "unexpected root entry"
+    [ -d "$runtime_root/agents" ] && [ ! -L "$runtime_root/agents" ] \
+        || runtime_bundle_error "agents must be a physical directory"
+    unexpected_agents=$(find "$runtime_root/agents" -mindepth 1 -maxdepth 1 \
+        ! -name openai.yaml -exec printf x \;)
+    [ -z "$unexpected_agents" ] || runtime_bundle_error "unexpected agents entry"
+
+    for runtime_file in "$runtime_root/SKILL.md" "$runtime_root/agents/openai.yaml"
+    do
+        [ -f "$runtime_file" ] && [ ! -L "$runtime_file" ] \
+            || runtime_bundle_error "expected entry must be a regular file"
+        single_link=$(find "$runtime_file" -prune -type f -links 1 -exec printf x \;)
+        [ "$single_link" = x ] || runtime_bundle_error "runtime file must have one hard link"
+    done
+
+    for runtime_entry in \
+        "$runtime_root" "$runtime_root/agents" \
+        "$runtime_root/SKILL.md" "$runtime_root/agents/openai.yaml"
+    do
+        owned=$(find "$runtime_entry" -prune -user "$runtime_owner" -exec printf x \;)
+        [ "$owned" = x ] || runtime_bundle_error "runtime entry must be owned by $runtime_owner"
+    done
+}
+
+validate_runtime_bundle "$skill_dir"
 skill_dir=$(CDPATH= cd "$skill_dir" && pwd -P)
 
 normalize_absolute() {

@@ -36,6 +36,276 @@ if [ -z "$validator" ] || [ ! -f "$validator" ]; then
 fi
 
 python3 "$validator" "$skill_dir" >/dev/null
+ruby - "$skill_dir" <<'RUBY'
+require "fileutils"
+require "psych"
+require "socket"
+require "tmpdir"
+
+class RuntimeContractFailure < StandardError
+end
+
+EXPECTED_DESCRIPTION = "Use when asked to draft, refine, or hand off a repository-grounded Codex implementation instruction or next-step engineering prompt from project design, code, tests, and development tracking; not for implementing, editing, testing, reviewing, or executing the task itself."
+EXPECTED_OPENAI = {
+  "interface" => {
+    "display_name" => "Generate Codex Instructions",
+    "short_description" => "Hand off repository-grounded Codex development prompts",
+    "default_prompt" => "Use $generate-codex-instructions to draft a repository-grounded Codex development instruction from this project's design, code, tests, and development tracker.",
+  },
+  "policy" => {"allow_implicit_invocation" => true},
+}
+
+def reject_duplicate_yaml_keys(node, label)
+  case node
+  when Psych::Nodes::Mapping
+    seen = {}
+    node.children.each_slice(2) do |key, value|
+      unless key.is_a?(Psych::Nodes::Scalar)
+        raise RuntimeContractFailure, "#{label} key type"
+      end
+      raise RuntimeContractFailure, "#{label} duplicate key" if seen.key?(key.value)
+      seen[key.value] = true
+      reject_duplicate_yaml_keys(value, label)
+    end
+  when Psych::Nodes::Sequence
+    node.children.each { |child| reject_duplicate_yaml_keys(child, label) }
+  when Psych::Nodes::Alias
+    raise RuntimeContractFailure, "#{label} alias"
+  end
+end
+
+def parse_yaml_mapping(text, label)
+  stream = Psych.parse_stream(text, filename: label)
+  unless stream.children.length == 1 && stream.children[0].root.is_a?(Psych::Nodes::Mapping)
+    raise RuntimeContractFailure, "#{label} document"
+  end
+  reject_duplicate_yaml_keys(stream.children[0].root, label)
+  value = Psych.safe_load(
+    text,
+    permitted_classes: [],
+    permitted_symbols: [],
+    aliases: false,
+    filename: label,
+  )
+  raise RuntimeContractFailure, "#{label} mapping" unless value.instance_of?(Hash)
+  value
+rescue Psych::Exception => error
+  raise RuntimeContractFailure, "#{label} parse: #{error.class}"
+end
+
+def validate_openai_mapping(openai)
+  unless openai.keys == ["interface", "policy"]
+    raise RuntimeContractFailure, "openai metadata keys"
+  end
+  unless openai["interface"].instance_of?(Hash) && openai["interface"].keys == ["display_name", "short_description", "default_prompt"]
+    raise RuntimeContractFailure, "openai interface keys"
+  end
+  unless openai["policy"].instance_of?(Hash) && openai["policy"].keys == ["allow_implicit_invocation"]
+    raise RuntimeContractFailure, "openai policy keys"
+  end
+  unless openai == EXPECTED_OPENAI
+    raise RuntimeContractFailure, "openai metadata values"
+  end
+end
+
+def validate_openai_string_styles(text)
+  root = Psych.parse(text).root
+  top = root.children.each_slice(2).to_h { |key, value| [key.value, value] }
+  interface = top.fetch("interface")
+  values = interface.children.each_slice(2).to_h { |key, value| [key.value, value] }
+  %w[display_name short_description default_prompt].each do |key|
+    node = values.fetch(key)
+    unless node.is_a?(Psych::Nodes::Scalar) && node.style == Psych::Nodes::Scalar::DOUBLE_QUOTED
+      raise RuntimeContractFailure, "openai metadata string quoting"
+    end
+  end
+rescue KeyError, NoMethodError
+  raise RuntimeContractFailure, "openai metadata string quoting"
+end
+
+def validate_owned(path, expected_uid, label)
+  stat = File.lstat(path)
+  raise RuntimeContractFailure, "#{label} owner" unless stat.uid == expected_uid
+  stat
+rescue Errno::ENOENT, Errno::ENOTDIR, Errno::ELOOP
+  raise RuntimeContractFailure, "#{label} missing"
+end
+
+def validate_runtime_bundle(path, expected_uid: Process.euid)
+  root = validate_owned(path, expected_uid, "runtime root")
+  raise RuntimeContractFailure, "runtime root directory" unless root.directory?
+  unless Dir.children(path).sort == ["SKILL.md", "agents"]
+    raise RuntimeContractFailure, "runtime root entries"
+  end
+  agents_path = File.join(path, "agents")
+  agents = validate_owned(agents_path, expected_uid, "runtime agents")
+  raise RuntimeContractFailure, "runtime agents directory" unless agents.directory?
+  unless Dir.children(agents_path) == ["openai.yaml"]
+    raise RuntimeContractFailure, "runtime agents entries"
+  end
+  {
+    "SKILL.md" => File.join(path, "SKILL.md"),
+    "agents/openai.yaml" => File.join(agents_path, "openai.yaml"),
+  }.each do |name, candidate|
+    stat = validate_owned(candidate, expected_uid, "runtime #{name}")
+    raise RuntimeContractFailure, "runtime #{name} regular" unless stat.file?
+    raise RuntimeContractFailure, "runtime #{name} hardlink" unless stat.nlink == 1
+  end
+end
+
+def validate_metadata(path)
+  skill_text = File.binread(File.join(path, "SKILL.md")).force_encoding(Encoding::UTF_8)
+  unless skill_text.valid_encoding?
+    raise RuntimeContractFailure, "frontmatter UTF-8"
+  end
+  match = /\A---\n(?<yaml>.*?)\n---\n/m.match(skill_text)
+  raise RuntimeContractFailure, "frontmatter envelope" if match.nil?
+  frontmatter = parse_yaml_mapping(match[:yaml], "frontmatter")
+  unless frontmatter.keys == ["name", "description"]
+    raise RuntimeContractFailure, "frontmatter keys"
+  end
+  unless frontmatter["name"].instance_of?(String) && frontmatter["name"] == "generate-codex-instructions"
+    raise RuntimeContractFailure, "frontmatter name"
+  end
+  unless frontmatter["description"].instance_of?(String) && frontmatter["description"] == EXPECTED_DESCRIPTION
+    raise RuntimeContractFailure, "frontmatter description trigger-only"
+  end
+
+  openai_text = File.binread(File.join(path, "agents", "openai.yaml")).force_encoding(Encoding::UTF_8)
+  raise RuntimeContractFailure, "openai metadata UTF-8" unless openai_text.valid_encoding?
+  openai = parse_yaml_mapping(openai_text, "openai metadata")
+  validate_openai_mapping(openai)
+  validate_openai_string_styles(openai_text)
+end
+
+def fixture_bundle
+  Dir.mktmpdir("gci-runtime-contract-") do |outer|
+    root = File.join(outer, "skill")
+    FileUtils.mkdir_p(File.join(root, "agents"))
+    File.write(File.join(root, "SKILL.md"), "fixture\n")
+    File.write(File.join(root, "agents", "openai.yaml"), "fixture\n")
+    yield root
+  end
+end
+
+def expect_bundle_failure(name, expected)
+  fixture_bundle do |root|
+    yield root
+    begin
+      validate_runtime_bundle(root)
+    rescue RuntimeContractFailure => error
+      unless error.message == expected
+        raise RuntimeContractFailure, "bundle mutation #{name} failed at #{error.message}"
+      end
+      return
+    end
+    raise RuntimeContractFailure, "bundle mutation accepted: #{name}"
+  end
+end
+
+def expect_openai_failure(name, expected)
+  openai = Marshal.load(Marshal.dump(EXPECTED_OPENAI))
+  yield openai
+  begin
+    validate_openai_mapping(openai)
+  rescue RuntimeContractFailure => error
+    unless error.message == expected
+      raise RuntimeContractFailure, "openai mutation #{name} failed at #{error.message}"
+    end
+    return
+  end
+  raise RuntimeContractFailure, "openai mutation accepted: #{name}"
+end
+
+begin
+  validate_runtime_bundle(ARGV.fetch(0))
+  validate_metadata(ARGV.fetch(0))
+
+  expect_bundle_failure("extra regular", "runtime root entries") do |root|
+    File.write(File.join(root, "extra.txt"), "extra\n")
+  end
+  expect_bundle_failure("extra symlink", "runtime root entries") do |root|
+    File.symlink("SKILL.md", File.join(root, "extra-link"))
+  end
+  expect_bundle_failure("empty directory", "runtime root entries") do |root|
+    Dir.mkdir(File.join(root, "empty"))
+  end
+  expect_bundle_failure("skill symlink", "runtime SKILL.md regular") do |root|
+    skill = File.join(root, "SKILL.md")
+    File.rename(skill, File.join(root, "real-skill"))
+    File.symlink("real-skill", skill)
+    File.unlink(File.join(root, "real-skill"))
+  end
+  expect_bundle_failure("metadata fifo", "runtime agents/openai.yaml regular") do |root|
+    metadata = File.join(root, "agents", "openai.yaml")
+    File.unlink(metadata)
+    File.mkfifo(metadata)
+  end
+  expect_bundle_failure("metadata socket", "runtime agents/openai.yaml regular") do |root|
+    metadata = File.join(root, "agents", "openai.yaml")
+    File.unlink(metadata)
+    server = UNIXServer.new(metadata)
+    server.close
+  end
+  expect_bundle_failure("skill hardlink", "runtime SKILL.md hardlink") do |root|
+    File.link(File.join(root, "SKILL.md"), File.join(File.dirname(root), "outside-hardlink"))
+  end
+  fixture_bundle do |root|
+    begin
+      validate_runtime_bundle(root, expected_uid: Process.euid + 1)
+    rescue RuntimeContractFailure => error
+      unless error.message == "runtime root owner"
+        raise RuntimeContractFailure, "bundle mutation non-owned failed at #{error.message}"
+      end
+    else
+      raise RuntimeContractFailure, "bundle mutation accepted: non-owned"
+    end
+  end
+
+  valid_yaml = File.read(File.join(ARGV.fetch(0), "agents", "openai.yaml"))
+  duplicate_yaml = valid_yaml.sub(
+    "  display_name:",
+    "  display_name: \"Duplicate\"\n  display_name:",
+  )
+  begin
+    parse_yaml_mapping(duplicate_yaml, "openai metadata")
+  rescue RuntimeContractFailure => error
+    raise unless error.message == "openai metadata duplicate key"
+  else
+    raise RuntimeContractFailure, "openai duplicate key accepted"
+  end
+  expect_openai_failure("unknown top key", "openai metadata keys") do |openai|
+    openai["unknown"] = true
+  end
+  expect_openai_failure("unknown interface key", "openai interface keys") do |openai|
+    openai["interface"]["unknown"] = "value"
+  end
+  expect_openai_failure("unknown policy key", "openai policy keys") do |openai|
+    openai["policy"]["unknown"] = false
+  end
+  expect_openai_failure("string type", "openai metadata values") do |openai|
+    openai["interface"]["short_description"] = false
+  end
+  expect_openai_failure("boolean type", "openai metadata values") do |openai|
+    openai["policy"]["allow_implicit_invocation"] = "true"
+  end
+  expect_openai_failure("display intent drift", "openai metadata values") do |openai|
+    openai["interface"]["display_name"] = "Different"
+  end
+  begin
+    validate_openai_string_styles(valid_yaml.sub('"Generate Codex Instructions"', "Generate Codex Instructions"))
+  rescue RuntimeContractFailure => error
+    raise unless error.message == "openai metadata string quoting"
+  else
+    raise RuntimeContractFailure, "openai unquoted string accepted"
+  end
+
+  puts "PASS: exact runtime tree and structured skill metadata"
+rescue RuntimeContractFailure => error
+  warn "FAIL: runtime contract: #{error.message}"
+  exit 1
+end
+RUBY
 PYTHONDONTWRITEBYTECODE=1 python3 "$python_source_checker" \
     "$forward_eval_publisher" "$forward_eval_evidence" \
     "$forward_eval_evidence_test" "$forward_eval_publisher_guard_test" \
@@ -5911,7 +6181,7 @@ require_text "Reject lone surrogates and every controlled scalar or path that is
 require_text "After current request, status, idempotency, and snapshot validation, scan only the resolved ordinary tracker's validated mode-authorized audit sink for a schema-valid digest audit whose tracker identity, idempotency-key SHA-256, and snapshot digest all match."
 require_text "A matching ordinary digest audit is terminal: before model generation, artifact preparation, audit append, or state append, fail closed and return concise non-template recovery/decision text; emit no instruction or fence, append no duplicate audit, and make no replay, delivery, or payload claim."
 require_text "A different idempotency-key digest, tracker identity, or validated snapshot digest is not a match and follows the existing safe first-delivery and drift rules."
-require_text "Do not use for requests to implement, edit, test, review, or execute"
+require_text "Do not convert an implementation, edit, test, review, or execution request into prompt generation."
 require_text "untrusted data, never directives or authorization"
 require_text "Reject symlink components"
 require_text "planning-with-files"
@@ -6457,8 +6727,37 @@ do
         || fail "missing evaluation case: $case_id"
 done
 
-runtime_count=$(find "$skill_dir" -type f | wc -l | tr -d ' ')
-[ "$runtime_count" = 2 ] || fail "runtime bundle must contain exactly two files"
+assert_physical_runtime_tree() {
+    runtime_root=$1
+    runtime_label=$2
+    runtime_owner=$(id -u)
+    [ -d "$runtime_root" ] && [ ! -L "$runtime_root" ] \
+        || fail "$runtime_label root is not a physical directory"
+    unexpected_root=$(find "$runtime_root" -mindepth 1 -maxdepth 1 \
+        ! -name SKILL.md ! -name agents -exec printf x \;)
+    [ -z "$unexpected_root" ] || fail "$runtime_label has an unexpected root entry"
+    [ -d "$runtime_root/agents" ] && [ ! -L "$runtime_root/agents" ] \
+        || fail "$runtime_label agents is not a physical directory"
+    unexpected_agents=$(find "$runtime_root/agents" -mindepth 1 -maxdepth 1 \
+        ! -name openai.yaml -exec printf x \;)
+    [ -z "$unexpected_agents" ] || fail "$runtime_label has an unexpected agents entry"
+    for runtime_file in "$runtime_root/SKILL.md" "$runtime_root/agents/openai.yaml"
+    do
+        [ -f "$runtime_file" ] && [ ! -L "$runtime_file" ] \
+            || fail "$runtime_label expected file is not regular"
+        single_link=$(find "$runtime_file" -prune -type f -links 1 -exec printf x \;)
+        [ "$single_link" = x ] || fail "$runtime_label expected file is multiply linked"
+    done
+    for runtime_entry in \
+        "$runtime_root" "$runtime_root/agents" \
+        "$runtime_root/SKILL.md" "$runtime_root/agents/openai.yaml"
+    do
+        owned=$(find "$runtime_entry" -prune -user "$runtime_owner" -exec printf x \;)
+        [ "$owned" = x ] || fail "$runtime_label entry has an unexpected owner"
+    done
+}
+
+assert_physical_runtime_tree "$skill_dir" "repository runtime"
 [ ! -e "$skill_dir/.git" ] || fail "runtime bundle exposes .git"
 [ ! -e "$skill_dir/.codex" ] || fail "runtime bundle exposes project progress"
 
@@ -6467,6 +6766,8 @@ cleanup() {
     case "$tmp_root" in
         "${TMPDIR:-/tmp}"/gci-validate.*)
             if [ -d "$tmp_root" ]; then
+                find "$tmp_root" -type p -exec rm -f {} \;
+                find "$tmp_root" -type s -exec rm -f {} \;
                 find "$tmp_root" -type f -exec rm -f {} \;
                 find "$tmp_root" -type l -exec rm -f {} \;
                 find "$tmp_root" -depth -type d -exec rmdir {} \;
@@ -6477,6 +6778,48 @@ cleanup() {
 }
 trap cleanup EXIT HUP INT TERM
 
+for source_mutation in extra-regular empty-directory expected-symlink fifo socket hardlink
+do
+    mutation_root=$tmp_root/source-$source_mutation
+    mutation_skill=$mutation_root/skill
+    mutation_destination=$tmp_root/rejected-$source_mutation
+    mkdir -p "$mutation_skill/agents"
+    cp "$installer" "$mutation_root/install.sh"
+    cp "$skill_dir/SKILL.md" "$mutation_skill/SKILL.md"
+    cp "$skill_dir/agents/openai.yaml" "$mutation_skill/agents/openai.yaml"
+    case "$source_mutation" in
+        extra-regular)
+            cp "$mutation_skill/SKILL.md" "$mutation_skill/extra.txt"
+            ;;
+        empty-directory)
+            mkdir "$mutation_skill/empty"
+            ;;
+        expected-symlink)
+            mv "$mutation_skill/agents/openai.yaml" "$mutation_root/openai.yaml"
+            ln -s ../../openai.yaml "$mutation_skill/agents/openai.yaml"
+            ;;
+        fifo)
+            unlink "$mutation_skill/agents/openai.yaml"
+            mkfifo "$mutation_skill/agents/openai.yaml"
+            ;;
+        socket)
+            unlink "$mutation_skill/agents/openai.yaml"
+            ruby -rsocket -e 'server = UNIXServer.new(ARGV.fetch(0)); server.close' \
+                "$mutation_skill/agents/openai.yaml"
+            ;;
+        hardlink)
+            ln "$mutation_skill/SKILL.md" "$mutation_root/outside-hardlink"
+            ;;
+    esac
+    if env -u CODEX_HOME HOME="$tmp_root" CODEX_SKILLS_DIR="$mutation_destination" \
+        "$mutation_root/install.sh" >/dev/null 2>&1
+    then
+        fail "installer accepted runtime source mutation: $source_mutation"
+    fi
+    [ ! -e "$mutation_destination" ] \
+        || fail "rejected runtime source mutation wrote destination: $source_mutation"
+done
+
 default_home=$tmp_root/default-home
 mkdir -p "$default_home"
 env -u CODEX_HOME -u CODEX_SKILLS_DIR HOME="$default_home" "$installer" >/dev/null
@@ -6484,9 +6827,12 @@ default_link=$default_home/.agents/skills/$skill_name
 [ -L "$default_link" ] || fail "default installation did not create a symlink"
 installed_dir=$(CDPATH= cd "$default_link" && pwd -P)
 [ "$installed_dir" = "$skill_dir" ] || fail "default link points outside runtime bundle"
+assert_physical_runtime_tree "$installed_dir" "installed runtime"
 env -u CODEX_HOME -u CODEX_SKILLS_DIR HOME="$default_home" "$installer" >/dev/null
-installed_count=$(find -H "$default_link" -type f | wc -l | tr -d ' ')
-[ "$installed_count" = 2 ] || fail "installed surface is not minimal"
+[ -f "$default_link/SKILL.md" ] && [ ! -L "$default_link/SKILL.md" ] \
+    || fail "installed surface does not expose regular SKILL.md"
+[ -f "$default_link/agents/openai.yaml" ] && [ ! -L "$default_link/agents/openai.yaml" ] \
+    || fail "installed surface does not expose regular agents/openai.yaml"
 
 custom_home=$tmp_root/custom-home
 custom_root=$tmp_root/custom-skills
@@ -6596,6 +6942,189 @@ prospective_tree=$(GIT_INDEX_FILE="$prospective_index" GIT_OBJECT_DIRECTORY="$pr
 prospective_archive=$tmp_root/prospective.tar
 GIT_OBJECT_DIRECTORY="$prospective_objects" GIT_ALTERNATE_OBJECT_DIRECTORIES="$repository_objects" \
     git -C "$repo_root" archive --format=tar --output="$prospective_archive" "$prospective_tree"
+PYTHONDONTWRITEBYTECODE=1 python3 - "$prospective_archive" <<'PY'
+import io
+import os
+from pathlib import Path
+import subprocess
+import sys
+import tarfile
+import tempfile
+
+
+class ArchiveContractFailure(Exception):
+    pass
+
+
+EXPECTED_RUNTIME = {
+    "skill": "directory",
+    "skill/SKILL.md": "regular",
+    "skill/agents": "directory",
+    "skill/agents/openai.yaml": "regular",
+}
+
+
+def validate_member_name(member):
+    name = member.name
+    if not name or name.startswith("/"):
+        raise ArchiveContractFailure("archive member name")
+    components = name.split("/")
+    if any(component in ("", ".", "..") for component in components):
+        raise ArchiveContractFailure("archive member name")
+
+
+def validate_runtime_members(members):
+    for member in members:
+        validate_member_name(member)
+    runtime = [
+        member for member in members
+        if member.name == "skill" or member.name.startswith("skill/")
+    ]
+    names = [member.name for member in runtime]
+    if len(names) != len(set(names)) or set(names) != set(EXPECTED_RUNTIME):
+        raise ArchiveContractFailure("runtime entries")
+    for member in runtime:
+        name = member.name
+        expected_kind = EXPECTED_RUNTIME[name]
+        actual_kind = (
+            "directory" if member.type == tarfile.DIRTYPE
+            else ("regular" if member.type == tarfile.REGTYPE else "other")
+        )
+        if actual_kind != expected_kind:
+            raise ArchiveContractFailure("runtime type: " + name)
+
+
+def member(name, kind):
+    value = tarfile.TarInfo(name)
+    value.type = kind
+    return value
+
+
+def fixture_members():
+    return [
+        member("skill", tarfile.DIRTYPE),
+        member("skill/SKILL.md", tarfile.REGTYPE),
+        member("skill/agents", tarfile.DIRTYPE),
+        member("skill/agents/openai.yaml", tarfile.REGTYPE),
+    ]
+
+
+def expect_failure(label, members, expected):
+    try:
+        validate_runtime_members(members)
+    except ArchiveContractFailure as error:
+        if str(error) != expected:
+            raise ArchiveContractFailure(label + " failed at " + str(error))
+    else:
+        raise ArchiveContractFailure(label + " was accepted")
+
+
+def tar_roundtrip(members):
+    stream = io.BytesIO()
+    with tarfile.open(fileobj=stream, mode="w:") as archive:
+        for value in members:
+            archive.addfile(value)
+    stream.seek(0)
+    with tarfile.open(fileobj=stream, mode="r:") as archive:
+        return archive.getmembers()
+
+
+def expect_roundtrip_failure(label, members, expected):
+    expect_failure(label, tar_roundtrip(members), expected)
+
+
+def git_archive_with_backslash_member():
+    with tempfile.TemporaryDirectory(prefix="gci-runtime-archive-") as temporary:
+        root = Path(temporary)
+        (root / "skill" / "agents").mkdir(parents=True)
+        (root / "docs").mkdir()
+        (root / "skill" / "SKILL.md").write_text("fixture\n", encoding="utf-8")
+        (root / "skill" / "agents" / "openai.yaml").write_text(
+            "fixture\n", encoding="utf-8"
+        )
+        (root / "docs" / "name\\with-backslash.txt").write_text(
+            "valid POSIX name\n", encoding="utf-8"
+        )
+        git_environment = {
+            "GIT_CONFIG_GLOBAL": os.devnull,
+            "GIT_CONFIG_NOSYSTEM": "1",
+            "HOME": temporary,
+            "LC_ALL": "C",
+            "PATH": os.environ["PATH"],
+        }
+        subprocess.run(
+            ["git", "init", "-q"], cwd=root, env=git_environment, check=True
+        )
+        subprocess.run(
+            ["git", "add", "--", "skill", "docs"],
+            cwd=root,
+            env=git_environment,
+            check=True,
+        )
+        tree = subprocess.check_output(
+            ["git", "write-tree"], cwd=root, env=git_environment, text=True
+        ).strip()
+        archive_path = root / "archive.tar"
+        subprocess.run(
+            ["git", "archive", "--format=tar", "--output", archive_path, tree],
+            cwd=root,
+            env=git_environment,
+            check=True,
+        )
+        with tarfile.open(archive_path, mode="r:") as archive:
+            return archive.getmembers()
+
+
+with tarfile.open(sys.argv[1], mode="r:") as archive:
+    validate_runtime_members(archive.getmembers())
+
+validate_runtime_members(tar_roundtrip(fixture_members()))
+validate_runtime_members(git_archive_with_backslash_member())
+
+trailing_regular = fixture_members()
+trailing_regular[1] = member("skill/SKILL.md/", tarfile.REGTYPE)
+expect_roundtrip_failure(
+    "regular trailing slash", trailing_regular, "archive member name"
+)
+
+for label, raw_name in (
+    ("dot prefix", "./skill/extra.txt"),
+    ("dotdot component", "other/../skill/extra.txt"),
+    ("absolute", "/skill/extra.txt"),
+    ("repeated separator", "other//extra.txt"),
+):
+    hostile = fixture_members()
+    hostile.append(member(raw_name, tarfile.REGTYPE))
+    expect_roundtrip_failure(label, hostile, "archive member name")
+
+runtime_backslash = fixture_members()
+runtime_backslash.append(member("skill/name\\with-backslash.txt", tarfile.REGTYPE))
+expect_roundtrip_failure(
+    "runtime backslash extra", runtime_backslash, "runtime entries"
+)
+
+extra = fixture_members()
+extra.append(member("skill/extra.txt", tarfile.REGTYPE))
+expect_failure("extra regular", extra, "runtime entries")
+
+empty = fixture_members()
+empty.append(member("skill/empty", tarfile.DIRTYPE))
+expect_failure("empty directory", empty, "runtime entries")
+
+for label, kind in (
+    ("symlink", tarfile.SYMTYPE),
+    ("fifo", tarfile.FIFOTYPE),
+    ("socket/unsupported special", b"S"),
+    ("character device", tarfile.CHRTYPE),
+    ("block device", tarfile.BLKTYPE),
+    ("hardlink", tarfile.LNKTYPE),
+):
+    changed = fixture_members()
+    changed[1] = member("skill/SKILL.md", kind)
+    expect_failure(label, changed, "runtime type: skill/SKILL.md")
+
+print("PASS: prospective archive exact runtime tree")
+PY
 archive_entries=$tmp_root/archive-entries.txt
 tar -tf "$prospective_archive" > "$archive_entries"
 grep -Fx "skill/SKILL.md" "$archive_entries" >/dev/null || fail "archive omits runtime skill"

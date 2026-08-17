@@ -1,7 +1,7 @@
 interface:
   display_name: "Generate Codex Instructions"
-  short_description: "Draft grounded, resumable Codex development instructions"
-  default_prompt: "Use $generate-codex-instructions to draft one repository-grounded Codex development instruction, reuse relevant installed skills and enabled plugin capabilities, and persist progress in the target project. Do not implement the task."
+  short_description: "Hand off repository-grounded Codex development prompts"
+  default_prompt: "Use $generate-codex-instructions to draft a repository-grounded Codex development instruction from this project's design, code, tests, and development tracker."
 
 policy:
   allow_implicit_invocation: true
