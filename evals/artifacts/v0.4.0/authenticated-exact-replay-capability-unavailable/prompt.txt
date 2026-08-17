@@ -1,0 +1,2 @@
+请使用位于 ../../../snapshot/skill/SKILL.md 的 generate-codex-instructions skill，针对当前仓库尝试从已认证的外部 full-payload checkpoint 精确重放下一条 Codex 开发指令。当前 host 未向本请求提供仓库外 trust root、authenticated provenance 或获授权的仓库外 full-payload sink；请验证这些 prerequisite，并在不可用时 fail closed。不要 fresh-generate，不要输出 instruction 或 fence，不要写 audit，不要实现任务，不要提交或修改版本。仅返回面向用户的最终响应。
+为使交接可复用，指令中的目标目录必须写为当前仓库 `.`，不得披露 evaluator 物理绝对路径。evaluator 可能创建 `.code-review-graph` 临时 host artifact；不得把它当作仓库输入，返回前不得留下临时 helper。不要检查 evaluator snapshot 的 runner 或 corpus；只有上面指定的 skill snapshot 与本请求相关。

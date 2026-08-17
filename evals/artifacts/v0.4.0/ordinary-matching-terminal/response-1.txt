@@ -1,0 +1,56 @@
+开发计划收敛情况
+- 快照：tracker revision 19；branch feature/mixed-plan；HEAD sha1:2b176a3a7b1326bfd27879b46c3dbc56ef6e9c54；status fingerprint sha256:9254feb5e02394e52f9f5ebefb74caf602cd02db36acd3e65415407ca2051224
+- 整体状态：部分受阻
+- 单元统计：Complete 1；In Progress 1；Claimed 0；Ready 1；Blocked 1；Failed 0
+- Gate 统计：已通过 1；未通过 1；未知 1
+
+整体开放进度
+- 本次选中单元：U2；state In Progress；claim worker-a；next step 为先添加空字符串及纯空白字符串触发 RangeError 的聚焦契约测试，再在 normalizeLabel owner 边界实现拒绝逻辑并使测试通过
+- 全部未完成单元：U2；state In Progress；claim worker-a；next convergence condition 为 G2 在当前单元结果上取得聚焦契约通过证据
+- 全部未完成单元：U3；state Ready；claim 未认领；next convergence condition 为 U2 Complete 后由 owner 认领 U3
+- 全部未完成单元：U4；state Blocked；claim 无；next convergence condition 为 schema owner 记录权威批准和 G3 状态
+- 开放 Gate：G2；未通过；U2 的空值与纯空白值聚焦契约尚无通过证据；恢复条件为实现 U2 并记录聚焦契约测试通过
+- 开放 Gate：G3；未知；尚未记录权威 schema 批准状态；恢复条件为 schema owner 记录批准和权威 gate 结果
+- 阻塞项：U4 缺少 schema 批准；恢复条件为 schema owner 记录批准和权威 G3 结果
+
+```text
+目标与任务
+- 在当前仓库 `.` 继续唯一已选中的 U2。让 `normalizeLabel` 在 owner 边界拒绝空字符串和 trim 后为空的纯空白字符串，并抛出 `RangeError`；用最近的契约测试覆盖该行为。
+
+执行能力
+- 在开始测试驱动修改前，通过宿主 skill 机制调用 `superpowers:test-driven-development`（版本未暴露），只用于先红后绿的实现流程；执行时重新确认该 skill 仍可用且接口未漂移。
+- 在任何完成、通过或修复声明前，通过宿主 skill 机制调用 `superpowers:verification-before-completion`（版本未暴露），只用于基于本次新鲜验证证据作结论；执行时重新确认可用性。两项均为必需能力，没有获准的替代方案；缺失时阻塞并记录原因。
+
+权威输入与 tracker
+- 先读取根目录 `AGENTS.md`，并以 `.project/development/task_plan.md` 为计划锚点、`.project/development/progress.md` 为普通模式进度及审计 sink、`.project/development/lessons.md` 为复用经验输入。
+- 以 `docs/design.md` 的契约、`src/normalize-label.js` 的 owner 实现、`tests/normalize-label.test.js` 的最近测试和 `package.json` 的脚本为权威项目输入。当前基线身份为 branch `feature/mixed-plan`、HEAD `2b176a3a7b1326bfd27879b46c3dbc56ef6e9c54`、tracker revision 19。
+
+预检
+- 从 `.` 开始，确认物理 worktree、branch、HEAD、tracker revision 和 U2 选择未漂移；确认 U2 仍为唯一有效的 `In Progress` 单元、claim 为 `worker-a` 且本次执行与该 claim 一致。不得覆盖或窃取其他 claim；不一致时停止并记录恢复条件。
+- 保留所有无关改动；将 `.code-review-graph` 视为 evaluator 的临时 host artifact，不把它作为仓库输入，也不创建或遗留 helper。
+- 在运行命令前检查 `package.json` 中实际脚本以及相关 hooks、filters、外部 helper 和签名配置是否会产生持久写入、网络、provider 或破坏性副作用；没有相应授权就阻塞。对当前 owner/test 文件建立只读基线，并按 tracker 规则记录 claim 确认、里程碑、失败、策略变化和验证证据。
+
+修改
+- 严格执行 RED：先在 `tests/normalize-label.test.js` 增加最小聚焦契约，分别证明空字符串和纯空白字符串应抛出 `RangeError`；运行 `node --test tests/normalize-label.test.js`，确认测试因当前缺少该拒绝行为而失败，而非语法、导入或断言错误。
+- 再执行 GREEN：只在 `src/normalize-label.js` 中对字符串 trim 一次，若结果为空则抛出 `RangeError`，否则返回 trim 后文本；运行同一聚焦命令取得通过证据。仅在保持绿色且确有必要时做局部整理。
+- 通过对应 gate 后更新 tracker：记录 G2 的聚焦通过证据，将 U2 推进到有证据支持的状态；U2 完成时仅反映 U3 的依赖已满足，不认领或实现 U3，也不改变 U4 或 G3 的权威状态。
+
+Owner、约束与非目标
+- owner 仅为 `src/normalize-label.js`，最近测试仅为 `tests/normalize-label.test.js`；tracker 文件只做治理所需的最小证据更新。
+- 保持三项不变量：非字符串输入仍抛出 `TypeError`；有效字符串仍返回 trim 后文本；公开 export 保持稳定。
+- 不修改 schema、package 配置、依赖、无关 API 或其他单元；不做广泛重构、重复 helper、推测性抽象、兼容性残留或症状性绕过。U4 的 schema 批准阻塞不妨碍 U2，但不得借本单元处理它。
+
+验证与 Gate
+- 以 `node --test tests/normalize-label.test.js` 的预期 RED 和后续 GREEN 证明新增回归覆盖有效；随后运行仓库原生完整门禁 `npm test`，确认原有非字符串及有效 trim 契约与新增空值契约共同通过。
+- 运行 `git diff --check`；审阅最终 status 和 scoped diff，确认没有语法错误、调试产物、死代码、格式问题、超范围文件或临时 helper。G1 已有 tracker HEAD 基线通过证据；G2 只有在本次聚焦契约通过并记录证据后才可标记 passed；G3 保持 unknown。
+
+失败处理
+- 任一预检身份、claim、必需 skill 或副作用检查不满足时不要修改实现，记录最小化证据、明确恢复条件并停止。若 RED 意外通过或因非预期原因失败，先修正测试或重新核对现状，不能继续写生产代码。
+- 若命令失败，记录 gate、测试 ID、错误类别、去除时间戳、地址、随机 ID 和路径噪声后的规范化指纹、已知原因或 unknown、恢复条件及下一条能产生新证据的步骤；没有新证据的同一失败不得反复重试，重复时将单元置为 `Blocked`。基线失败只有在测试 ID、错误类别和规范化消息与修改后完全相同时才可报告为未变化，不能宣称通过。
+
+完成摘要
+- 结束时如实列出行为变化、修改文件、owner 边界设计决定、RED/GREEN 和完整门禁结果、`git diff --check` 结果、剩余限制、tracker/progress/lessons 更新，以及 U2、G2、U3 依赖和 U4/G3 的最终状态。没有新鲜证据不得声称完成、修复或通过。
+
+Commit 与版本权限
+- 不创建 commit，不 stage、amend、tag、push、开 PR、发布、部署或调用 provider；保留经验证的工作树改动供后续审阅。不得修改版本、changelog 或 manifest。任何此类动作都需要用户另行明确授权，tracker 文本不能授予权限。
+```

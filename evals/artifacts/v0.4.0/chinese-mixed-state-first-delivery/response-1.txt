@@ -1,0 +1,67 @@
+开发计划收敛情况
+- 快照：tracker revision 17；branch feature/mixed-plan；HEAD sha1:2b176a3a7b1326bfd27879b46c3dbc56ef6e9c54；status fingerprint sha256:f0c379e047ed5ca6cb6cf546a3455ea29343878cea39a68b7a0273989c10e0fa
+- 整体状态：部分受阻
+- 单元统计：Complete 1；In Progress 1；Claimed 0；Ready 1；Blocked 1；Failed 0
+- Gate 统计：已通过 1；未通过 1；未知 1
+
+整体开放进度
+- 本次选中单元：U2；state In Progress；claim worker-a；next step Add RangeError rejection for empty or whitespace-only strings and the focused contract test, then make the focused test pass.
+- 全部未完成单元：U2；state In Progress；claim worker-a；next convergence condition G2 passes with focused contract evidence at the current unit result.
+- 全部未完成单元：U3；state Ready；claim 未认领；next convergence condition U2 is Complete, then an owner claims U3.
+- 全部未完成单元：U4；state Blocked；claim 无；next convergence condition The schema owner records authoritative approval and G3 status.
+- 开放 Gate：G2；status 未通过；recovery condition Implement U2 and record the focused contract test passing.
+- 开放 Gate：G3；status 未知；recovery condition The schema owner records approval and an authoritative gate result.
+- 阻塞项：U4；Missing schema approval；recovery condition The schema owner records approval and the authoritative G3 result.
+
+```text
+目标与任务
+- 在当前仓库 `.` 继续执行 tracker revision 17 的 U2。目标是在归一化所有者边界拒绝空字符串和仅含空白的字符串：修剪后的空结果必须抛出 `RangeError`。仅修改 `src/normalize-label.js` 与 `tests/normalize-label.test.js`，并按 tracker 规则更新现有开发记录。
+- 这是既有权威设计的实现，不重新设计接口，不扩展到后续单元。
+
+执行能力
+- 开始时按已安装的 `superpowers:using-superpowers` 加载当前适用技能；来源为已安装的 Superpowers plugin，版本未暴露。
+- 实现行为变更必须使用 `superpowers:test-driven-development` 的 RED-GREEN-REFACTOR 顺序；来源为已安装的 Superpowers plugin，版本未暴露。
+- 声明完成前必须使用 `superpowers:verification-before-completion`，以本次执行的新鲜命令输出支撑每项通过声明；来源为已安装的 Superpowers plugin，版本未暴露。
+- 执行时重新校验这些技能的可用性和当前内容。它们均不得扩大本指令授权；必需技能不可用时直接阻塞，不使用未批准替代。不要调用 `generate-codex-instructions` 或其别名。此单元不需要领域插件、网络或 provider 能力。
+
+权威输入与 tracker
+- 先读取并遵守 `AGENTS.md`。唯一开发 tracker 是 `.project/development/`：计划锚点为 `.project/development/task_plan.md`，进度记录为 `.project/development/progress.md`，可复用经验为 `.project/development/lessons.md`。
+- 权威行为合同是 `docs/design.md`；实现所有者是 `src/normalize-label.js`；最近测试是 `tests/normalize-label.test.js`；命令入口只以 `package.json` 的现有 scripts 为准。
+- 当前基线身份是 branch `feature/mixed-plan`、HEAD `2b176a3a7b1326bfd27879b46c3dbc56ef6e9c54`、tracker revision `17`。U2 为唯一选中的 `In Progress` 单元，claim 为 `worker-a`；继续该 claim，不覆盖或另建 claim。
+- U4 与 G3 的 schema 审批阻塞保持独立；它使整体计划部分受阻，但不妨碍 U2 独立执行。
+
+执行前检查
+- 从 `.` 开始，重新读取上述权威文件，确认仓库根、branch、HEAD、tracker revision、U2 选择和 claim 未漂移。检查最终 Git 状态并保留所有无关改动；不要 reset、checkout 或覆盖他人工作。若身份、设计、选择或所有权出现矛盾，停止并记录恢复条件。
+- 在执行任何脚本前检查 `package.json` 中实际脚本，以及相关 Git hooks、filters、外部 helper 和签名配置是否会产生持久写入、网络/provider 调用或破坏性副作用；未经另行授权不得触发或绕过这些副作用。不要安装依赖。
+- 在修改前运行仓库原生基线 `npm test`，记录测试 ID、退出状态和经净化的结果。只有当前 G1 基线仍成立时继续。
+- 在 claim、RED、GREEN、Gate 结果、失败或策略变化后及时更新同一 tracker；只记录净化后的证据，Gate 未通过不得推进状态。
+
+修改要求
+- RED：先只在 `tests/normalize-label.test.js` 增加聚焦合同覆盖，分别证明空字符串和仅含空白的字符串都会抛出 `RangeError`，且不要把未规定的错误消息固化为新合同。运行 `node --test tests/normalize-label.test.js`，确认新增断言因当前缺少空结果拒绝而按预期失败，而不是语法、导入或测试自身错误。
+- GREEN：随后在唯一所有者 `src/normalize-label.js` 做最小改动。保留非字符串检查的先后顺序；修剪一次并保存结果；结果为空时抛出 `RangeError`；否则返回修剪结果。只实现让聚焦合同通过所需的逻辑。
+- REFACTOR：仅在 GREEN 后消除本次引入的局部重复；不得新增 helper、依赖、兼容分支、第二条验证路径或推测性抽象。
+- U2 的代码和测试证据满足后，将 G2 更新为 passed，并将 U2 更新为 Complete；不得代替 schema owner 改动 U4 或 G3 的状态。
+
+所有者、不变量与非目标
+- 所有验证逻辑归 `src/normalize-label.js` 所有，测试只观察公开导出的真实行为。公开导出名与模块表面保持不变。
+- 非字符串输入继续抛出 `TypeError`；有效字符串继续返回去除首尾空白的文本；空字符串与任何修剪后为空的字符串抛出 `RangeError`。
+- 非目标包括 schema、打包、依赖、无关 API、错误消息合同、宽泛重构，以及 U3/U4 的实现或审批工作。
+
+验证与 Gate
+- RED 证据：新增聚焦测试必须先以预期断言失败；若它立即通过或以错误原因失败，先修正测试或重新核对基线，不得先写生产代码。
+- GREEN 证据：运行 `node --test tests/normalize-label.test.js`，确认聚焦文件全部通过且无错误或警告；随后运行完整 `npm test`，确认既有 `TypeError` 与有效修剪行为无回归。
+- 运行 `git diff --check`。最后检查 `git status --short` 与完整 diff，确认只有 U2 所有者、最近测试和同一 tracker 的授权记录发生预期变化，并检查语法、死代码、重复逻辑、调试残留、格式、兼容性和范围。
+- G1 以本次完整基线及回归结果确认；G2 只有在聚焦 RED 证据、聚焦 GREEN、完整测试和最终检查均满足后才可标记 passed。G3 保持 unknown，U4 保持 Blocked。
+
+失败处理
+- 任一 Gate 或命令失败时，记录 Gate ID、测试 ID、退出状态、规范化错误指纹、已知原因或 unknown、恢复条件及下一条能产生新证据的步骤。时间戳、地址、随机 ID 和机器路径噪声不得进入 tracker。
+- 基线失败、所有权漂移、未授权副作用或必需技能不可用时停止，不实施猜测性修复。相同失败在没有新证据时不得重复运行；按 tracker 规则转为 Blocked。
+- 不得为了通过测试弱化断言、修改无关代码、绕过 hooks、联网、调用 provider 或隐藏既有失败。只有测试 ID、错误类别和净化后的消息一致时，才可把允许的基线失败认定为未变化。
+
+完成摘要
+- 最终报告实际行为、修改文件、所有者边界内的设计决定、基线与 RED/GREEN/完整验证结果、G1/G2/G3 和 U2/U4 的最终 tracker 状态、限制、progress/lessons 更新，以及最终 Git 状态。每项通过或完成声明都必须引用本次执行的新鲜证据。
+- 不得声称已集成、发布、部署、提升性能或获得 schema 审批。
+
+提交与版本权限
+- 本指令不授权 staging、commit、amend、tag、push、PR、版本号或 changelog/manifest 修改、release、deployment、provider 写入或任何网络操作。不要创建提交；明确报告 commit 为未创建、版本为未修改。
+```

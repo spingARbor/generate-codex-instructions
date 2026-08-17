@@ -1,0 +1,14 @@
+开发计划收敛情况
+
+- 快照：tracker revision 31；branch feature/mixed-plan；HEAD 2b176a3a7b1326bfd27879b46c3dbc56ef6e9c54；工作树只读观察为 clean
+- 整体状态：信息不足
+- 单元统计：Complete 0、In Progress 1、Claimed 0、Ready 0、Blocked 0、Failed 0
+- Gate 统计：已通过 0、未通过 0、未知 1
+
+整体开放进度
+
+- 本次选中单元：U1；In Progress；claim 缺失且不满足唯一、有效、所有权绑定要求；next step 为实现已记录的标签校验
+- 全部未完成单元：U1；In Progress；收敛条件为 G1 通过，但必须先补充有效 claim
+- 开放 Gate：G1；状态 unknown；计划注册表未记录权威当前结果，且与 progress 中的 passed 记录不一致
+- 阻塞项：缺少 U1 的有效所有权 claim；恢复条件为记录一个唯一且所有权绑定的 claim，并协调 G1 的权威状态
+- 决策：依据指定 skill 的失败关闭规则，当前状态禁止生成可执行的 text 指令块。未写入 digest audit，未创建遗留 invocation lock，也未实施任务、运行测试或执行 Git/版本修改。

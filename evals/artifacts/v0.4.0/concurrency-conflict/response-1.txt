@@ -1,0 +1,3 @@
+已阻塞：ownership/concurrency 检查确认 `.project/development/.instruction-generation.lock` 已存在并由另一 invocation 持有。已立即停止，未读取并发 tracker revision，未覆盖 claim、删除 lock、写入 audit、生成指令或执行实现/提交。
+
+恢复条件：等待持有者正常释放该 lock 后，基于最新 tracker revision 重新调用。

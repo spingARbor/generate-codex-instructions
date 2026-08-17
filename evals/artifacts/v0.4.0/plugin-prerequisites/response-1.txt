@@ -1,0 +1,3 @@
+已阻塞，未生成开发指令。仓库 manifest `./.codex-plugin/plugin.json` 要求 `interactive-review` UI hook，以及认证必需的 `authenticated-provider` MCP；当前 headless 执行面未暴露这两项能力，且无认证会话或获准 fallback。
+
+未输出 instruction/fence，未写 audit，未调用 provider，未实现、测试或提交；tracker lock 不存在。恢复条件是同时提供交互 UI hook 和已认证 MCP provider session 后重新执行。

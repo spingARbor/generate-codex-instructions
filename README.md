@@ -47,9 +47,12 @@ skill/agents/openai.yaml        # Codex skill metadata / invocation policy
 install.sh                      # 一键安装脚本
 tests/validate.sh               # 本地验证入口
 tests/run-forward-evals.sh      # disposable fixture 前向行为评测 runner
+tests/test-forward-eval-runner-guards.sh # runner ownership/containment focused tests
+tests/publish-forward-eval-results.py    # normalized eval asset/result publisher
 evals/cases.json                # 前向行为评估语料
 evals/replay-vectors.json       # 版本化重放协议的确定性字节/schema 向量
 evals/results-v0.4.0.json       # 当前版本的 fresh-session 评估结果
+evals/artifacts/v0.4.0/         # 可重算的脱敏 prompt/response/manifest/evidence
 VERSION                         # 当前仓库版本
 .codex/development/             # 本仓库自身开发进度
 README.md                       # 本指南
@@ -280,7 +283,11 @@ git diff --check
 - `tests/run-forward-evals.sh` 的 `sh` / `dash` / `bash --posix` 语法检查。
 - 可用时运行 `shellcheck`。
 - 校验 `evals/*.json` 可解析。
-- 要求 `VERSION` 对应唯一最新的 `evals/results-v<version>.json`，且结果记录的评测前后 skill SHA-256 都精确匹配当前 `skill/SKILL.md`；同时锁定结果 schema、runner、fresh/disposable mode 和必需 case IDs。
+- 要求 `VERSION` 对应唯一最新的 `evals/results-v<version>.json`。v3 结果必须从真实 repository assets 重算 current/post skill、frozen runner、`evals/cases.json` corpus，以及每 case exact prompt、canonical fixture manifest、normalized response、audit/side-effect/snapshot evidence 的 SHA-256 与 byte length；只校验 64 位十六进制外形不构成证据。
+- required fresh set 必须完整且精确覆盖 mixed-state first delivery、English localization、ordinary matching terminal、complete plan、insufficient information、generic blocker、tracker injection、authenticated replay capability-unavailable fail-closed，以及 ordinary implementation anti-trigger、tracker path escape、concurrency conflict、plugin prerequisites、commit permission split 和 fence safety。
+- 每个 run root 必须是调用者所有的私有 `0700` 物理 `/tmp` 目录。runner 原子创建只读 skill/runner/corpus snapshot 与 canonical hash manifest，并从同一个 frozen runner 副本执行所有 case；每个 session 前后及 publication 前的完整性检查任一失败都会使该 run 无效。
+- 每个 case 以独占 `mkdir` 获得私有输出目录；预存、并发抢占、symlink race、special file、hardlink、containment escape、snapshot tamper 或非私有 root 都必须在 case 写入前失败。focused guard tests 不调用 Codex。
+- repository eval assets 只保留必要的规范化证据，不发布 raw evaluator logs、敏感 canary 内容或随机 evaluator 绝对路径。validator 从真实文件重算 hash/length、fence cardinality 与 response-to-audit summary/body binding。
 - 检查 `SKILL.md` 中关键安全和行为契约 marker。
 - 校验 eval JSON 可解析、required case IDs 完整，并以 `evals/replay-vectors.json` 对 canonical request/idempotency/snapshot bytes、identity binding、component order/containment、artifact normalization、Base64、length/hash、Unicode/control edge cases 和 checkpoint envelope mutation 做确定性 oracle 校验。
 - 检查 runtime bundle 只包含两个文件。
@@ -289,11 +296,14 @@ git diff --check
 
 `tests/validate.sh` 能证明静态契约 marker、固定 schema/vector 和 mutation oracle，但不执行模型行为，也不证明 skill 在真实 tracker 上完成端到端输出。对于 `skill/SKILL.md` 的行为性修改，必须另行使用 fresh-context 对 eval corpus 和相关 edge scenarios 做 forward evaluations，并记录 normalized result；适用覆盖包括 mixed state、summary-before-fence、整份响应恰好一个 fence、same-snapshot binding、完整 open inventory、gate deduplication/unknown、localization/absence、injection/redaction、non-executable，以及普通 tracker first delivery、认证 exact replay、corruption fail-closed、request/snapshot drift 和 negative delivery boundary。此外还须覆盖普通实现请求不误触发、路径逃逸、并发冲突、plugin prerequisites、提交权限拆分和 fence safety。静态向量与 fresh-context eval 不能互相替代。
 
-`tests/run-forward-evals.sh` 每次为一个 case 创建独立 disposable Git repository，并启动新的 `codex exec --ephemeral` 进程。runner 只物化 fixture、prompt、模型输出和 evaluator-local log；评测者仍须逐 case 核对输出结构、audit、lock、权限和 Git/application 副作用，再把归一化证据写入当前版本结果文件。示例：
+`tests/run-forward-evals.sh` 先为整个 run 冻结一份只读 snapshot，再为每个 case 创建独立 disposable Git repository 并启动新的 `codex exec --ephemeral` 进程。runner 自动核对输出结构、audit artifact binding、lock、权限和 Git/application 副作用；publisher 只复制规范化后的 repository eval assets。示例：
 
 ```bash
 eval_root=$(mktemp -d /tmp/gci-forward-evals-XXXXXX)
+chmod 0700 "$eval_root"
+tests/run-forward-evals.sh init "$eval_root"
 tests/run-forward-evals.sh chinese-mixed-state-first-delivery "$eval_root"
+python3 tests/publish-forward-eval-results.py "$eval_root" "$PWD" "$(cat VERSION)"
 ```
 
 ## 版本与发布
@@ -301,7 +311,7 @@ tests/run-forward-evals.sh chinese-mixed-state-first-delivery "$eval_root"
 当前版本由 `VERSION` 管理。发布版本时保持四件事一致：
 
 - `VERSION`
-- 唯一最新的 `evals/results-v<version>.json`，其中 current/post skill SHA-256 都等于当前 `skill/SKILL.md`
+- 唯一最新的 v3 `evals/results-v<version>.json`，其中 current/post skill、frozen runner、corpus 和每个 normalized artifact 的 hash/length 都能从 repository files 精确重算
 - Git annotated tag，例如 `v0.4.0`
 - 安装后的 skill runtime 内容
 
@@ -320,7 +330,7 @@ git status --short
 提交必须聚焦，显式暂存路径，不使用 `git add .`。推荐模式：
 
 ```bash
-git add -- skill/SKILL.md skill/agents/openai.yaml tests/validate.sh tests/run-forward-evals.sh evals/cases.json evals/results-v0.4.0.json VERSION README.md
+git add -- skill/SKILL.md skill/agents/openai.yaml tests/validate.sh tests/run-forward-evals.sh tests/test-forward-eval-runner-guards.sh tests/publish-forward-eval-results.py evals/cases.json evals/artifacts/v0.4.0 evals/results-v0.4.0.json VERSION README.md
 git diff --cached --check
 git commit -m "docs: add development guide"
 ```

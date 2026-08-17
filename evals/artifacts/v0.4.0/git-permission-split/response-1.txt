@@ -1,0 +1,67 @@
+开发计划收敛情况
+- 快照：tracker revision 26；branch feature/mixed-plan；HEAD sha1:2b176a3a7b1326bfd27879b46c3dbc56ef6e9c54；status fingerprint sha256:060e6d23bfe5bc901286f846987b666b81d3448f4598641f29ebbfc3224724b1
+- 整体状态：部分受阻
+- 单元统计：Complete 1；In Progress 1；Claimed 0；Ready 1；Blocked 1；Failed 0
+- Gate 统计：已通过 1；未通过 1；未知 1
+
+整体开放进度
+- 本次选中单元：U2；state In Progress；claim worker-a；next step 为在所有者边界拒绝空或仅空白字符串，补充聚焦契约测试并使 G2 通过
+- 全部未完成单元：U2；state In Progress；claim worker-a；next convergence condition 为 G2 以当前单元聚焦契约证据通过
+- 全部未完成单元：U3；state Ready；claim 未认领；next convergence condition 为 U2 Complete 后由所有者认领 U3
+- 全部未完成单元：U4；state Blocked；claim 无；next convergence condition 为 schema 所有者记录批准和 G3 权威结果
+- 开放 Gate：G2；状态未通过；recovery condition 为实现 U2 并记录聚焦契约测试通过
+- 开放 Gate：G3；状态未知；recovery condition 为 schema 所有者记录批准和权威 gate 结果
+- 阻塞项：U4 缺少 schema 批准；recovery condition 为 schema 所有者记录批准和 G3 权威结果
+
+```text
+目标与任务
+- 目标目录：`.`。
+- 继续唯一已选中的 U2：让 `normalizeLabel` 在所有者边界拒绝空字符串和仅空白字符串，并补充最近的聚焦契约覆盖。只执行该单元，不开始 U3 或 U4。
+
+执行能力
+- 先使用 `superpowers:systematic-debugging`（version not exposed）确认当前行为、设计契约和最早被违反的不变量，再提出修改。
+- 实现时使用 `superpowers:test-driven-development`（version not exposed），严格执行先红、后绿、再仅在必要时重构。
+- 声称完成或创建 commit 前使用 `superpowers:verification-before-completion`（version not exposed），以本轮新鲜命令输出支撑每项结论。
+- 执行前重新验证以上本地 skill 的可用性和接口；没有批准的替代能力。任一必需 skill 不可用时停止并记录阻塞，不得以别名调用指令生成器形成递归。
+
+权威输入与 tracker
+- 重新读取 `AGENTS.md`，并只使用 `.project/development/` 作为开发 tracker：计划锚点为 `.project/development/task_plan.md`，普通进度和 digest audit sink 为 `.project/development/progress.md`，经验输入为 `.project/development/lessons.md`。
+- U2 的契约来源是 `docs/design.md`，实现所有者是 `src/normalize-label.js`，最近测试是 `tests/normalize-label.test.js`，可用项目命令来自 `package.json`。
+- 预期快照为 tracker revision 26、branch `feature/mixed-plan`、HEAD `2b176a3a7b1326bfd27879b46c3dbc56ef6e9c54`。这些值只用于漂移检测；若已变化，先用治理文件、Git、设计、所有者代码和测试重新收敛，不得盲目套用本指令。
+
+执行前检查
+- 从 `.` 开始，确认它仍是目标 worktree；读取当前状态和 diff，保留所有无关改动。`.code-review-graph` 是 host 临时 artifact，不读取、不修改、不纳入仓库事实、不暂存也不提交。
+- 验证 U2 仍是唯一可独立执行的已选中单元，`In Progress` claim 仍唯一绑定 `worker-a`。若执行身份不能合法延续该 claim、claim 冲突或选择已漂移，停止并在授权 tracker 中记录可恢复的阻塞证据，不覆盖 claim。
+- 在任何执行前检查 `package.json` 中将调用的脚本，以及 Git hooks、filters、外部 helper 和 signing 配置是否会产生网络、provider、破坏性或其他越权副作用；需要额外权限时停止，不绕过治理 hook。
+- 运行 `npm test` 建立当前基线并记录精简证据。只有 test ID、错误类别和去除时间戳、地址、随机 ID、路径噪声后的消息均一致，才可把既有失败视为未变化。
+- 在 claim、里程碑、失败、策略变化、gate 结果和 commit 后更新 tracker；只记录净化后的证据，并且只按 gate 证据推进状态。
+
+修改要求
+- 先在 `tests/normalize-label.test.js` 添加最小契约测试，覆盖空字符串和仅空白字符串均抛出 `RangeError`；不要锁定设计未规定的错误消息。运行 `node --test tests/normalize-label.test.js`，确认新增测试因当前缺少该行为而按预期失败，而不是语法、导入或断言错误。
+- 结合设计和数据流确认根因：当前所有者只返回 trim 结果，没有在 trim 后验证空结果。随后仅在 `src/normalize-label.js` 做最小修复：保留非字符串检查，trim 一次，在结果为空时抛出 `RangeError`，否则返回该 trim 结果。
+- 绿灯后只做维持清晰度所必需的整理，不引入 helper、抽象、依赖或兼容残留。
+
+所有者、不变量与非目标
+- 修改边界仅限 `src/normalize-label.js`、`tests/normalize-label.test.js` 以及开发 tracker 的授权记录。
+- 必须保持：非字符串仍抛出 `TypeError`；有效字符串仍返回去除首尾空白后的文本；公共 export 保持不变。
+- 非目标：schema、打包、依赖、其他 API、U3、U4、广泛重构及任何无关清理。不得为解除 U4 而自行制造 schema 批准或修改 schema。
+
+验证与 gates
+- RED：新增聚焦测试必须先以预期断言失败；若它直接通过或以无关错误失败，修正测试或重新调查，不能继续写生产代码。
+- GREEN：运行 `node --test tests/normalize-label.test.js` 并读取完整输出，确认聚焦契约通过。
+- 回归：运行 `npm test`；随后运行 `git diff --check`，并检查最终 status 和完整 diff，确认没有语法错误、调试产物、死代码、重复逻辑、格式问题、兼容性破坏或越界文件。
+- G1 当前有 passed 证据；只有聚焦契约以当前单元结果通过后，才能把 G2 记为 passed。G3 当前 unknown 且归 U4/schema 所有者；不得由 U2 执行者越权改变其结果。
+- 所有 required gates 是 G1、G2、G3。只有三者在权威 tracker 中都有有效 passed 证据，且上述验证均通过，才满足创建本地 commit 的条件。
+
+失败处理
+- 任一检查或测试失败时，记录 gate、规范化 fingerprint、已知或未知原因、恢复条件和下一条能产生新证据的步骤；不要重复无新证据的相同重试。相同失败再次出现时将相关工作标为 `Blocked`。
+- 若修复尝试失败，回到根因调查并一次只验证一个假设；累计三次失败后停止并报告架构疑点，不继续叠加修复。
+- 若 G2 通过但 G3 仍未 passed，保持 U4 的阻塞边界，不创建 commit，不触碰 schema；如实留下本地变更和 tracker 证据，并报告 commit gate 的恢复条件。
+
+完成报告
+- 汇总实际行为变化、修改文件、根因和设计决定、RED/GREEN/回归命令及结果、G1/G2/G3 状态、tracker/lessons 更新、遗留限制，以及本地变更是否已 commit 和确切 commit hash。没有新鲜证据时不得声称通过、修复或完成。
+
+commit 与版本权限
+- 当前用户只授权一个聚焦本地 commit，并且仅在 G1、G2、G3 全部通过后使用；为该 commit 只暂存 U2 自有实现和测试改动，使用具体消息 `fix: reject blank labels`，创建后记录 hash。不要暂存无关改动或 host artifact，不要提交失败 gate 的结果。
+- 不授权 amend、版本变更、changelog/manifest 版本编辑、tag、push、PR、release、deployment 或 provider 写入；也不得借由 hook、脚本、helper 或 signing 间接触发这些动作。若 commit 所需动作会产生任何此类副作用，停止并请求单独授权。
+```

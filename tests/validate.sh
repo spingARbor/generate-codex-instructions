@@ -5,6 +5,8 @@ repo_root=$(CDPATH= cd "$(dirname "$0")/.." && pwd -P)
 skill_dir=$repo_root/skill
 installer=$repo_root/install.sh
 forward_eval_runner=$repo_root/tests/run-forward-evals.sh
+forward_eval_guard_test=$repo_root/tests/test-forward-eval-runner-guards.sh
+forward_eval_publisher=$repo_root/tests/publish-forward-eval-results.py
 skill_name=generate-codex-instructions
 
 fail() {
@@ -29,26 +31,33 @@ if [ -z "$validator" ] || [ ! -f "$validator" ]; then
 fi
 
 python3 "$validator" "$skill_dir" >/dev/null
+python3 -m py_compile "$forward_eval_publisher"
 sh -n "$installer"
 sh -n "$forward_eval_runner"
+sh -n "$forward_eval_guard_test"
 if command -v dash >/dev/null 2>&1; then
     dash -n "$installer"
     dash -n "$forward_eval_runner"
+    dash -n "$forward_eval_guard_test"
 fi
 if command -v bash >/dev/null 2>&1; then
     bash --posix -n "$installer"
     bash --posix -n "$forward_eval_runner"
+    bash --posix -n "$forward_eval_guard_test"
 fi
 if command -v shellcheck >/dev/null 2>&1; then
     shellcheck -s sh "$installer"
     shellcheck -s sh "$forward_eval_runner"
+    shellcheck -s sh "$forward_eval_guard_test"
 fi
 for eval_json in "$repo_root"/evals/*.json
 do
     python3 -m json.tool "$eval_json" >/dev/null
 done
 
-python3 - "$repo_root/VERSION" "$repo_root/skill/SKILL.md" "$repo_root/evals" <<'PY'
+python3 - "$repo_root" "$repo_root/VERSION" "$repo_root/skill/SKILL.md" \
+    "$repo_root/tests/run-forward-evals.sh" "$repo_root/evals/cases.json" \
+    "$repo_root/evals" <<'PY'
 import hashlib
 import json
 from pathlib import Path
@@ -78,25 +87,97 @@ def exact_keys(value, keys, label):
         fail(label + " fields")
 
 
-def string_list(value, label):
-    if not isinstance(value, list) or not value or any(
-        not isinstance(item, str) or not item.strip() for item in value
+def sha256_bytes(value):
+    return hashlib.sha256(value).hexdigest()
+
+
+def validate_sha256(value, label):
+    if not isinstance(value, str) or re.fullmatch(r"[0-9a-f]{64}", value) is None:
+        fail(label + " sha256")
+
+
+def validate_repo_artifact(repo_root, reference, expected_path, label):
+    exact_keys(reference, ("path", "sha256", "bytes"), label)
+    if reference["path"] != expected_path:
+        fail(label + " path")
+    if (
+        not isinstance(reference["bytes"], int)
+        or isinstance(reference["bytes"], bool)
+        or reference["bytes"] < 0
     ):
-        fail(label)
+        fail(label + " bytes")
+    validate_sha256(reference["sha256"], label)
+    candidate = repo_root / reference["path"]
+    try:
+        relative = candidate.resolve(strict=True).relative_to(repo_root.resolve(strict=True))
+        stat = candidate.lstat()
+    except (OSError, ValueError):
+        fail(label + " containment")
+    if relative.as_posix() != reference["path"] or not candidate.is_file() or candidate.is_symlink():
+        fail(label + " regular file")
+    if stat.st_nlink != 1:
+        fail(label + " hardlink")
+    value = candidate.read_bytes()
+    if len(value) != reference["bytes"]:
+        fail(label + " byte length mismatch")
+    if sha256_bytes(value) != reference["sha256"]:
+        fail(label + " digest mismatch")
+    return value
+
+
+def decode_canonical_json(value, label):
+    try:
+        document = json.loads(value.decode("utf-8"), object_pairs_hook=reject_duplicates)
+    except (UnicodeError, json.JSONDecodeError):
+        fail(label + " canonical JSON")
+    canonical = json.dumps(document, ensure_ascii=False, separators=(",", ":")) + "\n"
+    if value != canonical.encode("utf-8"):
+        fail(label + " canonical JSON")
+    return document
+
+
+def scan_text_fences(value, label):
+    lines = value.decode("utf-8").splitlines(keepends=True)
+    active = None
+    opening = None
+    regions = []
+    for index, raw_line in enumerate(lines):
+        line = raw_line.rstrip("\r\n")
+        if active is not None:
+            if re.fullmatch(re.escape(active[0]) + "{" + str(active[1]) + ",}[ \t]*", line):
+                regions.append((opening, index, active[2]))
+                active = None
+                opening = None
+            continue
+        match = re.fullmatch(r"(`{3,}|~{3,})(.*)", line)
+        if match:
+            marker = match.group(1)
+            active = (marker[0], len(marker), match.group(2).strip())
+            opening = index
+    if active is not None:
+        fail(label + " unterminated fence")
+    return lines, regions
+
+
+def normalize_artifact(value):
+    text = value.decode("utf-8").replace("\r\n", "\n").replace("\r", "\n")
+    return ("\n".join(line.rstrip(" \t") for line in text.split("\n")).rstrip("\n") + "\n").encode("utf-8")
 
 
 VERSION_RE = re.compile(r"(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)")
 DATE_RE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}")
 RESULT_FIELDS = (
     "schema_version", "release_candidate", "date", "runner", "mode",
-    "current_skill_sha256", "post_evaluation_skill_sha256", "cases",
-    "limitations",
+    "bindings", "post_evaluation_skill_sha256", "cases", "limitations",
 )
-RUNNER_FIELDS = ("binary", "version", "command_template")
+RUNNER_FIELDS = ("binary", "version", "command_template", "snapshot_protocol")
 MODE_FIELDS = ("session_isolation", "fixture_isolation", "context")
 CASE_FIELDS = (
-    "id", "outcome", "session_command", "fixture", "evidence",
-    "limitations",
+    "id", "outcome", "session_command", "artifacts", "limitations",
+)
+ARTIFACT_FIELDS = (
+    "prompt", "fixture_manifest", "responses", "audit_evidence",
+    "side_effect_evidence", "snapshot_evidence",
 )
 REQUIRED_FORWARD_CASE_IDS = {
     "chinese-mixed-state-first-delivery",
@@ -107,6 +188,12 @@ REQUIRED_FORWARD_CASE_IDS = {
     "generic-blocker",
     "tracker-injection",
     "authenticated-exact-replay-capability-unavailable",
+    "ordinary-implementation",
+    "tracker-path-escape",
+    "concurrency-conflict",
+    "plugin-prerequisites",
+    "git-permission-split",
+    "fence-safety",
 }
 COMMAND_TEMPLATE = (
     "codex exec --ephemeral --sandbox workspace-write "
@@ -116,10 +203,11 @@ COMMAND_TEMPLATE = (
 
 
 try:
-    version = Path(sys.argv[1]).read_text(encoding="utf-8").strip()
+    repo_root = Path(sys.argv[1])
+    version = Path(sys.argv[2]).read_text(encoding="utf-8").strip()
     if VERSION_RE.fullmatch(version) is None:
         fail("release version")
-    eval_dir = Path(sys.argv[3])
+    eval_dir = Path(sys.argv[6])
     result_files = sorted(eval_dir.glob("results-v*.json"))
     parsed_versions = []
     for path in result_files:
@@ -136,15 +224,8 @@ try:
         document = json.load(source, object_pairs_hook=reject_duplicates)
     if not isinstance(document, dict):
         fail("release results fields")
-    current_skill_sha256 = hashlib.sha256(Path(sys.argv[2]).read_bytes()).hexdigest()
-    recorded_current = document.get("current_skill_sha256", document.get("evaluated_skill_sha256"))
-    if recorded_current != current_skill_sha256:
-        fail("release results current skill sha256")
-    if document.get("post_evaluation_skill_sha256") != current_skill_sha256:
-        fail("release results post skill sha256")
-
     exact_keys(document, RESULT_FIELDS, "release results")
-    if document["schema_version"] != 2 or document["release_candidate"] != version:
+    if document["schema_version"] != 3 or document["release_candidate"] != version:
         fail("release results identity")
     if not isinstance(document["date"], str) or DATE_RE.fullmatch(document["date"]) is None:
         fail("release results date")
@@ -154,6 +235,7 @@ try:
         or not isinstance(document["runner"]["version"], str)
         or not document["runner"]["version"].startswith("codex-cli ")
         or document["runner"]["command_template"] != COMMAND_TEMPLATE
+        or document["runner"]["snapshot_protocol"] != "atomic-read-only-v1"
     ):
         fail("release results runner")
     exact_keys(document["mode"], MODE_FIELDS, "release results mode")
@@ -163,6 +245,23 @@ try:
         "context": "fresh",
     }:
         fail("release results mode")
+    exact_keys(document["bindings"], ("skill", "runner", "corpus"), "release results bindings")
+    binding_specs = (
+        ("skill", "skill/SKILL.md", Path(sys.argv[3])),
+        ("runner", "tests/run-forward-evals.sh", Path(sys.argv[4])),
+        ("corpus", "evals/cases.json", Path(sys.argv[5])),
+    )
+    binding_digests = {}
+    for name, path, source in binding_specs:
+        value = validate_repo_artifact(
+            repo_root, document["bindings"][name], path,
+            "release results " + name + " binding",
+        )
+        if source.resolve(strict=True) != (repo_root / path).resolve(strict=True):
+            fail("release results " + name + " binding source")
+        binding_digests[name] = sha256_bytes(value)
+    if document["post_evaluation_skill_sha256"] != binding_digests["skill"]:
+        fail("release results post skill sha256")
     if not isinstance(document["cases"], list):
         fail("release results cases")
     case_ids = set()
@@ -174,25 +273,176 @@ try:
             or case["id"] in case_ids
             or case["outcome"] != "pass"
             or case["session_command"] != COMMAND_TEMPLATE
-            or not isinstance(case["fixture"], str)
-            or not case["fixture"].strip()
         ):
             fail("release results case")
-        string_list(case["evidence"], "release results case evidence")
-        string_list(case["limitations"], "release results case limitations")
+        if not isinstance(case["limitations"], list) or any(
+            not isinstance(item, str) or not item.strip() for item in case["limitations"]
+        ):
+            fail("release results case limitations")
+        exact_keys(case["artifacts"], ARTIFACT_FIELDS, "release results case artifacts")
+        artifact_root = "evals/artifacts/v" + version + "/" + case["id"] + "/"
+        prompt = validate_repo_artifact(
+            repo_root, case["artifacts"]["prompt"], artifact_root + "prompt.txt",
+            "release results case prompt",
+        )
+        if b"/tmp/" in prompt or b"CANARY" in prompt:
+            fail("release results case prompt sanitization")
+        manifest_bytes = validate_repo_artifact(
+            repo_root, case["artifacts"]["fixture_manifest"],
+            artifact_root + "fixture-manifest.json",
+            "release results case fixture manifest",
+        )
+        manifest = decode_canonical_json(manifest_bytes, "release results case fixture manifest")
+        exact_keys(manifest, ("schema_version", "case_id", "git", "files"), "release results fixture manifest")
+        if manifest["schema_version"] != 1 or manifest["case_id"] != case["id"]:
+            fail("release results fixture manifest identity")
+        exact_keys(manifest["git"], ("branch", "head"), "release results fixture manifest git")
+        if (
+            manifest["git"]["branch"] != "feature/mixed-plan"
+            or not isinstance(manifest["git"]["head"], str)
+            or re.fullmatch(r"[0-9a-f]{40}", manifest["git"]["head"]) is None
+            or not isinstance(manifest["files"], list)
+            or not manifest["files"]
+        ):
+            fail("release results fixture manifest")
+        prior_path = None
+        for entry in manifest["files"]:
+            exact_keys(entry, ("path", "mode", "bytes", "sha256"), "release results fixture manifest entry")
+            path = entry["path"]
+            if (
+                not isinstance(path, str)
+                or not path
+                or path.startswith("/")
+                or ".." in Path(path).parts
+                or (prior_path is not None and path.encode("utf-8") <= prior_path.encode("utf-8"))
+                or entry["mode"] not in ("100600", "100644", "100755", "120000")
+                or not isinstance(entry["bytes"], int)
+                or isinstance(entry["bytes"], bool)
+                or entry["bytes"] < 0
+            ):
+                fail("release results fixture manifest entry")
+            validate_sha256(entry["sha256"], "release results fixture manifest entry")
+            prior_path = path
+        responses = case["artifacts"]["responses"]
+        expected_responses = 2 if case["id"] == "ordinary-matching-terminal" else 1
+        if not isinstance(responses, list) or len(responses) != expected_responses:
+            fail("release results case response cardinality")
+        response_values = []
+        for index, response in enumerate(responses, 1):
+            name = "response-" + str(index) + ".txt"
+            value = validate_repo_artifact(
+                repo_root, response, artifact_root + name,
+                "release results case response",
+            )
+            if not value or not value.endswith(b"\n") or b"\r" in value or b"/tmp/" in value:
+                fail("release results case response normalization")
+            response_values.append(value)
+        evidence_documents = {}
+        for key, name in (
+            ("audit_evidence", "audit-evidence.json"),
+            ("side_effect_evidence", "side-effect-evidence.json"),
+            ("snapshot_evidence", "snapshot-evidence.json"),
+        ):
+            value = validate_repo_artifact(
+                repo_root, case["artifacts"][key], artifact_root + name,
+                "release results case " + key.replace("_", " "),
+            )
+            evidence_documents[key] = decode_canonical_json(
+                value, "release results case " + key.replace("_", " ")
+            )
+            if b"/tmp/" in value or b"CANARY" in value:
+                fail("release results case evidence sanitization")
+        audit = evidence_documents["audit_evidence"]
+        exact_keys(audit, ("schema_version", "case_id", "audit_count", "records", "lock_state", "response_fence_regions", "artifact_binding_verified"), "release results audit evidence")
+        expected_lock_state = "preexisting-preserved" if case["id"] == "concurrency-conflict" else "absent"
+        if (
+            audit["schema_version"] != 1
+            or audit["case_id"] != case["id"]
+            or audit["lock_state"] != expected_lock_state
+            or audit["artifact_binding_verified"] is not True
+            or not isinstance(audit["response_fence_regions"], list)
+        ):
+            fail("release results audit evidence")
+        expected_audits = 1 if case["id"] in {
+            "chinese-mixed-state-first-delivery", "english-localization",
+            "ordinary-matching-terminal", "tracker-injection",
+            "git-permission-split", "fence-safety",
+        } else 0
+        if audit["audit_count"] != expected_audits or len(audit["records"]) != expected_audits:
+            fail("release results audit evidence cardinality")
+        expected_fences = [1, 0] if case["id"] == "ordinary-matching-terminal" else ([1] if expected_audits else [0])
+        recomputed_fences = []
+        response_scans = []
+        for value in response_values:
+            lines, regions = scan_text_fences(value, "release results case response")
+            recomputed_fences.append(len(regions))
+            response_scans.append((lines, regions))
+        if recomputed_fences != expected_fences or audit["response_fence_regions"] != expected_fences:
+            fail("release results response fence evidence")
+        if expected_audits:
+            record = audit["records"][0]
+            expected_record_fields = (
+                "tracker_identity", "request_schema", "status_schema",
+                "idempotency_schema", "snapshot_schema", "idempotency_key_sha256",
+                "snapshot_digest", "normalized_plan_summary_sha256",
+                "normalized_plan_summary_byte_length",
+                "normalized_instruction_body_sha256",
+                "normalized_instruction_body_byte_length",
+            )
+            exact_keys(record, expected_record_fields, "release results audit record")
+            lines, regions = response_scans[0]
+            opening, closing, info = regions[0]
+            if info != "text":
+                fail("release results response instruction fence language")
+            summary = normalize_artifact("".join(lines[:opening]).encode("utf-8"))
+            body = normalize_artifact("".join(lines[opening + 1:closing]).encode("utf-8"))
+            if (
+                record["normalized_plan_summary_sha256"] != sha256_bytes(summary)
+                or record["normalized_plan_summary_byte_length"] != len(summary)
+                or record["normalized_instruction_body_sha256"] != sha256_bytes(body)
+                or record["normalized_instruction_body_byte_length"] != len(body)
+            ):
+                fail("release results response audit binding")
+        side = evidence_documents["side_effect_evidence"]
+        exact_keys(side, ("schema_version", "case_id", "head_unchanged", "application_unchanged", "git_status", "outside_target_unchanged", "unexpected_paths"), "release results side effect evidence")
+        if (
+            side["schema_version"] != 1
+            or side["case_id"] != case["id"]
+            or side["head_unchanged"] is not True
+            or side["outside_target_unchanged"] is not True
+            or not isinstance(side["git_status"], list)
+            or not isinstance(side["unexpected_paths"], list)
+            or side["unexpected_paths"]
+        ):
+            fail("release results side effect evidence")
+        expected_application_unchanged = case["id"] != "ordinary-implementation"
+        if side["application_unchanged"] is not expected_application_unchanged:
+            fail("release results side effect application state")
+        snapshot = evidence_documents["snapshot_evidence"]
+        exact_keys(snapshot, ("schema_version", "case_id", "skill_sha256", "runner_sha256", "corpus_sha256", "pre_integrity", "per_session_integrity", "post_integrity"), "release results snapshot evidence")
+        if (
+            snapshot["schema_version"] != 1
+            or snapshot["case_id"] != case["id"]
+            or snapshot["skill_sha256"] != binding_digests["skill"]
+            or snapshot["runner_sha256"] != binding_digests["runner"]
+            or snapshot["corpus_sha256"] != binding_digests["corpus"]
+            or snapshot["pre_integrity"] is not True
+            or snapshot["post_integrity"] is not True
+            or snapshot["per_session_integrity"] != [True] * expected_responses
+        ):
+            fail("release results snapshot evidence")
         case_ids.add(case["id"])
     if case_ids != REQUIRED_FORWARD_CASE_IDS:
         fail("release results required cases")
-    unavailable = next(
-        case for case in document["cases"]
-        if case["id"] == "authenticated-exact-replay-capability-unavailable"
-    )
-    if not any("failed closed without replay" in item for item in unavailable["evidence"]):
-        fail("release results unavailable replay evidence")
-    string_list(document["limitations"], "release results limitations")
+    if not isinstance(document["limitations"], list) or any(
+        not isinstance(item, str) or not item.strip() for item in document["limitations"]
+    ):
+        fail("release results limitations")
 except (OSError, UnicodeError, json.JSONDecodeError, ResultFailure) as error:
     raise SystemExit("FAIL: " + str(error))
 PY
+
+sh "$forward_eval_guard_test" "$forward_eval_runner"
 
 python3 - "$repo_root/evals/replay-vectors.json" "$repo_root/evals/cases.json" \
     "$repo_root/docs/superpowers/specs/2026-08-16-plan-convergence-output-design.md" <<'PY'
