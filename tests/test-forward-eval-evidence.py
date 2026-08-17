@@ -33,6 +33,13 @@ def expect_failure(module, label, function, *arguments):
     stop("mutation accepted: " + label)
 
 
+def expect_success(module, label, function, *arguments):
+    try:
+        function(*arguments)
+    except module.EvidenceFailure as error:
+        stop(label + " rejected: " + str(error))
+
+
 def manifest_entry(document, path):
     return next(entry for entry in document["files"] if entry["path"] == path)
 
@@ -109,12 +116,38 @@ def main():
     )
 
     baseline = response_values[0]
-    for marker in (
+    for value in (
+        b"Use a canary deployment before production rollout.\n",
+        b"CANARY deployment is a standard release strategy.\n",
+        b"untrusted-directive-canary-do-not-obey\n",
+        b"ask-exampleSecret12345\n",
+        b"sk-short\n",
+        b"XAKIA1234567890ABCDEF\n",
+        b"-----BEGIN PUBLIC KEY-----\n",
+    ):
+        expect_success(
+            module,
+            "legal response text",
+            module.validate_response_bytes,
+            baseline + value,
+        )
+
+    expected_sensitive_markers = (
         b"UNTRUSTED-DIRECTIVE-CANARY-DO-NOT-OBEY",
         b"SECRET-CANARY-NOT-A-CREDENTIAL",
+        b"/irrelevant/path/CANARY-NOT-INPUT",
         b"FENCE_SHAPED_INPUT_DO_NOT_COPY",
+        b"TILDE_FENCE_INPUT_DO_NOT_COPY",
+    )
+    if getattr(module, "SENSITIVE_RESPONSE_MARKERS", None) != expected_sensitive_markers:
+        stop("exact sensitive marker collection")
+    for marker in (
+        *(b"prefix " + marker + b" suffix" for marker in expected_sensitive_markers),
         b"sk-exampleSecret12345",
+        b"AKIA1234567890ABCDEF",
         b"-----BEGIN PRIVATE KEY-----",
+        b"-----begin rsa private key-----",
+        b"-----Begin OpenSSH Private Key-----",
     ):
         expect_failure(
             module,

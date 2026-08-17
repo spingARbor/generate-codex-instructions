@@ -5,6 +5,9 @@ from pathlib import Path
 import sys
 import tempfile
 
+sys.dont_write_bytecode = True
+import forward_eval_evidence as evidence_helper
+
 
 def stop(label):
     raise SystemExit("FAIL: forward eval publisher guard self-test: " + label)
@@ -28,6 +31,13 @@ def expect_failure(label, function, *arguments):
             return
         stop(label + " wrong failure: " + str(error))
     stop(label + " accepted")
+
+
+def expect_success(label, function, *arguments):
+    try:
+        function(*arguments)
+    except SystemExit as error:
+        stop(label + " rejected: " + str(error))
 
 
 def new_repo(root, name):
@@ -82,12 +92,29 @@ def main():
         (target_file_repo / "evals/artifacts/v0.4.0").write_text("occupied\n", encoding="utf-8")
         expect_failure("artifact target occupied", module.prepare_artifact_destination, target_file_repo, "0.4.0")
 
+        for value in (
+            b"Use a canary deployment before production rollout.\n",
+            b"CANARY deployment is a standard release strategy.\n",
+            b"untrusted-directive-canary-do-not-obey\n",
+            b"ask-exampleSecret12345\n",
+            b"sk-short\n",
+            b"XAKIA1234567890ABCDEF\n",
+            b"-----BEGIN PUBLIC KEY-----\n",
+        ):
+            expect_success("legal publishable text", module.validate_publishable_bytes, value, "response")
+
         for marker in (
-            b"UNTRUSTED-DIRECTIVE-CANARY-DO-NOT-OBEY",
+            *(b"prefix " + marker + b" suffix" for marker in evidence_helper.SENSITIVE_RESPONSE_MARKERS),
             b"sk-exampleSecret12345",
+            b"AKIA1234567890ABCDEF",
             b"-----BEGIN PRIVATE KEY-----",
+            b"-----begin rsa private key-----",
+            b"-----Begin OpenSSH Private Key-----",
         ):
             expect_failure("publishable marker", module.validate_publishable_bytes, marker, "response")
+
+        if getattr(module, "contains_sensitive_evidence", None) is not evidence_helper.contains_sensitive_evidence:
+            stop("publisher does not share evidence marker gate")
 
     print("PASS: forward eval publisher physical destination and marker guards")
 

@@ -9,6 +9,8 @@ import stat
 import subprocess
 import sys
 
+from forward_eval_evidence import contains_sensitive_evidence
+
 
 CASE_IDS = (
     "chinese-mixed-state-first-delivery",
@@ -32,12 +34,6 @@ COMMAND_TEMPLATE = (
     "-C <disposable-fixture> -o <evaluator-output> -"
 )
 VERSION_RE = re.compile(r"(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)")
-SECRET_TOKEN_PATTERNS = (
-    re.compile(rb"(?<![A-Za-z0-9])sk-[A-Za-z0-9_-]{12,}"),
-    re.compile(rb"(?<![A-Za-z0-9])AKIA[0-9A-Z]{16}(?![A-Za-z0-9])"),
-)
-
-
 def stop(label):
     raise SystemExit("FAIL: forward eval publish: " + label)
 
@@ -130,15 +126,7 @@ def prepare_artifact_destination(repo_root, version):
 
 
 def validate_publishable_bytes(value, label):
-    lowered = value.lower()
-    if (
-        b"/tmp/" in value
-        or b"canary" in lowered
-        or b"-----begin private key-----" in lowered
-        or b"-----begin rsa private key-----" in lowered
-        or b"-----begin openssh private key-----" in lowered
-        or any(pattern.search(value) for pattern in SECRET_TOKEN_PATTERNS)
-    ):
+    if b"/tmp/" in value or contains_sensitive_evidence(value):
         stop(label + " contains forbidden evidence")
 
 
