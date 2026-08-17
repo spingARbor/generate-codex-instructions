@@ -9,6 +9,7 @@ import stat
 import subprocess
 import sys
 
+sys.dont_write_bytecode = True
 from forward_eval_evidence import contains_sensitive_evidence
 
 

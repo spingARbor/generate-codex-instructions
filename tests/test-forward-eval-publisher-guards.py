@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
-import importlib.util
 import os
 from pathlib import Path
+import shutil
+import subprocess
 import sys
 import tempfile
-
-sys.dont_write_bytecode = True
-import forward_eval_evidence as evidence_helper
+import types
 
 
 def stop(label):
@@ -14,12 +13,14 @@ def stop(label):
 
 
 def load_module(path):
-    sys.dont_write_bytecode = True
-    spec = importlib.util.spec_from_file_location("forward_eval_publisher", path)
-    if spec is None or spec.loader is None:
+    try:
+        source = path.read_bytes()
+        code = compile(source, str(path), "exec")
+    except (OSError, SyntaxError):
         stop("publisher import")
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    module = types.ModuleType("forward_eval_publisher")
+    module.__file__ = str(path)
+    exec(code, module.__dict__)
     return module
 
 
@@ -48,7 +49,35 @@ def new_repo(root, name):
 
 def main():
     repo_root = Path(__file__).resolve().parent.parent
+    with tempfile.TemporaryDirectory(prefix="gci-publisher-cli-") as temporary:
+        source_root = Path(temporary)
+        publisher_path = source_root / "publish-forward-eval-results.py"
+        evidence_path = source_root / "forward_eval_evidence.py"
+        shutil.copyfile(repo_root / "tests/publish-forward-eval-results.py", publisher_path)
+        shutil.copyfile(repo_root / "tests/forward_eval_evidence.py", evidence_path)
+        cache_path = source_root / "__pycache__"
+        if cache_path.exists():
+            stop("direct CLI cache precondition")
+        environment = os.environ.copy()
+        environment.pop("PYTHONDONTWRITEBYTECODE", None)
+        environment.pop("PYTHONPYCACHEPREFIX", None)
+        completed = subprocess.run(
+            (sys.executable, str(publisher_path)),
+            cwd=source_root,
+            env=environment,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if completed.returncode != 1 or "usage: publish-forward-eval-results.py" not in completed.stderr:
+            stop("controlled direct CLI invocation")
+        if cache_path.exists():
+            stop("direct CLI generated source cache")
+
     module = load_module(repo_root / "tests/publish-forward-eval-results.py")
+    evidence_helper = sys.modules.get("forward_eval_evidence")
+    if evidence_helper is None:
+        stop("publisher evidence helper import")
     if not hasattr(module, "prepare_artifact_destination") or not hasattr(module, "validate_publishable_bytes"):
         stop("publisher destination guards missing")
 
