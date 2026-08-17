@@ -214,6 +214,12 @@ DESIGN_AUTHENTICATED_REPLAY_MARKER = (
     "provenance rooted outside repository-controlled data and an already "
     "authorized out-of-repository full-payload sink."
 )
+DESIGN_ORDINARY_TERMINAL_MARKER = (
+    "A matching ordinary digest audit is terminal before model generation, "
+    "artifact preparation, audit append, or state append: emit no instruction "
+    "or fence, append no duplicate audit, and make no replay, delivery, or "
+    "payload claim."
+)
 STALE_DESIGN_REPLAY_CLAUSES = (
     "Persist the idempotency key, a digest of the normalized plan summary, and "
     "the instruction-body digest.",
@@ -2524,8 +2530,20 @@ def validate_replay_semantics_sources(cases_document, design_text):
         if design_text.count(marker) != 1:
             problems.append("missing design replay boundary")
             break
+    if design_text.count(DESIGN_ORDINARY_TERMINAL_MARKER) != 1:
+        problems.append("missing design matching-terminal boundary")
     if problems:
         fail("replay semantics: " + ", ".join(problems))
+
+
+def expect_replay_semantics_failure(name, cases_document, design_text, expected):
+    try:
+        validate_replay_semantics_sources(cases_document, design_text)
+    except VectorFailure as error:
+        if str(error) == expected:
+            return
+        fail("replay semantics mutation " + name + " failed at " + str(error))
+    fail("replay semantics mutation accepted: " + name)
 
 
 def expect_cases_failure(name, candidate, expected):
@@ -2939,6 +2957,12 @@ try:
     with open(sys.argv[3], encoding="utf-8") as source:
         design_text = source.read()
     validate_replay_semantics_sources(cases_document, design_text)
+    expect_replay_semantics_failure(
+        "missing design matching-terminal marker",
+        cases_document,
+        design_text.replace(DESIGN_ORDINARY_TERMINAL_MARKER, "", 1),
+        "replay semantics: missing design matching-terminal boundary",
+    )
     case_ids = validate_cases_document(cases_document)
     required_case_ids = {
         "exact-replay", "replay-corruption", "replay-input-drift",

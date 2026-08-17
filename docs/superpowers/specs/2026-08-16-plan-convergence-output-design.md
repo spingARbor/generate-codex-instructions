@@ -34,7 +34,9 @@ For a blocker, retain the existing concise plain-text response. Do not fabricate
 
 Build the summary and instruction under the same adapter ownership or `.instruction-generation.lock` after rechecking tracker revision, branch, HEAD, and status fingerprint. Both artifacts use the same validated effective pre-write input snapshot.
 
-Ordinary trackers use `first-delivery-only`: persist only the idempotency-key SHA-256, validated snapshot digest, and normalized summary/body digests and lengths in the mode-authorized audit. Never persist the full idempotency key, summary/body payload, or raw request in ordinary mode. A matching ordinary digest audit is terminal before generation: emit no instruction or fence, append no duplicate audit, and make no replay, payload, delivery, or regeneration claim.
+Ordinary trackers use `first-delivery-only`: persist only the idempotency-key SHA-256, validated snapshot digest, and normalized summary/body digests and lengths in the mode-authorized audit. Never persist the full idempotency key, summary/body payload, or raw request in ordinary mode.
+
+A matching ordinary digest audit is terminal before model generation, artifact preparation, audit append, or state append: emit no instruction or fence, append no duplicate audit, and make no replay, delivery, or payload claim.
 
 Exact replay is permitted only when an adapter/host provides authenticated provenance rooted outside repository-controlled data and an already authorized out-of-repository full-payload sink. In that mode, authenticate and validate the stored payload before current-state comparison, emit exact stored artifact bytes only for a valid match, append no duplicate state, and make no delivery guarantee.
 
