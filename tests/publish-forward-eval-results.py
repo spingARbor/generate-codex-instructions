@@ -3,6 +3,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import stat
 import subprocess
@@ -29,6 +30,11 @@ COMMAND_TEMPLATE = (
     "codex exec --ephemeral --sandbox workspace-write "
     "--add-dir <disposable-fixture> "
     "-C <disposable-fixture> -o <evaluator-output> -"
+)
+VERSION_RE = re.compile(r"(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)")
+SECRET_TOKEN_PATTERNS = (
+    re.compile(rb"(?<![A-Za-z0-9])sk-[A-Za-z0-9_-]{12,}"),
+    re.compile(rb"(?<![A-Za-z0-9])AKIA[0-9A-Z]{16}(?![A-Za-z0-9])"),
 )
 
 
@@ -66,6 +72,74 @@ def regular_bytes(path, label):
     ):
         stop(label + " ownership")
     return value
+
+
+def physical_directory(path, label, expected_parent=None):
+    try:
+        metadata = path.lstat()
+    except OSError:
+        stop(label)
+    if (
+        path.is_symlink()
+        or not stat.S_ISDIR(metadata.st_mode)
+        or metadata.st_uid != os.getuid()
+    ):
+        stop(label)
+    try:
+        physical = path.resolve(strict=True)
+        if expected_parent is not None:
+            physical_parent = expected_parent.resolve(strict=True)
+            if path.parent != expected_parent or physical.parent != physical_parent:
+                stop(label + " containment")
+    except (OSError, ValueError):
+        stop(label + " containment")
+    return physical
+
+
+def require_absent(path, label):
+    try:
+        path.lstat()
+    except FileNotFoundError:
+        return
+    except OSError:
+        stop(label)
+    stop(label)
+
+
+def prepare_artifact_destination(repo_root, version):
+    repo_root = Path(repo_root)
+    if VERSION_RE.fullmatch(version) is None:
+        stop("artifact version")
+    physical_directory(repo_root, "repository root")
+    eval_root = repo_root / "evals"
+    physical_directory(eval_root, "eval directory", repo_root)
+    artifact_parent = eval_root / "artifacts"
+    try:
+        artifact_parent.lstat()
+    except FileNotFoundError:
+        artifact_parent.mkdir(mode=0o755)
+    except OSError:
+        stop("artifact parent")
+    physical_directory(artifact_parent, "artifact parent", eval_root)
+
+    final_artifact_root = artifact_parent / ("v" + version)
+    temp_artifact_root = artifact_parent / (".v" + version + ".tmp-" + str(os.getpid()))
+    require_absent(final_artifact_root, "release artifact target already exists")
+    require_absent(temp_artifact_root, "temporary artifact target already exists")
+    return artifact_parent, final_artifact_root, temp_artifact_root
+
+
+def validate_publishable_bytes(value, label):
+    lowered = value.lower()
+    if (
+        b"/tmp/" in value
+        or b"canary" in lowered
+        or b"-----begin private key-----" in lowered
+        or b"-----begin rsa private key-----" in lowered
+        or b"-----begin openssh private key-----" in lowered
+        or any(pattern.search(value) for pattern in SECRET_TOKEN_PATTERNS)
+    ):
+        stop(label + " contains forbidden evidence")
 
 
 def artifact_reference(repo_root, path):
@@ -109,8 +183,7 @@ def verify_snapshot(run_root, repo_root):
 
 def copy_artifact(source, destination, label):
     value = regular_bytes(source, label)
-    if b"/tmp/" in value:
-        stop(label + " contains evaluator absolute path")
+    validate_publishable_bytes(value, label)
     destination.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
     with destination.open("xb") as sink:
         sink.write(value)
@@ -139,13 +212,11 @@ def main():
         stop("release version")
     snapshot_digests = verify_snapshot(run_root, repo_root)
 
-    artifact_parent = repo_root / "evals/artifacts"
-    artifact_parent.mkdir(mode=0o755, exist_ok=True)
-    final_artifact_root = artifact_parent / ("v" + version)
-    temp_artifact_root = artifact_parent / (".v" + version + ".tmp-" + str(os.getpid()))
-    if final_artifact_root.exists() or final_artifact_root.is_symlink():
-        stop("release artifact directory already exists")
+    artifact_parent, final_artifact_root, temp_artifact_root = prepare_artifact_destination(
+        repo_root, version,
+    )
     temp_artifact_root.mkdir(mode=0o700)
+    physical_directory(temp_artifact_root, "temporary artifact root", artifact_parent)
 
     try:
         cases = []
@@ -229,6 +300,9 @@ def main():
                 ),
             })
 
+        physical_directory(artifact_parent, "artifact parent", repo_root / "evals")
+        physical_directory(temp_artifact_root, "temporary artifact root", artifact_parent)
+        require_absent(final_artifact_root, "release artifact target already exists")
         os.replace(temp_artifact_root, final_artifact_root)
     except BaseException:
         if temp_artifact_root.exists() and not temp_artifact_root.is_symlink():

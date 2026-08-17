@@ -7,6 +7,11 @@ installer=$repo_root/install.sh
 forward_eval_runner=$repo_root/tests/run-forward-evals.sh
 forward_eval_guard_test=$repo_root/tests/test-forward-eval-runner-guards.sh
 forward_eval_publisher=$repo_root/tests/publish-forward-eval-results.py
+forward_eval_publisher_guard_test=$repo_root/tests/test-forward-eval-publisher-guards.py
+forward_eval_evidence=$repo_root/tests/forward_eval_evidence.py
+forward_eval_evidence_test=$repo_root/tests/test-forward-eval-evidence.py
+python_source_checker=$repo_root/tests/check-python-sources.py
+python_source_checker_test=$repo_root/tests/test-python-source-checker.py
 skill_name=generate-codex-instructions
 
 fail() {
@@ -31,7 +36,11 @@ if [ -z "$validator" ] || [ ! -f "$validator" ]; then
 fi
 
 python3 "$validator" "$skill_dir" >/dev/null
-python3 -m py_compile "$forward_eval_publisher"
+PYTHONDONTWRITEBYTECODE=1 python3 "$python_source_checker" \
+    "$forward_eval_publisher" "$forward_eval_evidence" \
+    "$forward_eval_evidence_test" "$forward_eval_publisher_guard_test" \
+    "$python_source_checker_test"
+PYTHONDONTWRITEBYTECODE=1 python3 "$python_source_checker_test"
 sh -n "$installer"
 sh -n "$forward_eval_runner"
 sh -n "$forward_eval_guard_test"
@@ -55,10 +64,14 @@ do
     python3 -m json.tool "$eval_json" >/dev/null
 done
 
-python3 - "$repo_root" "$repo_root/VERSION" "$repo_root/skill/SKILL.md" \
+PYTHONDONTWRITEBYTECODE=1 python3 "$forward_eval_evidence_test"
+PYTHONDONTWRITEBYTECODE=1 python3 "$forward_eval_publisher_guard_test"
+
+PYTHONDONTWRITEBYTECODE=1 python3 - "$repo_root" "$repo_root/VERSION" "$repo_root/skill/SKILL.md" \
     "$repo_root/tests/run-forward-evals.sh" "$repo_root/evals/cases.json" \
-    "$repo_root/evals" <<'PY'
+    "$repo_root/evals" "$forward_eval_evidence" <<'PY'
 import hashlib
+import importlib.util
 import json
 from pathlib import Path
 import re
@@ -202,6 +215,13 @@ COMMAND_TEMPLATE = (
 )
 
 
+evidence_spec = importlib.util.spec_from_file_location("forward_eval_evidence", sys.argv[7])
+if evidence_spec is None or evidence_spec.loader is None:
+    fail("release evidence helper import")
+evidence = importlib.util.module_from_spec(evidence_spec)
+evidence_spec.loader.exec_module(evidence)
+
+
 try:
     repo_root = Path(sys.argv[1])
     version = Path(sys.argv[2]).read_text(encoding="utf-8").strip()
@@ -265,6 +285,7 @@ try:
     if not isinstance(document["cases"], list):
         fail("release results cases")
     case_ids = set()
+    referenced_artifacts = set()
     for case in document["cases"]:
         exact_keys(case, CASE_FIELDS, "release results case")
         if (
@@ -285,6 +306,7 @@ try:
             repo_root, case["artifacts"]["prompt"], artifact_root + "prompt.txt",
             "release results case prompt",
         )
+        referenced_artifacts.add(case["artifacts"]["prompt"]["path"])
         if b"/tmp/" in prompt or b"CANARY" in prompt:
             fail("release results case prompt sanitization")
         manifest_bytes = validate_repo_artifact(
@@ -292,6 +314,7 @@ try:
             artifact_root + "fixture-manifest.json",
             "release results case fixture manifest",
         )
+        referenced_artifacts.add(case["artifacts"]["fixture_manifest"]["path"])
         manifest = decode_canonical_json(manifest_bytes, "release results case fixture manifest")
         exact_keys(manifest, ("schema_version", "case_id", "git", "files"), "release results fixture manifest")
         if manifest["schema_version"] != 1 or manifest["case_id"] != case["id"]:
@@ -323,6 +346,7 @@ try:
                 fail("release results fixture manifest entry")
             validate_sha256(entry["sha256"], "release results fixture manifest entry")
             prior_path = path
+        evidence.validate_fixture_manifest(case["id"], manifest_bytes, manifest)
         responses = case["artifacts"]["responses"]
         expected_responses = 2 if case["id"] == "ordinary-matching-terminal" else 1
         if not isinstance(responses, list) or len(responses) != expected_responses:
@@ -334,6 +358,8 @@ try:
                 repo_root, response, artifact_root + name,
                 "release results case response",
             )
+            evidence.validate_response_bytes(value)
+            referenced_artifacts.add(response["path"])
             if not value or not value.endswith(b"\n") or b"\r" in value or b"/tmp/" in value:
                 fail("release results case response normalization")
             response_values.append(value)
@@ -347,6 +373,7 @@ try:
                 repo_root, case["artifacts"][key], artifact_root + name,
                 "release results case " + key.replace("_", " "),
             )
+            referenced_artifacts.add(case["artifacts"][key]["path"])
             evidence_documents[key] = decode_canonical_json(
                 value, "release results case " + key.replace("_", " ")
             )
@@ -434,11 +461,16 @@ try:
         case_ids.add(case["id"])
     if case_ids != REQUIRED_FORWARD_CASE_IDS:
         fail("release results required cases")
+    evidence.validate_artifact_closure(
+        repo_root,
+        eval_dir / "artifacts" / ("v" + version),
+        referenced_artifacts,
+    )
     if not isinstance(document["limitations"], list) or any(
         not isinstance(item, str) or not item.strip() for item in document["limitations"]
     ):
         fail("release results limitations")
-except (OSError, UnicodeError, json.JSONDecodeError, ResultFailure) as error:
+except (OSError, UnicodeError, json.JSONDecodeError, ResultFailure, evidence.EvidenceFailure) as error:
     raise SystemExit("FAIL: " + str(error))
 PY
 
