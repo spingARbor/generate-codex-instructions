@@ -1,0 +1,1 @@
+并发检查发现已存在 tracker-bound lock：`.project/development/.instruction-generation.lock`。按要求停止，未生成指令或 fence，未写入 tracker，未实现或提交任何变更。

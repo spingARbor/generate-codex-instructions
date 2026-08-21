@@ -1,0 +1,172 @@
+{
+  "schema_version": 4,
+  "version": "0.5.0",
+  "status": "fresh-eval-passed",
+  "case": "product-forward-label-validation",
+  "metrics": {
+    "first_effective_action_event_index": 1,
+    "invalid_clarification_count": 0,
+    "boundary_violation_count": 0,
+    "acceptance_gate_pass_rate": 1.0,
+    "closure_rate": 1.0
+  },
+  "evidence": {
+    "owner_file": "src/normalize_label.py",
+    "regression_file": "tests/test_normalize_label.py",
+    "acceptance_command": "python3 -m unittest discover -s tests -v",
+    "acceptance_output_sha256": "5313eec23a7ad62ab85e99283a9824179ea115d265c17fbd5ee7104e98a66a93",
+    "acceptance_output_bytes": 508,
+    "tracker_revision_before": "r1",
+    "tracker_revision_after": "r3",
+    "unit_transition": [
+      "Ready->Claimed",
+      "Claimed->In Progress",
+      "In Progress->Complete"
+    ],
+    "gate_transition": {
+      "G1": "pending->passed"
+    },
+    "allowed_diff": [
+      "src/normalize_label.py",
+      "tests/test_normalize_label.py"
+    ],
+    "post_closure_next": null,
+    "tracker_state": "Complete",
+    "commit": "not authorized"
+  },
+  "evidence_source": "publisher-recomputed-v3-prestate-and-observed-bound",
+  "artifacts": {
+    "generation-prompt.txt": {
+      "path": "evals/product-artifacts/v0.5.0/product-forward-label-validation/generation-prompt.txt",
+      "sha256": "9db0a35af9576a27be4c9b56a0284ede6e3aee8b473a7178ec92a497903e9318",
+      "bytes": 327
+    },
+    "generation-response.txt": {
+      "path": "evals/product-artifacts/v0.5.0/product-forward-label-validation/generation-response.txt",
+      "sha256": "b1a70d7bdc1177dfbec230e4842e8d95e2bd5c3afd71854bfef5efd28441f936",
+      "bytes": 8542
+    },
+    "execution-prompt.txt": {
+      "path": "evals/product-artifacts/v0.5.0/product-forward-label-validation/execution-prompt.txt",
+      "sha256": "c9505795dcd96effcba637e3aca60eb922d78d06c29e50fe4d1b6504fc8d7636",
+      "bytes": 7708
+    },
+    "execution-response.txt": {
+      "path": "evals/product-artifacts/v0.5.0/product-forward-label-validation/execution-response.txt",
+      "sha256": "6161bde42e554e42d8872f15ae7f08e2eed53e7befe9fea292adba0bafa82b11",
+      "bytes": 748
+    },
+    "agents-before.md": {
+      "path": "evals/product-artifacts/v0.5.0/product-forward-label-validation/agents-before.md",
+      "sha256": "6181e984f6f1331ca35abbb4d7421ae741818f1d109f62d5b7f3b4eb359e553d",
+      "bytes": 1404
+    },
+    "design-before.md": {
+      "path": "evals/product-artifacts/v0.5.0/product-forward-label-validation/design-before.md",
+      "sha256": "59cac9add35881ddfe206f057587c32784767af685d0d7a8b527602f9e17d684",
+      "bytes": 257
+    },
+    "lessons-before.md": {
+      "path": "evals/product-artifacts/v0.5.0/product-forward-label-validation/lessons-before.md",
+      "sha256": "e5dc25b62532bb276e0b7c09ca95f7dfa4e3b35e8d8dbf147f82c85830e4f493",
+      "bytes": 87
+    },
+    "owner-before.py": {
+      "path": "evals/product-artifacts/v0.5.0/product-forward-label-validation/owner-before.py",
+      "sha256": "8464e41676804e90d7c3661b6f7aca8dc3f0147599dbd224dbc36d818b6ba8a0",
+      "bytes": 138
+    },
+    "owner-after.py": {
+      "path": "evals/product-artifacts/v0.5.0/product-forward-label-validation/owner-after.py",
+      "sha256": "5cba45c1e541bcee2bffdaedccead8aff50b6476b637d00cb64f4be19d6b55ea",
+      "bytes": 241
+    },
+    "regression-before.py": {
+      "path": "evals/product-artifacts/v0.5.0/product-forward-label-validation/regression-before.py",
+      "sha256": "c3debb6386888f0c7cca105adf5eb8de508b5076a5880156103dc3203014416c",
+      "bytes": 380
+    },
+    "regression-after.py": {
+      "path": "evals/product-artifacts/v0.5.0/product-forward-label-validation/regression-after.py",
+      "sha256": "d8d09fd2df01278b980d3426b20bd673712327596023969978995dc1d61848c5",
+      "bytes": 630
+    },
+    "tracker-before.md": {
+      "path": "evals/product-artifacts/v0.5.0/product-forward-label-validation/tracker-before.md",
+      "sha256": "34d621e1060c329b3a123c2503cf914016e37638d014bd4b9635adc629aa5081",
+      "bytes": 1592
+    },
+    "tracker-after.md": {
+      "path": "evals/product-artifacts/v0.5.0/product-forward-label-validation/tracker-after.md",
+      "sha256": "c1b192e5f1caff8751af4d6843914df982d28a85a2e2d2e115b7f22e5e2feb78",
+      "bytes": 1615
+    },
+    "progress-before.md": {
+      "path": "evals/product-artifacts/v0.5.0/product-forward-label-validation/progress-before.md",
+      "sha256": "9aee4675747642adbab9cd2a7379cd50888b99f03e2615881549673c7a9c236f",
+      "bytes": 97
+    },
+    "progress-after.md": {
+      "path": "evals/product-artifacts/v0.5.0/product-forward-label-validation/progress-after.md",
+      "sha256": "bb2f4ecb62a7a23a2b1874020e4ad49d1824de2ce4f23303218ee0e81424bd5f",
+      "bytes": 829
+    },
+    "git-branch-before.txt": {
+      "path": "evals/product-artifacts/v0.5.0/product-forward-label-validation/git-branch-before.txt",
+      "sha256": "f77ce9198f8fc7b438695ad9d80e2fe30e54f11a49900e6c3b77424edc232db9",
+      "bytes": 16
+    },
+    "git-head-before.txt": {
+      "path": "evals/product-artifacts/v0.5.0/product-forward-label-validation/git-head-before.txt",
+      "sha256": "ae3d72a93b29eb1d64b3c1360d38c37d9228fa21bdba66c46e518820eabafba1",
+      "bytes": 41
+    },
+    "git-status-before-z.bin": {
+      "path": "evals/product-artifacts/v0.5.0/product-forward-label-validation/git-status-before-z.bin",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "acceptance-command.txt": {
+      "path": "evals/product-artifacts/v0.5.0/product-forward-label-validation/acceptance-command.txt",
+      "sha256": "4cee8569de82dc754e80a1041a8f83299201efd21f53a26aa32353bc553eb0ee",
+      "bytes": 41
+    },
+    "acceptance-output.txt": {
+      "path": "evals/product-artifacts/v0.5.0/product-forward-label-validation/acceptance-output.txt",
+      "sha256": "5313eec23a7ad62ab85e99283a9824179ea115d265c17fbd5ee7104e98a66a93",
+      "bytes": 508
+    },
+    "acceptance-exit.txt": {
+      "path": "evals/product-artifacts/v0.5.0/product-forward-label-validation/acceptance-exit.txt",
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "bytes": 2
+    },
+    "git-status-z.bin": {
+      "path": "evals/product-artifacts/v0.5.0/product-forward-label-validation/git-status-z.bin",
+      "sha256": "184c565b53a4e8538d15963dfc66df645eb8bbd6c7e92556b0c2bc1703bcd00b",
+      "bytes": 59
+    },
+    "git-diff.patch": {
+      "path": "evals/product-artifacts/v0.5.0/product-forward-label-validation/git-diff.patch",
+      "sha256": "bd8cb7c284ae94d99794ca6835a5f6d3ce3bc6d10a0b6ed32c9fa85725541ad3",
+      "bytes": 1070
+    },
+    "capture-manifest.json": {
+      "path": "evals/product-artifacts/v0.5.0/product-forward-label-validation/capture-manifest.json",
+      "sha256": "3bc8988adea5d3cc254b2734bff08a6938583e04eb6b8ee8044ae3a1d50b6f3a",
+      "bytes": 2799
+    }
+  },
+  "bindings": {
+    "skill_sha256": "5a443c0966a3f50ec1c9e1a9c2a8cf290732953ccb3558204b205f5c22b2cae2",
+    "runtime_fingerprint_sha256": "1173db19b4c751a368f7c4d4224885f0e25427eace9bc0111414ae6a889870c3",
+    "runner_sha256": "0143a15b7a2213a15762ad33c10b95e055e5f3ced3bfd86657c8fb521f933f0f",
+    "publisher_sha256": "4b71f25d79f87ca50160286b68b81f443f93186d7604bdc628ad82e7f2d2d3a3",
+    "evidence_helper_sha256": "78e377ffe4672cf153b06b5192ad2d0ad8b31d387d4b3490ccbdb44fe8b46cb5",
+    "transition_helper_sha256": "df736ccd5ba9bc6cb03aaa0d8b148d2786b8f7075e2b16b1bf6581249172d4af",
+    "corpus_sha256": "5429c69b1dadffca6cc0598b440b3bb38c3dceaa33acd7c1c289a37ffcc43bf0",
+    "fingerprint_sha256": "0980d179cd3aecd755120ec1e05306b6b277f3b3f33bdaa63c2b465f15997db2"
+  },
+  "release_authorized": false,
+  "limitation": "Product closure reconciles generated expectations with raw observed receipts; complete corpus release authorization is a separate gate."
+}

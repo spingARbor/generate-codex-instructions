@@ -1,1 +1,2 @@
-.codex/development/ export-ignore
+evals/artifacts/** -whitespace
+evals/product-artifacts/** -whitespace

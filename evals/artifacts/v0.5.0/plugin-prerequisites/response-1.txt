@@ -1,0 +1,7 @@
+状态：已阻塞
+
+证据：仓库 `.` 的 plugin manifest 要求 `fixture-ui-auth-plugin` 的 `interactive-review` UI hook，以及需要认证的 `authenticated-provider` MCP。当前执行面为 headless，且无 authenticated provider session；tracker 明确未授权 fallback。
+
+决定：plugin prerequisite 不满足，因此未生成 Codex instruction 或代码围栏，未写 tracker，未调用 provider，未实施、测试或提交，也未留下临时 helper。
+
+恢复条件：提供可用的交互式 UI hook 与已认证的 `authenticated-provider` session，或明确授权可验证的 fallback 后重新生成。

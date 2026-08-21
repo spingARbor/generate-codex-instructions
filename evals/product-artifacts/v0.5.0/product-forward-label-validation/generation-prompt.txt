@@ -1,0 +1,1 @@
+Use the generate-codex-instructions skill at <skill-repository>/skill/SKILL.md to generate the next Codex development handoff for this repository. Respond entirely in English. Do not implement the task, run its acceptance test, modify repository or tracker state, commit, or publish. Return only the final user-facing handoff.

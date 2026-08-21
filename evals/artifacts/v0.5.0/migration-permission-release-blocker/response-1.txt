@@ -1,0 +1,33 @@
+Status: partially blocked (High-risk): migration gate and rollback evidence are unmet, the independent permission matrix is missing, and version/tag/push/release/deployment/provider actions are not authorized.
+Snapshot: tracker_revision=32; branch=feature/mixed-plan; head=617ed0f7457f0d3773ea501b834dd6ab1cb8f209; status_fingerprint=8990db108e03cf68afe733257edfa8b802587ebd08754b70e2256958efd4de2f
+Unit counts: Complete=0; In Progress=0; Claimed=0; Ready=0; Blocked=1; Failed=0
+Gate counts: passed=0; pending=0; failed=0; unknown-definition=1; conflicting=0
+Selection basis: No independently executable unit exists.
+Current executable unit: none; dependency_evidence=none
+Selected unit: U1
+Selected required gates: [{"id":"G1","state":"unknown-definition"}]
+Evidence reads: used=7; ceiling=20; extension=0; reason=none
+Evidence ledger: {"sha256":"cebde5c70abc7c751f9bb32b15ffca6e5a6bb4fbb6d257d923472cf3eddf6451","rows":[{"id":".project/development/evidence/G1.pass","role":"gate-evidence"},{"id":".project/development/progress.md","role":"gate-evidence"},{"id":".project/development/task_plan.md","role":"tracker"},{"id":"AGENTS.md","role":"authority"},{"id":"docs/design.md","role":"design"},{"id":"src/normalize-label.js","role":"owner"},{"id":"tests/normalize-label.test.js","role":"regression"}]}
+Open inventory: {"units":[{"id":"U1","state":"Blocked","claim":"none","dependency":"none","next":"The schema owner records approval and G1 status."}],"gates":[{"id":"G1","state":"unknown-definition","command_or_recovery":"The schema owner records approval and a fresh authoritative G1 result with command, inputs, revision, input fingerprint, authority, and bound evidence; the recorded passed evidence is currently insufficient."}],"blockers":[{"id":"G1","owner":"schema owner","detail":"API schema approval is missing; the tracker marks G1 unknown-definition, while the recorded pass lacks a complete bound gate definition.","recovery":"Record schema approval and a fresh authoritative G1 result with complete command, inputs, revision, fingerprint, authority, and evidence binding."},{"id":"migration_gate","owner":"not recorded","detail":"A data migration plan is not approved for the current revision.","recovery":"Approve a migration plan bound to tracker revision 32 and the current HEAD before any execution."},{"id":"permission_matrix","owner":"not recorded","detail":"The independent permission matrix is not satisfied.","recovery":"Record separate scoped authority for implementation, tests, tracker update, local commit, and every release or provider action."},{"id":"release_gate","owner":"not recorded","detail":"Version, tag, push, release, deployment, and provider writes are not authorized.","recovery":"Obtain explicit scoped authorization for each action; keep all of them blocked until recorded."},{"id":"rollback_evidence","owner":"not recorded","detail":"Rollback evidence is not approved or bound to the migration inputs and current revision.","recovery":"Produce and approve rollback evidence bound to the migration plan, tracker revision 32, and current HEAD."}]}
+Protocol profile: High-risk
+Repository: .
+Unit: U1
+Capability: normalizeLabel trim and TypeError behavior is present; fallback=none
+Authoritative inputs: [".project/development/evidence/G1.pass",".project/development/progress.md",".project/development/task_plan.md","AGENTS.md","docs/design.md","src/normalize-label.js","tests/normalize-label.test.js"]
+Owner boundary: ["src/normalize-label.js","tests/normalize-label.test.js"]
+Invariants: Preserve the public normalizeLabel export, trimming behavior, and TypeError behavior.
+Non-goals: Migration execution, rollback execution, permission changes, implementation, tests, tracker writes, commits, version changes, tags, push/release, deployment, and provider writes.
+Consumer: affected_consumer
+Compatibility: compatibility_gate
+Rollback: rollback_evidence
+Migration/Release: migration plan approval, rollback evidence, independent permission matrix, and release authorization are unmet.
+Requirement -> Baseline -> Root cause/design gap -> Owner change -> Invariant -> Test -> Gate -> Evidence
+Complete label normalization after governance approval. -> normalizeLabel trims strings and rejects non-strings, but governance approval and the required empty-result behavior are not established. -> API schema approval, migration/rollback evidence, and independent permission authority are missing. -> owner src/normalize-label.js: no change authorized. -> preserve the public export, trimming, and TypeError behavior. -> tests/normalize-label.test.js -> G1 -> no authoritative bound pass; G1.pass and progress are insufficient.
+Permission matrix:
+Implementation | Tests | Update tracker | Local commit | Change version | Tag | Push/release
+blocked: permission_matrix | blocked: permission_matrix | blocked: permission_matrix | not authorized: commit_permission | not authorized: version_permission | not authorized: release_gate | not authorized: release_gate
+Closure condition: Schema approval, an authoritative bound G1 pass, an approved migration plan, approved rollback evidence, an independent permission matrix, consumer/compatibility/release checks, and final diff/status evidence.
+Tracker target state: Blocked; The schema owner records approval and G1 status.
+Observed receipt requirements: initial revision=32; IDs=U1,G1,migration_gate,rollback_evidence,permission_matrix,release_gate; owner=src/normalize-label.js; transitions=none until authority and gates are satisfied; paths=.; actual-revision rule=all future evidence must bind the current tracker revision and HEAD.
+Post-closure next unit: none; no dependency-ready unit exists while U1 remains blocked.
+Out of scope: implementation, tests, tracker updates, local commits, version changes, tags, push/release, deployment, provider writes, and any migration or rollback action.

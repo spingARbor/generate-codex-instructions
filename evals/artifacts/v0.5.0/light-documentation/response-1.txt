@@ -1,0 +1,55 @@
+状态：部分阻塞（partially blocked）；U4 因缺少 schema-owner 批准及 G3 权威状态而阻塞；同时 U2 是唯一可执行的已认领 In Progress 单元，当前 owner 内容已满足文档目标，G1 证据与当前输入一致，G2 尚待运行并持久化；U2 收敛后 U3 成为唯一依赖就绪单元。
+Snapshot: tracker_revision=33; branch=feature/mixed-plan; head=617ed0f7457f0d3773ea501b834dd6ab1cb8f209; status_fingerprint=005c4ecd7d9f4f0065c1f184ab8fb7a281d98319c8ba1d1e911e3d3e0d69db05
+Unit counts: Complete=1; In Progress=1; Claimed=0; Ready=1; Blocked=1; Failed=0
+Gate counts: passed=1; pending=1; failed=0; unknown-definition=1; conflicting=0
+Selection basis: Continue U2 because it is the sole valid claimed In Progress unit and is independently executable despite U4.
+Current executable unit: U2; dependency_evidence=none
+Selected unit: U2
+Selected required gates: [{"id":"G1","state":"passed"},{"id":"G2","state":"pending"}]
+Evidence reads: used=5; ceiling=6; extension=0; reason=none
+Evidence ledger: {"sha256":"704caeaedb0d341f016fa52118727dbb83224fed48ca0d8cafaee18444b1a6c6","rows":[{"id":".project/development/evidence/G1.pass","role":"gate-evidence"},{"id":".project/development/task_plan.md","role":"tracker"},{"id":"AGENTS.md","role":"authority"},{"id":"docs/design.md","role":"owner"},{"id":"package.json","role":"regression"}]}
+Open inventory: {"units":[{"id":"U2","state":"In Progress","claim":"worker-a","dependency":"none","next":"G2 passes with focused contract evidence at the current unit result."},{"id":"U3","state":"Ready","claim":"none","dependency":"U2","next":"U2 is Complete, then an owner claims U3."},{"id":"U4","state":"Blocked","claim":"none","dependency":"none","next":"The schema owner records authoritative approval and G3 status."}],"gates":[{"id":"G2","state":"pending","command_or_recovery":"npm test"},{"id":"G3","state":"unknown-definition","command_or_recovery":"The schema owner records approval and an authoritative gate result."}],"blockers":[{"id":"B1","owner":"schema-owner","detail":"Missing schema approval.","recovery":"The schema owner records approval and the authoritative G3 result."}]}
+```text
+Protocol profile: Light
+Repository: .
+Unit: U2
+Capability: label-normalization contract documentation and repository smoke validation; fallback=none
+Authoritative inputs: [".project/development/evidence/G1.pass",".project/development/task_plan.md","AGENTS.md","docs/design.md","package.json"]
+Owner boundary: ["docs/design.md","package.json"]
+Invariants: Non-string inputs still raise TypeError; valid labels still return trimmed text; the public export stays stable.
+Non-goals: Schema, packaging, dependency, unrelated API, and broad refactor changes.
+Requirement -> Baseline -> Root cause/design gap -> Owner change -> Invariant -> Test -> Gate -> Evidence
+Clarify the existing label normalization contract. -> docs/design.md already states trimming, empty-result RangeError, stable normalizeLabel, non-string TypeError, and no runtime/public API change. -> Owner content is met; only focused G2 evidence and closure remain. -> docs/design.md: retain current contract text; stop on reread mismatch. -> Preserve TypeError, trimmed valid labels, and the public export. -> package.json: run its npm test script. -> G1,G2 -> package.json: G2 output plus .project/development/evidence/G1.pass and the new G2 receipt.
+Permission matrix:
+Implementation | Tests | Update tracker | Local commit | Change version | Tag | Push/release
+authorized: request | authorized: request | authorized: request | not authorized: absent | not authorized: absent | not authorized: absent | not authorized: absent
+Step: 1
+Action: test: run pending G2 on the current selected inputs
+Command: npm test && git diff --check
+Files/boundary: ["docs/design.md","package.json"]
+Acceptance Gate: G2 succeeds at the snapshot inputs and git diff --check is clean; exit=0
+Expected transition: unit=U2; owner=docs/design.md; transitions=none; from_revision=33; gate=none
+Evidence required: receipt=none; artifacts=G2 command output,git diff --check output
+Failure/recovery: stop=command failure or snapshot drift; recovery=leave G2 pending and obtain fresh bounded evidence
+Step: 2
+Action: tracker: persist G2 pass and U2 closure
+Command: none: persist authorized governing tracker state and receipt
+Files/boundary: [".project/development/evidence/G2.pass",".project/development/task_plan.md"]
+Acceptance Gate: receipt binds revision 33, npm test, and fingerprint 86be2102ba8cb672ed0403e37f11bbaf13d8b6577bc37dc687e0530e91a553ec; G2 is passed and U2 is Complete; exit=n/a
+Expected transition: unit=U2; owner=docs/design.md; transitions=In Progress->Complete; from_revision=33; gate=G2:pending->passed
+Evidence required: receipt=.project/development/evidence/G2.pass; artifacts=G2 command result,input fingerprint,actual tracker revision
+Failure/recovery: stop=unbound receipt; recovery=keep U2 In Progress and G2 pending, then capture fresh evidence
+Step: 3
+Action: observe: capture final repository status
+Command: git status --porcelain=v1 --untracked-files=all
+Files/boundary: [".project/development/evidence/G2.pass",".project/development/task_plan.md","docs/design.md","package.json"]
+Acceptance Gate: status shows only authorized owner/test or governing tracker receipt changes; exit=0
+Expected transition: unit=U2; owner=docs/design.md; transitions=none; from_revision=observed-prior; gate=none
+Evidence required: receipt=none; artifacts=final porcelain status,actual tracker revision
+Failure/recovery: stop=unexpected paths or missing receipt; recovery=preserve changes and reconcile only with new authority or evidence
+Closure condition: docs/design.md retains the contract; package.json npm test passes; integration=n/a for Light; G1 and G2 are passed; final diff/status stays in scope; G2 output and receipt are recorded.
+Tracker target state: U2 Complete; next_convergence_condition=G2 passes with focused contract evidence at the current unit result.
+Observed receipt requirements: initial revision 33; IDs U2,G2; owner docs/design.md; transitions G2 pending->passed and U2 In Progress->Complete; paths .project/development/task_plan.md,.project/development/evidence/G2.pass; record the actual persisted revision.
+Post-closure next unit: U3; U2 Complete satisfies dependency U2, making U3 the unique dependency-ready Ready unit.
+Out of scope: U4/G3 schema work; runtime/API/package/dependency or command-dependency edits; progress.md/lessons.md writes; commit, version, tag, push/release, network, provider, deployment, and unrelated changes.
+```

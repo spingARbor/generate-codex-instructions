@@ -49,12 +49,24 @@ def new_repo(root, name):
 
 def main():
     repo_root = Path(__file__).resolve().parent.parent
+    source_text = (repo_root / "tests/publish-forward-eval-results.py").read_text(encoding="utf-8")
+    for marker in (
+        "validate_product_result", "validate_repository", "post-publish replay",
+        "validate_forward_case", "fingerprint_sha256", "contract_sha256",
+    ):
+        if marker not in source_text:
+            stop("fresh product publisher binding guard: " + marker)
     with tempfile.TemporaryDirectory(prefix="gci-publisher-cli-") as temporary:
         source_root = Path(temporary)
         publisher_path = source_root / "publish-forward-eval-results.py"
         evidence_path = source_root / "forward_eval_evidence.py"
         shutil.copyfile(repo_root / "tests/publish-forward-eval-results.py", publisher_path)
         shutil.copyfile(repo_root / "tests/forward_eval_evidence.py", evidence_path)
+        for name in (
+            "published_result_validator.py", "product_forward_evidence.py",
+            "execution_contract.py", "status_fingerprint.py",
+        ):
+            shutil.copyfile(repo_root / "tests" / name, source_root / name)
         cache_path = source_root / "__pycache__"
         if cache_path.exists():
             stop("direct CLI cache precondition")
@@ -80,9 +92,31 @@ def main():
         stop("publisher evidence helper import")
     if not hasattr(module, "prepare_artifact_destination") or not hasattr(module, "validate_publishable_bytes"):
         stop("publisher destination guards missing")
+    projected = module.representative_bindings({
+        "skill_sha256": "a",
+        "runtime_fingerprint_sha256": "s",
+        "forward_runner_sha256": "b",
+        "corpus_sha256": "c",
+        "fingerprint_sha256": "d",
+        "contract_sha256": "e",
+        "forward_evidence_sha256": "f",
+    })
+    if tuple(projected) != (
+        "skill_sha256", "runtime_fingerprint_sha256", "runner_sha256", "corpus_sha256",
+        "fingerprint_sha256", "contract_sha256", "forward_evidence_sha256",
+    ):
+        stop("representative binding projection schema")
 
     with tempfile.TemporaryDirectory(prefix="gci-publisher-guard-") as temporary:
         root = Path(temporary)
+        formatted_json = root / "formatted.json"
+        formatted_json.write_text('{\n  "cases": []\n}\n', encoding="utf-8")
+        if module.repository_json(formatted_json, "formatted corpus") != {"cases": []}:
+            stop("formatted repository JSON")
+        duplicate_json = root / "duplicate.json"
+        duplicate_json.write_text('{"cases":[],"cases":[]}\n', encoding="utf-8")
+        expect_failure("duplicate repository JSON key", module.repository_json, duplicate_json, "corpus")
+
         safe = new_repo(root, "safe")
         parent, final, temporary_target = module.prepare_artifact_destination(safe, "0.4.0")
         if parent != safe / "evals/artifacts" or final != parent / "v0.4.0" or temporary_target.parent != parent:
@@ -139,6 +173,9 @@ def main():
             b"-----BEGIN PRIVATE KEY-----",
             b"-----begin rsa private key-----",
             b"-----Begin OpenSSH Private Key-----",
+            b"evaluator path /tmp/gci-run/fixture",
+            b"workspace /home/user/private/repo",
+            b"workspace /Users/name/private/repo",
         ):
             expect_failure("publishable marker", module.validate_publishable_bytes, marker, "response")
 

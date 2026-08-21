@@ -1,0 +1,99 @@
+状态：进行中；U2 是唯一可执行单元，G1 已通过、G2 待通过；U3 等待 U2 完成，U4 因缺少 schema approval 阻塞。
+Snapshot: tracker_revision=34; branch=feature/mixed-plan; head=617ed0f7457f0d3773ea501b834dd6ab1cb8f209; status_fingerprint=2f7ea5b3981cc3004629903be5a3575967a3207c10e198773153928961e4df95
+Unit counts: Complete=1; In Progress=1; Claimed=0; Ready=1; Blocked=1; Failed=0
+Gate counts: passed=1; pending=1; failed=0; unknown-definition=1; conflicting=0
+Selection basis: Continue U2 because it is the sole valid claimed In Progress unit and is independently executable despite U4.
+Current executable unit: U2; dependency_evidence=none
+Selected unit: U2
+Selected required gates: [{"id":"G1","state":"passed"},{"id":"G2","state":"pending"}]
+Evidence reads: used=7; ceiling=20; extension=0; reason=High-risk closed set: tracker, authority, design, owner, nearest_test, integration, and passed-Gate evidence.
+Evidence ledger: {"sha256":"42bc5d1ed5381fe1810947fbfe34f37be075d3bdf32f4262f062685fabd2fbb6","rows":[{"id":".project/development/evidence/G1.pass","role":"gate-evidence"},{"id":".project/development/task_plan.md","role":"tracker"},{"id":"AGENTS.md","role":"authority"},{"id":"docs/design.md","role":"design"},{"id":"package.json","role":"integration"},{"id":"src/normalize-label.js","role":"owner"},{"id":"tests/normalize-label.test.js","role":"regression"}]}
+Open inventory: {"units":[{"id":"U2","state":"In Progress","claim":"worker-a","dependency":"none","next":"G2 passes with focused contract evidence at the current unit result."},{"id":"U3","state":"Ready","claim":"none","dependency":"U2","next":"U2 is Complete, then an owner claims U3."},{"id":"U4","state":"Blocked","claim":"none","dependency":"none","next":"The schema owner records authoritative approval and G3 status."}],"gates":[{"id":"G2","state":"pending","command_or_recovery":"node --test tests/normalize-label.test.js"},{"id":"G3","state":"unknown-definition","command_or_recovery":"The schema owner records approval and an authoritative gate result."}],"blockers":[{"id":"B1","owner":"schema-owner","detail":"Missing schema approval.","recovery":"The schema owner records approval and the authoritative G3 result."}]}
+```text
+Protocol profile: High-risk
+Repository: .
+Unit: U2
+Capability: normalizeLabel public export; fallback=none
+Authoritative inputs: [".project/development/evidence/G1.pass",".project/development/task_plan.md","AGENTS.md","docs/design.md","package.json","src/normalize-label.js","tests/normalize-label.test.js"]
+Owner boundary: ["src/normalize-label.js","tests/normalize-label.test.js"]
+Invariants: Non-string inputs still raise TypeError; valid labels still return trimmed text; the public export stays stable.
+Non-goals: Schema, packaging, dependency, unrelated API, and broad refactor changes.
+Consumer: tests/normalize-label.test.js is the nearest consumer contract and package.json exposes the integration suite.
+Compatibility: npm test must pass after the focused test.
+Rollback: Reverting only src/normalize-label.js and its focused test restores the previous contract without tracker or release mutation.
+Migration/Release: No migration applies; release remains unauthorized and out of scope.
+Requirement -> Baseline -> Root cause/design gap -> Owner change -> Invariant -> Test -> Gate -> Evidence
+Reject empty and whitespace-only labels at the normalization owner boundary. -> normalizeLabel trims and returns empty text for empty/whitespace-only strings; non-string TypeError and valid trim behavior are covered. -> src/normalize-label.js returns value.trim() without rejecting an empty result. -> src/normalize-label.js: trim once, throw RangeError when the result is empty, then return the trimmed label. -> Non-string inputs still raise TypeError; valid labels still return trimmed text; the public export stays stable. -> tests/normalize-label.test.js -> G1,G2 -> tests/normalize-label.test.js; G1.pass baseline; fresh G2 pass evidence required
+Permission matrix:
+Implementation | Tests | Update tracker | Local commit | Change version | Tag | Push/release
+authorized: request | authorized: request | authorized: request | not authorized: absent | not authorized: absent | not authorized: absent | not authorized: absent
+Step: 1
+Action: observe: capture clean baseline status
+Command: git status --porcelain=v1 --untracked-files=all
+Files/boundary: ["src/normalize-label.js","tests/normalize-label.test.js"]
+Acceptance Gate: baseline status is unchanged from the snapshot and no unexpected owner/test file appears; exit=0
+Expected transition: unit=U2; owner=src/normalize-label.js; transitions=none; from_revision=34; gate=none
+Evidence required: receipt=none; artifacts=baseline status
+Failure/recovery: stop=any status drift or unexpected file; recovery=stop and regenerate from a fresh read-only snapshot
+Step: 2
+Action: tracker: persist G1 pending before editing its inputs
+Command: none: tracker-only state persistence
+Files/boundary: [".project/development/task_plan.md"]
+Acceptance Gate: G1 is recorded as pending before owner/test edits; exit=n/a
+Expected transition: unit=U2; owner=src/normalize-label.js; transitions=none; from_revision=34; gate=G1:passed->pending
+Evidence required: receipt=.project/development/task_plan.md; artifacts=G1 invalidation receipt
+Failure/recovery: stop=G1 pending cannot be recorded exactly; recovery=stop and obtain new authoritative tracker evidence
+Step: 3
+Action: implementation: update the owner and exact nearest test for empty results
+Command: none: implementation edits only
+Files/boundary: ["src/normalize-label.js","tests/normalize-label.test.js"]
+Acceptance Gate: normalizeLabel throws RangeError for empty and whitespace-only trimmed results while existing TypeError, trim, and export assertions remain; exit=n/a
+Expected transition: unit=U2; owner=src/normalize-label.js; transitions=none; from_revision=observed-prior; gate=none
+Evidence required: receipt=none; artifacts=owner/test diff
+Failure/recovery: stop=any edit outside the owner or nearest_test; recovery=stop, preserve unrelated edits, and regenerate the handoff
+Step: 4
+Action: test: run the baseline integration Gate after invalidation
+Command: npm test && git diff --check
+Files/boundary: ["src/normalize-label.js","tests/normalize-label.test.js"]
+Acceptance Gate: npm test and diff check pass for the current owner/test inputs; exit=0
+Expected transition: unit=U2; owner=src/normalize-label.js; transitions=none; from_revision=observed-prior; gate=none
+Evidence required: receipt=none; artifacts=fresh G1 output,diff-check output
+Failure/recovery: stop=the selected G1 command fails; recovery=record G1 failed and U2 Failed, then recover with U2 In Progress and G1 pending only after new evidence
+Step: 5
+Action: tracker: persist the fresh G1 pass receipt
+Command: none: tracker-only state persistence
+Files/boundary: [".project/development/evidence/G1.pass",".project/development/task_plan.md"]
+Acceptance Gate: G1 passed evidence binds the current tracker revision, head, command, and input fingerprint; exit=n/a
+Expected transition: unit=U2; owner=src/normalize-label.js; transitions=none; from_revision=observed-prior; gate=G1:pending->passed
+Evidence required: receipt=.project/development/task_plan.md; artifacts=G1.pass evidence
+Failure/recovery: stop=the G1 manifest cannot bind to the current revision; recovery=keep G1 pending and regenerate from current evidence
+Step: 6
+Action: test: run the selected focused Gate
+Command: node --test tests/normalize-label.test.js && git diff --check
+Files/boundary: ["src/normalize-label.js","tests/normalize-label.test.js"]
+Acceptance Gate: empty and whitespace-only contract tests and diff check pass; exit=0
+Expected transition: unit=U2; owner=src/normalize-label.js; transitions=none; from_revision=observed-prior; gate=none
+Evidence required: receipt=none; artifacts=fresh G2 output,diff-check output
+Failure/recovery: stop=the selected G2 command fails; recovery=record G2 failed and U2 Failed, then recover U2 In Progress and G2 pending only with new evidence
+Step: 7
+Action: tracker: persist the U2 closure receipt
+Command: none: tracker-only state persistence
+Files/boundary: [".project/development/evidence/G2.pass",".project/development/task_plan.md"]
+Acceptance Gate: G2 passed evidence binds the current inputs and both selected Gates are passed before U2 closes; exit=n/a
+Expected transition: unit=U2; owner=src/normalize-label.js; transitions=In Progress->Complete; from_revision=observed-prior; gate=G2:pending->passed
+Evidence required: receipt=.project/development/task_plan.md; artifacts=G2.pass evidence,U2 closure receipt
+Failure/recovery: stop=G2 evidence or the closure receipt cannot bind; recovery=leave U2 In Progress and G2 pending and regenerate from current evidence
+Step: 8
+Action: observe: verify final status and diff hygiene
+Command: git status --porcelain=v1 --untracked-files=all
+Files/boundary: [".project/development/evidence/G1.pass",".project/development/evidence/G2.pass",".project/development/task_plan.md","src/normalize-label.js","tests/normalize-label.test.js"]
+Acceptance Gate: final status contains only authorized owner/test and tracker receipt paths; exit=0
+Expected transition: unit=U2; owner=src/normalize-label.js; transitions=none; from_revision=observed-prior; gate=none
+Evidence required: receipt=none; artifacts=final status
+Failure/recovery: stop=final status or revision drifts; recovery=stop and regenerate from a fresh read-only snapshot
+Closure condition: owner src/normalize-label.js and regression tests/normalize-label.test.js implement the documented RangeError contract; G1 and G2 pass with revision-bound evidence; consumer/integration compatibility remains green; rollback remains limited to the two selected files; final diff/status are reviewed; tracker receipts are persisted.
+Tracker target state: U2=Complete; next convergence condition=G2 passes with focused contract evidence at the current unit result.
+Observed receipt requirements: initial revision=34; IDs=U2,G1,G2; owner=src/normalize-label.js; transitions=G1:passed->pending,G1:pending->passed,U2:In Progress->Complete,G2:pending->passed; paths=.project/development/task_plan.md,.project/development/evidence/G1.pass,.project/development/evidence/G2.pass; actual-revision rule=record receipts at the executor-observed revision and recompute the status fingerprint after any drift
+Post-closure next unit: U3; U2 is Complete and U3 is the unique remaining dependency-ready Ready unit.
+Out of scope: U4 schema work and G3 approval; edits outside the selected owner/test and governing tracker receipts; commits, version changes, tags, push/release, deployment, providers, and network.
+```

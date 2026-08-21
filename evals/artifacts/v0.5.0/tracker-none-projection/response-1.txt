@@ -1,0 +1,1 @@
+阻塞：`Repository: .` 的 `tracker: none`。已确认这是 `read-only projection`，不存在可选择的执行单元，且不得创建 fallback tracker。`no mutation`：未实现、未测试、未提交，未创建锁或临时 helper。恢复条件是提供有效的项目 tracker 投影。

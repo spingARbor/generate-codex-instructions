@@ -1,0 +1,11 @@
+部分阻塞（High-risk）：没有可独立执行的单元；U1 被 API schema approval 阻塞。G1 在 tracker 中为 unknown-definition，但 `progress.md` 记为 passed，证据相互冲突；tracker 同时缺少 Unit owner、精确 nearest_test、Gate command、inputs、input_fingerprint 和绑定证据，无法生成可验证状态指纹。迁移与回滚条件未记录，权限条件为 schema owner 批准，发布未获授权。
+Snapshot: tracker_revision=32; branch=feature/mixed-plan; head=617ed0f7457f0d3773ea501b834dd6ab1cb8f209; status_fingerprint=unavailable:missing-selected-owner
+Unit counts: Complete=0; In Progress=0; Claimed=0; Ready=0; Blocked=1; Failed=0
+Gate counts: passed=0; pending=0; failed=0; unknown-definition=0; conflicting=1
+Selection basis: No independently executable unit exists.
+Current executable unit: none; dependency_evidence=none
+Selected unit: none
+Selected required gates: []
+Evidence reads: used=3; ceiling=20; extension=0; reason=none
+Evidence ledger: {"sha256":"a318ae3c053127bd71939c10b0470ade9834afdca94e46d0a8f803f2eb005875","rows":[{"id":".project/development/progress.md","role":"gate-evidence"},{"id":".project/development/task_plan.md","role":"tracker"},{"id":"AGENTS.md","role":"authority"}]}
+Open inventory: {"units":[{"id":"U1","state":"Blocked","claim":"none","dependency":"none","next":"The schema owner records approval and G1 status."}],"gates":[{"id":"G1","state":"conflicting","command_or_recovery":"The schema owner records approval and the authoritative G1 result."}],"blockers":[{"id":"API schema approval","owner":"schema owner","detail":"API schema approval is missing.","recovery":"The schema owner records approval and the authoritative G1 result."}]}

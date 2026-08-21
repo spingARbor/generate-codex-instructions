@@ -1,0 +1,13 @@
+状态: converged；所有 1 个单元已完成，1 个必需 Gate 已通过；无开放进度。
+Snapshot: tracker_revision=30; branch=feature/mixed-plan; head=496ce5bf87ad2cbb9d2cf48bc09ca2ef4f51e01a; status_fingerprint=7bffa8339dc5d4da12f5e1e4f8c7ab2fc197e85aeccd286ef4582421813c8af0
+Unit counts: Complete=1; In Progress=0; Claimed=0; Ready=0; Blocked=0; Failed=0
+Gate counts: passed=1; pending=0; failed=0; unknown-definition=0; conflicting=0
+Selection basis: No open unit remains.
+Current executable unit: none; dependency_evidence=none
+Selected unit: U1
+Selected required gates: [{"id":"G1","state":"passed"}]
+Evidence reads: used=6; ceiling=12; extension=0; reason=none
+Evidence ledger: {"sha256":"87fe0b9fc2c6faa098611c3d58f01ca88fc20e2dcd35d3e798d8583e0d8731d8","rows":[{"id":".project/development/evidence/G1.pass","role":"gate-evidence"},{"id":".project/development/task_plan.md","role":"tracker"},{"id":"AGENTS.md","role":"authority"},{"id":"docs/design.md","role":"design"},{"id":"src/normalize-label.js","role":"owner"},{"id":"tests/normalize-label.test.js","role":"regression"}]}
+Open inventory: {"units":[],"gates":[],"blockers":[]}
+决策: tracker 已收敛；没有可执行单元，因此不生成 Codex 指令块。
+恢复: none.

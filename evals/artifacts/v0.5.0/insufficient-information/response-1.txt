@@ -1,0 +1,11 @@
+状态：信息不足（insufficient）：U1 虽为 In Progress/selected，但缺少 ownership-bound claim；G1 为 unknown-definition，现有 G1.pass 虽标记 passed，却缺少 owner、输入清单、input_fingerprint 与绑定证据；设计要求空白结果抛 RangeError，而当前实现仅 trim，测试只覆盖 trim 与非字符串；因此没有可证明的可执行单元，不输出交接指令块。
+Snapshot: tracker_revision=31; branch=feature/mixed-plan; head=617ed0f7457f0d3773ea501b834dd6ab1cb8f209; status_fingerprint=unavailable
+Unit counts: Complete=0; In Progress=1; Claimed=0; Ready=0; Blocked=0; Failed=0
+Gate counts: passed=0; pending=0; failed=0; unknown-definition=1; conflicting=0
+Selection basis: The selected In Progress unit has no ownership-bound claim.
+Current executable unit: none; dependency_evidence=none
+Selected unit: U1
+Selected required gates: [{"id":"G1","state":"unknown-definition"}]
+Evidence reads: used=3; ceiling=12; extension=0; reason=missing ownership-bound claim and valid G1 definition
+Evidence ledger: {"sha256":"f1c9f742eb4677aeb8dad58e0ed2c09df28847f3d818ff8040590e6f6f5f0f11","rows":[{"id":".project/development/evidence/G1.pass","role":"gate-evidence"},{"id":".project/development/task_plan.md","role":"tracker"},{"id":"AGENTS.md","role":"authority"}]}
+Open inventory: {"units":[{"id":"U1","state":"In Progress","claim":"none","dependency":"none","next":"G1 passes."}],"gates":[{"id":"G1","state":"unknown-definition","command_or_recovery":"No authoritative current result is recorded."}],"blockers":[{"id":"active_blocker","owner":"none","detail":"Missing required claim evidence.","recovery":"Record one valid unique ownership-bound claim for U1."}]}

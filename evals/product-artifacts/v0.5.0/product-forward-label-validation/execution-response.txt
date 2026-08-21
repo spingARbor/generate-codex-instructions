@@ -1,0 +1,17 @@
+Implemented U1 within the authorized owner boundary.
+
+- `src/normalize_label.py` now raises `ValueError` for empty and whitespace-only labels while preserving trimming and `TypeError` behavior.
+- `tests/test_normalize_label.py` adds both regression cases.
+- Tracker advanced from `r1` to `r3`; U1 is `Complete` and G1 is `passed`.
+- Required receipts and `post_closure_next_unit: none` are recorded in `.project/development/progress.md`.
+
+Validation passed:
+
+`python3 -m unittest discover -s tests -v && git diff --check` — 4 tests passed, exit `0`.
+
+Final `git diff --check` also passed. Final status contains only:
+
+`src/normalize_label.py`  
+`tests/test_normalize_label.py`
+
+No commit, version, tag, push, release, or deployment was performed.

@@ -1,0 +1,24 @@
+import unittest
+
+from src.normalize_label import normalize_label
+
+
+class NormalizeLabelTest(unittest.TestCase):
+    def test_trims_valid_label(self):
+        self.assertEqual(normalize_label("  alpha  "), "alpha")
+
+    def test_rejects_non_string(self):
+        with self.assertRaises(TypeError):
+            normalize_label(None)
+
+    def test_rejects_empty_label(self):
+        with self.assertRaises(ValueError):
+            normalize_label("")
+
+    def test_rejects_whitespace_only_label(self):
+        with self.assertRaises(ValueError):
+            normalize_label(" \t\n ")
+
+
+if __name__ == "__main__":
+    unittest.main()

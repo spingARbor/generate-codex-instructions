@@ -1,0 +1,9 @@
+Implemented label normalization in [normalize-label.js](<disposable-fixture>/src/normalize-label.js:1) and added focused empty/whitespace coverage in [normalize-label.test.js](<disposable-fixture>/tests/normalize-label.test.js:12).
+
+Verification passed:
+
+- `node --test tests/normalize-label.test.js`
+- `npm test`
+- `git diff --check`
+
+Only the implementation and focused test files were modified. No commit, version, provider, deployment, or release actions were performed.

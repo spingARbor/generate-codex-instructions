@@ -11,6 +11,31 @@ fail() {
     exit 1
 }
 
+grep -F 'if stat.S_ISDIR(metadata.st_mode):' "$runner" >/dev/null || \
+    fail "tracker subdirectory handling"
+grep -F 'future executor to edit the selected owner/test' "$runner" >/dev/null || \
+    fail "future executor authority prompt"
+grep -F "profile-specific body cap" "$runner" >/dev/null || \
+    fail "profile-specific body cap prompt"
+grep -F '对应 profile 的正文上限' "$runner" >/dev/null || \
+    fail "Chinese profile-specific body cap prompt"
+grep -F 'git_status_raw != status_before' "$runner" >/dev/null || \
+    fail "preexisting dirty status preservation"
+grep -F 'duplicate passed evidence fingerprint' "$runner" >/dev/null || \
+    fail "passed evidence fingerprint binding"
+grep -F 'ordinary Gate receipt binding' "$runner" >/dev/null || \
+    fail "ordinary implementation receipt binding"
+grep -F 'Never substitute a capability/package helper as authority' "$runner" >/dev/null || \
+    fail "closed ledger-role prompt"
+grep -F 'Gate commands alone do not escalate docs/config work' "$runner" >/dev/null || \
+    fail "profile-impact prompt"
+grep -F 'open the fence only after the exact Open inventory line' "$runner" >/dev/null || \
+    fail "preamble fence-boundary prompt"
+grep -F '只能在精确 Open inventory 行之后打开 fence' "$runner" >/dev/null || \
+    fail "Chinese preamble fence-boundary prompt"
+grep -F "printf '%s\\n' '.project/' '.code-review-graph/'" "$runner" >/dev/null || \
+    fail "evaluator graph status isolation"
+
 new_run_root() {
     candidate=$test_root/$1
     mkdir "$candidate"
@@ -90,6 +115,20 @@ chmod 0600 "$root/snapshot/runner.sh"
 printf '%s\n' '# tamper' >>"$root/snapshot/runner.sh"
 FORWARD_EVAL_GUARD_ONLY=1 sh "$runner" complete-plan "$root" >/dev/null 2>&1 && \
     fail "tampered snapshot accepted"
+
+root=$(new_run_root fingerprint-tamper)
+sh "$runner" init "$root" >/dev/null 2>&1 || fail "fingerprint snapshot initialization"
+chmod 0600 "$root/snapshot/status_fingerprint.py"
+printf '%s\n' '# tamper' >>"$root/snapshot/status_fingerprint.py"
+FORWARD_EVAL_GUARD_ONLY=1 sh "$runner" snapshot-double-drift "$root" >/dev/null 2>&1 && \
+    fail "tampered fingerprint helper accepted"
+
+root=$(new_run_root contract-tamper)
+sh "$runner" init "$root" >/dev/null 2>&1 || fail "contract snapshot initialization"
+chmod 0600 "$root/snapshot/execution_contract.py"
+printf '%s\n' '# tamper' >>"$root/snapshot/execution_contract.py"
+FORWARD_EVAL_GUARD_ONLY=1 sh "$runner" chinese-mixed-state-first-delivery "$root" >/dev/null 2>&1 && \
+    fail "tampered execution-contract helper accepted"
 
 root=$(new_run_root public)
 chmod 0755 "$root"

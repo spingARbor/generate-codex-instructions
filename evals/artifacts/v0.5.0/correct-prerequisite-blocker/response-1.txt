@@ -1,0 +1,11 @@
+部分受阻：当前不存在可执行单元；U1 被 B1 阻塞，G1 为 unknown-definition，缺少 schema-owner 的权威批准及完整 Gate 定义，现有 passed 记录不足以解除阻塞，因此不得生成指令块。
+Snapshot: tracker_revision=32; branch=feature/mixed-plan; head=617ed0f7457f0d3773ea501b834dd6ab1cb8f209; status_fingerprint=unavailable
+Unit counts: Complete=0; In Progress=0; Claimed=0; Ready=0; Blocked=1; Failed=0
+Gate counts: passed=0; pending=0; failed=0; unknown-definition=1; conflicting=0
+Selection basis: No independently executable unit exists.
+Current executable unit: none; dependency_evidence=none
+Selected unit: none
+Selected required gates: []
+Evidence reads: used=0; ceiling=12; extension=0; reason=U1 缺少 tracker 明定的 owner 与 nearest_test，无法形成合法的闭集 ledger
+Evidence ledger: unavailable
+Open inventory: {"units":[{"id":"U1","state":"Blocked","claim":"none","dependency":"none","next":"The schema owner records approval and G1 status."}],"gates":[{"id":"G1","state":"unknown-definition","command_or_recovery":"none"}],"blockers":[{"id":"B1","owner":"schema-owner","detail":"API schema approval is missing.","recovery":"The schema owner records approval and an authoritative G1 result."}]}
