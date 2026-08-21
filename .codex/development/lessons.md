@@ -26,3 +26,7 @@
 - Portable cleanup should not rely on GNU `find -delete`; exact file/symlink removal followed by depth-first `rmdir` works under the tested BusyBox shell without broad recursive deletion.
 - A negative trigger eval must distinguish this generator from another legitimately selected skill: project planning files are not evidence of generator activation when implementation still proceeds.
 - Redaction checks must never put the secret literal into grep patterns or diagnostic commands; validate structure or masked fingerprints instead.
+- Evaluator-owned workspace artifacts may be excluded from status only when the exact path is declared and strict ownership, mode, link, entry-set, and cleanup checks prevent the exclusion from hiding project changes.
+- Human-maintained repository JSON may be formatted, while machine-captured evidence should require canonical bytes; both paths must reject duplicate keys.
+- Release validator tests must work in both legitimate lifecycle states: pending evidence blocks release, while fresh authorized evidence must replay successfully.
+- A compact model-facing ledger should carry one digest over the full canonical raw ledger; publishers, not the model, remain responsible for replaying every source digest.

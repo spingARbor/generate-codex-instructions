@@ -56,6 +56,19 @@
 - Removed only the exact unreachable Git objects created by the superseded prospective-index test; `git fsck --full --strict` is now clean and the corrected validator adds no new objects.
 - Final runtime size is two files and 12,532 bytes. `skill/SKILL.md` is 56 lines and 1,596 words, below the skill-creator 5,000-word body guidance while retaining the audited boundary contract.
 
+## 2026-08-21
+
+- Reworked v0.5.0 around one concise normative `SKILL.md` plus a deterministic status-fingerprint helper, with implementation/testing/review/execution requests routed away from instruction generation.
+- Bound selected repository facts, Gate topology and freshness, exact owner/test boundaries, permissions, expected transitions, failure recovery, and post-closure selection into a machine-checked handoff contract.
+- Replaced repeated digest transcription with a compact evidence-ledger projection bound by the full canonical ledger SHA-256; independent runners and publishers still replay raw sources and byte digests.
+- Added bounded Light, Standard, and High-risk output profiles, exact preamble/fence framing, safe path arrays, one-Gate-edge tracker steps, observed-receipt requirements, and strict implementation/release permission separation.
+- Hardened generic and product runners against symlink/hardlink/special-file escape, concurrent ownership, snapshot tampering, untrusted tracker injection, evaluator prompt echo, double drift, and host-created `.code-review-graph` artifacts.
+- Ran all 18 generic fresh-context cases from one frozen final snapshot; every response passed semantic, grounding, side-effect, containment, ownership, and snapshot-integrity replay.
+- Ran the independent two-session product workflow: generation made no repository changes; a fresh executor changed only the selected owner/test/tracker evidence, passed the exact acceptance Gate, and reached legal closure.
+- Published v0.5.0 generic, representative, and product artifacts. Recomputed product metrics are first effective action 1, invalid clarifications 0, boundary violations 0, acceptance Gate pass rate 1.0, and closure rate 1.0.
+- Passed `tests/validate.sh --release`, quick skill validation, focused adversarial suites, sh/dash/BusyBox syntax, installer migration/idempotency and byte identity, staged whitespace, artifact containment, cache/type/link, and published-secret checks.
+- Created candidate commit `e7f147e` (`feat: make Codex handoffs causally verifiable`). `git fsck --full --strict` reported no corruption and two harmless dangling blobs from superseded local index states.
+
 ## Evidence
 
 - Prototype `SKILL.md`: 51 lines, 789 words.
@@ -85,7 +98,11 @@
 - Final independent security and packaging reviews: no high or medium findings.
 - `git fsck --full --strict`: passed with no dangling or unreachable output after exact test-object cleanup.
 - `v0.3.0` implementation commit: `33793b3`.
+- `v0.5.0` candidate commit: `e7f147e`.
+- v0.5.0 generic fresh corpus: 18/18 cases passed from snapshot-bound artifacts.
+- v0.5.0 product closure: acceptance Gate pass rate 1.0, closure rate 1.0, boundary violations 0.
+- v0.5.0 strict release validator: passed.
 
 ## Pending
 
-- None for `v0.3.0`. The annotated `v0.3.0` tag targets the release-progress commit carrying this record.
+- None for `v0.5.0`. The annotated `v0.5.0` tag targets the release-progress commit carrying this record.
