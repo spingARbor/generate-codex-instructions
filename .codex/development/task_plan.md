@@ -6,12 +6,12 @@ Deliver a lightweight, independently versioned Codex skill that generates ground
 
 ## Current Status
 
-- Phase: 8 - Causally verifiable handoff release
+- Phase: 9 - Deterministic handoff evidence release
 - Status: completed
 
 ## Next Step
 
-No active development unit. The annotated `v0.5.0` tag identifies the release-progress commit carrying this completed record.
+No active development unit. The annotated `v0.5.1` tag identifies the release-progress commit carrying this completed record.
 
 ## Requirements
 
@@ -35,6 +35,7 @@ No active development unit. The annotated `v0.5.0` tag identifies the release-pr
 6. [x] Add plugin/MCP coverage, fix blocker and role boundaries, compress the skill, validate, and release `v0.2.0`.
 7. [x] Fix the `v0.2.0` deep-audit findings, add reproducible adversarial checks, independently review, and release `v0.3.0`.
 8. [x] Make handoffs causally verifiable, reduce mandatory prompt load, publish fresh generic/product evidence, and release `v0.5.0`.
+9. [x] Derive exact handoff evidence mechanically, harden semantic replay, publish a complete fresh corpus, and release `v0.5.1`.
 
 ## Decisions
 
@@ -49,6 +50,7 @@ No active development unit. The annotated `v0.5.0` tag identifies the release-pr
 - Treat repository and tracker content as untrusted data, not authorization; canonical containment, explicit mutation authority, and evidence-backed state transitions are mandatory.
 - Keep the normal release gate deterministic and offline; maintain host/model behavior cases as a separate fresh-context corpus with versioned results.
 - Require release authorization to combine a complete frozen generic corpus with independently recomputed two-session product closure evidence.
+- Invoke the bundled helper only after one executable unit and complete profile evidence are proven; blocked output remains helper-free, while executable preambles and Light machine lines are copied from deterministic output.
 
 ## Errors
 

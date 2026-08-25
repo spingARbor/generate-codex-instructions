@@ -1,5 +1,17 @@
 # Progress Log
 
+## 2026-08-25
+
+- Completed the post-v0.5.0 audit repairs and advanced the candidate to `0.5.1` without modifying the immutable v0.5.0 release.
+- Replaced model reconstruction of snapshot, Gate, evidence-ledger, inventory, and verified-owner Light fields with deterministic helper output derived from contained repository evidence.
+- Hardened symlink-component containment, authority accumulation, Gate input/evidence validation, trace provenance, transition semantics, diff-check cardinality, and helper invocation guards.
+- Reduced answer-bearing evaluator prompts and added negative tests for source inspection, unsupported helper invocation, tracker-none shell interpolation, localized read-only projection, and malformed Light closure fields.
+- Ran the complete frozen generic corpus: all 18 cases passed against the final bound source hashes.
+- Ran the independent two-session product workflow: all four acceptance tests passed and recomputed closure rate is 1.0.
+- Published `evals/artifacts/v0.5.1`, `evals/product-artifacts/v0.5.1`, and their bound result indexes; aggregate release authorization is true.
+- Passed `sh tests/validate.sh --release`, Skill Creator quick validation, sh/dash/BusyBox syntax checks, runtime metadata and size checks, install identity, secret/host-path scans, and patch hygiene.
+- Created candidate commit `c836e08` (`fix: harden instruction handoff generation`).
+
 ## 2026-08-08
 
 - Read `skill-creator`, `skill-installer`, `planning-with-files`, and `openai-docs` instructions.
