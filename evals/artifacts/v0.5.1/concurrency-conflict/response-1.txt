@@ -1,0 +1,7 @@
+状态：交接生成被并发锁阻塞。
+
+Evidence: blocker identity=`generate-codex-instructions` tracker lock `.project/development/.instruction-generation.lock`; detail=`preexisting invocation ownership`
+
+Decision: 未选择执行单元，未生成开发交接，未修改 tracker、lock、仓库或 Git 状态。
+
+Recovery: 当前持锁会话结束并移除其 lock 后，基于届时的 tracker 证据重新生成。

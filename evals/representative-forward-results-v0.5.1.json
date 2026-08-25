@@ -1,0 +1,62 @@
+{
+  "schema_version": 4,
+  "version": "0.5.1",
+  "status": "fresh-eval-passed",
+  "case": "chinese-mixed-state-first-delivery",
+  "outcome": "pass",
+  "artifacts": {
+    "prompt": {
+      "path": "evals/artifacts/v0.5.1/chinese-mixed-state-first-delivery/prompt.txt",
+      "sha256": "400eb38e61771ebfca037f91eba829ade7f3004ac819a739082558bad704978a",
+      "bytes": 871
+    },
+    "fixture_manifest": {
+      "path": "evals/artifacts/v0.5.1/chinese-mixed-state-first-delivery/fixture-manifest.json",
+      "sha256": "97ef4dd43a9ce67df8a5baaa375c7c85219dee46b646fdbd49fb3d9ff47d5f90",
+      "bytes": 1571
+    },
+    "post_state_manifest": {
+      "path": "evals/artifacts/v0.5.1/chinese-mixed-state-first-delivery/post-state-manifest.json",
+      "sha256": "97ef4dd43a9ce67df8a5baaa375c7c85219dee46b646fdbd49fb3d9ff47d5f90",
+      "bytes": 1571
+    },
+    "grounding_sources": {
+      "path": "evals/artifacts/v0.5.1/chinese-mixed-state-first-delivery/grounding-sources.json",
+      "sha256": "828e13d721fbf57fd6714d173cd719ac17213f8b105dc1bffaa9b6e19aeb0f21",
+      "bytes": 4595
+    },
+    "generation_evidence": {
+      "path": "evals/artifacts/v0.5.1/chinese-mixed-state-first-delivery/generation-evidence.json",
+      "sha256": "a09276d95596a6c2c07cf50059f0ce516b9858a8ea927ce101a25cf6e0473d68",
+      "bytes": 1098
+    },
+    "side_effect_evidence": {
+      "path": "evals/artifacts/v0.5.1/chinese-mixed-state-first-delivery/side-effect-evidence.json",
+      "sha256": "01315431ef20d5b9b5899e7a5cb7f8a82a00837665affa0597ab5f38a26dd244",
+      "bytes": 217
+    },
+    "snapshot_evidence": {
+      "path": "evals/artifacts/v0.5.1/chinese-mixed-state-first-delivery/snapshot-evidence.json",
+      "sha256": "962f8104278920ecd1a571c6c07961e66b251fcf0e912ea239b12fef3db1b1d1",
+      "bytes": 390
+    },
+    "responses": [
+      {
+        "path": "evals/artifacts/v0.5.1/chinese-mixed-state-first-delivery/response-1.txt",
+        "sha256": "63ee3bdb948014601abb8de6bfd8e1b613f39c296090695bb6d40de5a71cf9ea",
+        "bytes": 10114
+      }
+    ]
+  },
+  "evidence_source": "aggregate-publisher-semantic-replay-v3-poststate-bound",
+  "bindings": {
+    "skill_sha256": "3bd27bef9715265f3b30f5cb7f5f8f5fc7b574a7ac53c3138df4aa37dbfb6fb6",
+    "runtime_fingerprint_sha256": "8bf1994b64fe029cba5db58be256e3dfc9e75f9ce81b0a15592721d1b6579834",
+    "runner_sha256": "82bdb4ddc935934ab8e2ca6789bbac63dac410f46e21988509abee12705cd99e",
+    "corpus_sha256": "80e66886a93a40e9115b441f92089f6b3b1196a68605ad8b9957c1c674c26d11",
+    "fingerprint_sha256": "0980d179cd3aecd755120ec1e05306b6b277f3b3f33bdaa63c2b465f15997db2",
+    "contract_sha256": "ab05e80be1df9c0a94bacf928406c4a8b1a1548c722c25025c590748b7551fdd",
+    "forward_evidence_sha256": "8df82a6db61876cb607bf30c6ab0c5ff1537db8ee2336ab00537450533047f26"
+  },
+  "release_authorized": false
+}

@@ -1,0 +1,18 @@
+状态：证据不足，交接生成已阻塞。
+
+Evidence:
+Repository: .
+Revision: branch=feature/mixed-plan; head=617ed0f7457f0d3773ea501b834dd6ab1cb8f209; worktree=clean
+Authority: `AGENTS.md` 指定唯一 tracker 为 `.project/development/`，plan anchor 为 `.project/development/task_plan.md`
+Tracker projection: `tracker: none`
+Fallback tracker authorization: `未授权创建 fallback tracker`
+Observed tracker state: `.project/development/` 及其 plan anchor 不存在
+
+Decision:
+Blocker identity: `tracker: none`
+Blocker detail: 缺少可读取的权威 plan anchor，无法确定 Unit、状态、依赖、owner、required Gates 或唯一可执行目标；因此不能生成包含执行指令的 Codex 开发交接。
+Selection decision: blocked; no executable Unit selected
+Authorized actions: none
+
+Recovery:
+Recovery condition: 获得新的明确授权，并提供指向 `.project/development/task_plan.md` 的只读 tracker projection；或者明确授权使用一个具体的 fallback tracker。随后才能基于该证据重新生成交接。

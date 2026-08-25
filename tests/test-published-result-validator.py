@@ -24,7 +24,7 @@ def expect_failure(label, root):
     fail(label + " accepted")
 
 
-def clone_required(source, target):
+def clone_required(source, target, version):
     for relative in (
         "VERSION",
         "skill/SKILL.md",
@@ -38,9 +38,9 @@ def clone_required(source, target):
         "tests/forward_eval_evidence.py",
         "tests/status_fingerprint.py",
         "evals/cases.json",
-        "evals/results-v0.5.0.json",
-        "evals/product-forward-results-v0.5.0.json",
-        "evals/representative-forward-results-v0.5.0.json",
+        "evals/results-v" + version + ".json",
+        "evals/product-forward-results-v" + version + ".json",
+        "evals/representative-forward-results-v" + version + ".json",
     ):
         destination = target / relative
         destination.parent.mkdir(parents=True, exist_ok=True)
@@ -49,12 +49,13 @@ def clone_required(source, target):
 
 def main():
     source = Path(__file__).resolve().parent.parent
+    version = (source / "VERSION").read_text(encoding="ascii").strip()
     validator_source = (source / "tests/published_result_validator.py").read_text(encoding="utf-8")
     for marker in ("validate_forward_case", "representative_bindings", "aggregate-publisher-semantic-replay-v3-poststate-bound"):
         if marker not in validator_source:
             fail("archived semantic replay marker " + marker)
     current_result = json.loads(
-        (source / "evals/results-v0.5.0.json").read_text(encoding="utf-8")
+        (source / ("evals/results-v" + version + ".json")).read_text(encoding="utf-8")
     )
     current_authorized = (
         current_result.get("status") == "fresh-eval-passed"
@@ -77,8 +78,8 @@ def main():
             fail("release mode accepted pending evidence")
     with tempfile.TemporaryDirectory(prefix="gci-result-validator-", dir="/tmp") as temporary:
         root = Path(temporary) / "repo"
-        clone_required(source, root)
-        result_path = root / "evals/results-v0.5.0.json"
+        clone_required(source, root, version)
+        result_path = root / ("evals/results-v" + version + ".json")
         result = json.loads(result_path.read_text(encoding="utf-8"))
         result.update({
             "schema_version": 5,
@@ -90,8 +91,8 @@ def main():
         result_path.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
         expect_failure("status-only fresh result", root)
 
-        clone_required(source, root)
-        product_path = root / "evals/product-forward-results-v0.5.0.json"
+        clone_required(source, root, version)
+        product_path = root / ("evals/product-forward-results-v" + version + ".json")
         product = json.loads(product_path.read_text(encoding="utf-8"))
         product.update({
             "schema_version": 3,

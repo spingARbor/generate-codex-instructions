@@ -1,0 +1,77 @@
+Status: in progress
+Snapshot: tracker_revision=r1; branch=product-forward; head=a45545dcbbf91bfc39cebbaf3e9abddb235d0f40; status_fingerprint=2e675340fe1fef780d7a2c011969fe1f319116648167c9a76e77a3b7753601ff
+Unit counts: Complete=0; In Progress=0; Claimed=0; Ready=1; Blocked=0; Failed=0
+Gate counts: passed=0; pending=1; failed=0; unknown-definition=0; conflicting=0
+Selection basis: Select U1 because it is the sole Ready, independently executable unit and has no unmet dependency.
+Current executable unit: U1; dependency_evidence=none
+Selected unit: U1
+Selected required gates: [{"id":"G1","state":"pending"}]
+Evidence reads: used=5; ceiling=12; extension=0; reason=none
+Evidence ledger: {"sha256":"6facbf803a68bfc113b6ea7b6e03176350b70e7ef930d7a7dcabf6e574233851","rows":[{"id":".project/development/task_plan.md","role":"tracker"},{"id":"AGENTS.md","role":"authority"},{"id":"docs/design.md","role":"design"},{"id":"src/normalize_label.py","role":"owner"},{"id":"tests/test_normalize_label.py","role":"regression"}]}
+Open inventory: {"units":[{"id":"U1","state":"Ready","claim":"none","dependency":"none","next":"G1 passes at the current tracker revision and the owner records U1 Complete."}],"gates":[{"id":"G1","state":"pending","command_or_recovery":"python3 -m unittest discover -s tests -v"}],"blockers":[]}
+```text
+Protocol profile: Standard
+Repository: .
+Unit: U1
+Capability: edit scoped repository files and run Python unittest locally; fallback=none
+Authoritative inputs: [".project/development/task_plan.md","AGENTS.md","docs/design.md","src/normalize_label.py","tests/test_normalize_label.py"]
+Owner boundary: ["src/normalize_label.py","tests/test_normalize_label.py"]
+Invariants: Valid labels remain trimmed; non-string values still raise TypeError; the public function path stays stable.
+Non-goals: API redesign, dependencies, packaging, version, commit, release, or unrelated refactor.
+Requirement -> Baseline -> Root cause/design gap -> Owner change -> Invariant -> Test -> Gate -> Evidence
+Reject empty and whitespace-only labels at the owner boundary. -> src/normalize_label.py: currently returns an empty string for empty or whitespace-only input -> src/normalize_label.py: lacks the documented empty-result validation -> src/normalize_label.py: raise ValueError when trimming produces an empty string -> Valid labels remain trimmed; non-string values still raise TypeError; the public function path stays stable. -> tests/test_normalize_label.py: cover empty and whitespace-only strings while retaining trim and TypeError coverage -> G1 -> tests/test_normalize_label.py; gate_evidence=none
+Permission matrix:
+Implementation | Tests | Update tracker | Local commit | Change version | Tag | Push/release
+authorized: AGENTS.md | authorized: AGENTS.md | authorized: AGENTS.md | blocked: AGENTS.md | blocked: AGENTS.md | blocked: AGENTS.md | blocked: AGENTS.md
+
+Step: 1
+Action: tracker: claim U1, increment r1 to r2, and append its claim receipt immediately before implementation
+Command: none: executor-owned tracker mutation
+Files/boundary: [".project/development/progress.md",".project/development/task_plan.md"]
+Acceptance Gate: U1 is In Progress at r2 and its receipt records both claim edges and r1->r2; exit=n/a
+Expected transition: unit=U1; owner=src/normalize_label.py; transitions=Ready->Claimed,Claimed->In Progress; from_revision=r1; gate=none
+Evidence required: receipt=.project/development/progress.md; artifacts=.project/development/progress.md,.project/development/task_plan.md
+Failure/recovery: stop=revision or state differs; recovery=re-read the tracker and regenerate the handoff
+
+Step: 2
+Action: implementation: add the empty-result ValueError guard and focused empty and whitespace-only regression cases
+Command: none: executor edits the scoped owner and regression files
+Files/boundary: ["src/normalize_label.py","tests/test_normalize_label.py"]
+Acceptance Gate: empty and whitespace-only labels raise ValueError while valid strings trim and non-strings raise TypeError; exit=n/a
+Expected transition: unit=U1; owner=src/normalize_label.py; transitions=none; from_revision=observed-prior; gate=none
+Evidence required: receipt=none; artifacts=src/normalize_label.py,tests/test_normalize_label.py
+Failure/recovery: stop=the change escapes the owner boundary or breaks an invariant; recovery=restore scoped behavior and tests before continuing
+
+Step: 3
+Action: test: run G1 against the current owner and regression inputs and validate the diff
+Command: python3 -m unittest discover -s tests -v && git diff --check
+Files/boundary: ["src/normalize_label.py","tests/test_normalize_label.py"]
+Acceptance Gate: G1 passes on the changed inputs and git diff reports no whitespace errors; exit=0
+Expected transition: unit=U1; owner=src/normalize_label.py; transitions=none; from_revision=observed-prior; gate=none
+Evidence required: receipt=none; artifacts=G1-command-output,tests/test_normalize_label.py
+Failure/recovery: stop=the command fails; recovery=keep U1 In Progress, correct scoped code or tests, and rerun G1
+
+Step: 4
+Action: tracker: bind the fresh G1 pass, close U1, increment revision once, and append the closure receipt and next-unit record
+Command: none: closure requires executor-owned tracker persistence
+Files/boundary: [".project/development/progress.md",".project/development/task_plan.md"]
+Acceptance Gate: at r3 G1 is passed, U1 is Complete, and closure evidence records no next unit; exit=n/a
+Expected transition: unit=U1; owner=src/normalize_label.py; transitions=In Progress->Complete; from_revision=observed-prior; gate=G1:pending->passed
+Evidence required: receipt=.project/development/task_plan.md; artifacts=.project/development/progress.md,.project/development/task_plan.md,G1-command-output
+Failure/recovery: stop=G1 did not pass or tracker state drifted; recovery=leave closure pending and resolve the new evidence
+
+Step: 5
+Action: observe: capture final repository status for the intended implementation and tracker changes
+Command: git status --porcelain=v1 --untracked-files=all
+Files/boundary: [".project/development/progress.md",".project/development/task_plan.md","src/normalize_label.py","tests/test_normalize_label.py"]
+Acceptance Gate: status contains only the intended owner, regression, and tracker evidence changes; exit=0
+Expected transition: unit=U1; owner=src/normalize_label.py; transitions=none; from_revision=observed-prior; gate=none
+Evidence required: receipt=none; artifacts=git-status-output
+Failure/recovery: stop=unrelated changes appear; recovery=preserve them and report the boundary drift without closing
+
+Closure condition: src/normalize_label.py enforces the contract; tests/test_normalize_label.py covers valid, empty, whitespace-only, and non-string behavior; integration=none; G1 passes on current inputs; diff and final status satisfy the scoped boundary; G1 output and closure evidence are recorded
+Tracker target state: U1 Complete and G1 passed at r3; no dependency-ready unit remains
+Observed receipt requirements: initial revision r1; unit U1; owner src/normalize_label.py; claim transitions Ready->Claimed,Claimed->In Progress with progress evidence; closure transition In Progress->Complete and G1 pending->passed with task-plan evidence; every checkpoint records actual before->after revisions and increments the numeric suffix once
+Post-closure next unit: none; U1 is the only registered unit, so completing it leaves no open dependency-ready unit
+Out of scope: API redesign, dependencies, packaging, version changes, commits, tags, provider access, deployment, push/release, and unrelated refactors
+```

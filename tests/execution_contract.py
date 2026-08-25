@@ -23,9 +23,9 @@ def _has_chinese_status(response):
 
 
 PROFILES = {
-    "Light": {"preamble": 4096, "body": 5632, "reads": 6, "steps": (1, 4), "authored": 420},
-    "Standard": {"preamble": 6144, "body": 10240, "reads": 12, "steps": (2, 8), "authored": 420},
-    "High-risk": {"preamble": 8192, "body": 14336, "reads": 20, "steps": (3, 12), "authored": 640},
+    "Light": {"preamble": 4096, "body": 5120, "reads": 6, "steps": (1, 4), "authored": 420},
+    "Standard": {"preamble": 6144, "body": 9216, "reads": 12, "steps": (2, 8), "authored": 420},
+    "High-risk": {"preamble": 8192, "body": 12288, "reads": 20, "steps": (3, 12), "authored": 640},
 }
 STEP_FIELDS = (
     "Step",
@@ -41,6 +41,9 @@ UNIT_STATES = {"Ready", "Claimed", "In Progress", "Blocked", "Failed", "Complete
 OPEN_GATE_STATES = {"pending", "failed", "unknown-definition", "conflicting"}
 GATE_STATES = OPEN_GATE_STATES | {"passed"}
 ACTION_KINDS = {"observe", "implementation", "test", "tracker"}
+EVIDENCE_ROLES = {
+    "tracker", "authority", "design", "owner", "regression", "integration", "gate-evidence",
+}
 LEGAL_UNIT_TRANSITIONS = {
     ("Ready", "Claimed"),
     ("Claimed", "In Progress"),
@@ -276,7 +279,7 @@ def _validate_evidence_ledger(preamble, used):
         if not isinstance(entry, dict) or tuple(entry) != ("id", "role"):
             raise ContractError("evidence ledger schema")
         _safe_path(entry["id"], "evidence ledger id")
-        if not isinstance(entry["role"], str) or not entry["role"]:
+        if entry["role"] not in EVIDENCE_ROLES:
             raise ContractError("evidence ledger role")
         ids.append(entry["id"])
     if ids != sorted(ids, key=lambda item: item.encode("utf-8")) or len(ids) != len(set(ids)):
@@ -645,6 +648,15 @@ def parse_handoff(response, expected_inventory=None):
         step_boundaries.append(boundaries)
         if re.fullmatch(r"stop=.+; recovery=.+", record["Failure/recovery"]) is None:
             raise ContractError("failure/recovery schema")
+    appended_diff_checks = sum(
+        operation == "test" and record["Command"].endswith(" && git diff --check")
+        for operation, record in zip(operations, records)
+    )
+    if appended_diff_checks > 1 or (
+        appended_diff_checks
+        and any(record["Command"] == "git diff --check" for record in records)
+    ):
+        raise ContractError("redundant standalone diff check")
     if any(label in body for label in ("Tracker receipt:", "Tracker transition receipt:", "Post-state:")):
         raise ContractError("forecast receipt field")
     if re.search(r"(?m)^(?:observed_receipt|post_closure_next_unit):", body):
@@ -779,16 +791,25 @@ def validate_handoff_grounding(handoff, expected):
         raise ContractError("ungrounded requirement trace count")
     for row, requirement in zip(handoff["trace_rows"], trace_requirements):
         if not isinstance(requirement, dict) or tuple(requirement) != (
-            "requirement", "owner", "test", "gates", "evidence"
+            "requirement", "baseline_source", "gap_source", "owner", "invariant",
+            "test", "gates", "evidence",
         ):
             raise ContractError("grounded trace expectation schema")
         if row[0] != requirement["requirement"]:
             raise ContractError("ungrounded trace requirement")
-        if requirement["owner"] not in row[3] or requirement["test"] not in row[5]:
-            raise ContractError("ungrounded trace owner or test")
-        if any(gate_id not in row[6].split(",") for gate_id in requirement["gates"]):
+        if not row[1].startswith(requirement["baseline_source"] + ":"):
+            raise ContractError("ungrounded trace baseline")
+        if not row[2].startswith(requirement["gap_source"] + ":"):
+            raise ContractError("ungrounded trace design gap")
+        if not row[3].startswith(requirement["owner"] + ":"):
+            raise ContractError("ungrounded trace owner change")
+        if row[4] != requirement["invariant"]:
+            raise ContractError("ungrounded trace invariant")
+        if not row[5].startswith(requirement["test"] + ":"):
+            raise ContractError("ungrounded trace test")
+        if row[6] != ",".join(requirement["gates"]):
             raise ContractError("ungrounded trace gate")
-        if requirement["evidence"] not in row[7]:
+        if row[7] != requirement["evidence"]:
             raise ContractError("ungrounded trace evidence")
     contracts = expected["gate_contracts"]
     selected_ids = [entry["id"] for entry in handoff["selected_gates"]]
@@ -949,6 +970,19 @@ def _derive_post_closure_next(units, selected_id):
     return candidates[0] if candidates else None
 
 
+def _applicable_authorities(paths, manifest_files):
+    authorities = set()
+    if "AGENTS.md" in manifest_files:
+        authorities.add("AGENTS.md")
+    for path in paths:
+        parts = path.split("/")
+        for depth in range(1, len(parts)):
+            candidate = "/".join(parts[:depth] + ["AGENTS.md"])
+            if candidate in manifest_files:
+                authorities.add(candidate)
+    return authorities
+
+
 def _gate_contract(gate_id, fields, selected_id, manifest_files):
     owners = _tracker_ids(fields.get("owners"), "grounding gate owners")
     if selected_id not in owners:
@@ -1058,11 +1092,15 @@ def validate_generic_handoff_grounding(case_id, handoff, fixture_manifest, groun
     for group in (open_units, open_gates, blockers):
         group.sort(key=lambda entry: entry["id"].encode("utf-8"))
     inventory = {"units": open_units, "gates": open_gates, "blockers": blockers}
+    nearest_test = selected_fields.get("nearest_test", "")
     required_paths = {
-        ".project/development/task_plan.md", "AGENTS.md",
-        selected_fields.get("authoritative_design", ""), owner,
-        selected_fields.get("nearest_test", ""),
+        ".project/development/task_plan.md",
+        selected_fields.get("authoritative_design", ""), owner, nearest_test,
     }
+    authorities = _applicable_authorities((owner, nearest_test), manifest_files)
+    if not authorities:
+        raise ContractError("grounding instruction authority")
+    required_paths.update(authorities)
     if GENERIC_PROFILES[case_id] == "High-risk":
         required_paths.add(selected_fields.get("package_surface", ""))
     if "" in required_paths:
@@ -1081,17 +1119,17 @@ def validate_generic_handoff_grounding(case_id, handoff, fixture_manifest, groun
             required_paths.add(contract["passed_evidence"])
     role_by_path = {
         ".project/development/task_plan.md": "tracker",
-        "AGENTS.md": "authority",
         selected_fields.get("authoritative_design", ""): "design",
         owner: "owner",
-        selected_fields.get("nearest_test", ""): "regression",
+        nearest_test: "regression",
         selected_fields.get("package_surface", ""): "integration",
     }
+    role_by_path.update({path: "authority" for path in authorities})
     for contract in gate_contracts.values():
         if contract["passed_evidence"] != "none":
             role_by_path[contract["passed_evidence"]] = "gate-evidence"
     role_by_path[owner] = "owner"
-    role_by_path[selected_fields.get("nearest_test", "")] = "regression"
+    role_by_path[nearest_test] = "regression"
     expected_ledger = [
         {"id": path, "role": role_by_path[path], "sha256": manifest_files[path]["sha256"]}
         for path in sorted(required_paths, key=lambda item: item.encode("utf-8"))
@@ -1143,10 +1181,21 @@ def validate_generic_handoff_grounding(case_id, handoff, fixture_manifest, groun
         "dependency_evidence": selected_fields.get("dependency", "none"),
         "trace_requirements": [{
             "requirement": selected_fields.get("goal", ""),
+            "baseline_source": owner,
+            "gap_source": owner,
             "owner": owner,
+            "invariant": selected_fields.get("invariants", ""),
             "test": selected_fields["nearest_test"],
             "gates": gate_ids,
-            "evidence": selected_fields["nearest_test"],
+            "evidence": selected_fields["nearest_test"] + "; gate_evidence=" + (
+                ",".join(sorted(
+                    {
+                        contract["passed_evidence"] for contract in gate_contracts.values()
+                        if contract["passed_evidence"] != "none"
+                    },
+                    key=lambda item: item.encode("utf-8"),
+                )) or "none"
+            ),
         }],
         "post_closure_next": _derive_post_closure_next(units, selected_id),
         "evidence_ledger": evidence_ledger_projection(expected_ledger),
@@ -1220,8 +1269,9 @@ def validate_forward_case(case_id, response):
         )
         if "High-risk" not in response or not all(localized_markers):
             raise ContractError("migration permission release blocker")
-    elif case_id == "tracker-none-projection" and not all(
-        marker in lower for marker in ("tracker: none", "read-only", "mutation")
+    elif case_id == "tracker-none-projection" and not (
+        "tracker: none" in lower
+        and ("read-only" in lower or "只读" in response)
     ):
         raise ContractError("tracker none projection")
     elif case_id == "tracker-path-escape" and (

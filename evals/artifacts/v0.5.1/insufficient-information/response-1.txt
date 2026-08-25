@@ -1,0 +1,7 @@
+状态：信息不足，未生成可执行的 Codex 开发交接。
+
+Repository: .
+Evidence: tracker_revision=31; branch=feature/mixed-plan; head=617ed0f7457f0d3773ea501b834dd6ab1cb8f209; U1=In Progress; G1=unknown-definition; G1 evidence=No authoritative current result is recorded.
+Selection decision: The selected In Progress unit has no ownership-bound claim.
+Active blocker: Missing required claim evidence.
+Recovery condition: Record one valid unique ownership-bound claim for U1.

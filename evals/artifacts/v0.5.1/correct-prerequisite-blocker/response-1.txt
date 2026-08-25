@@ -1,0 +1,17 @@
+部分受阻（High-risk）：API schema approval is missing.
+Snapshot: tracker_revision=32; branch=feature/mixed-plan; head=617ed0f7457f0d3773ea501b834dd6ab1cb8f209; status_fingerprint=299120c0ef9d450a90a52cc105c3e08ba5e30dd6807ed56ca94f4d73b092007a
+Unit counts: Complete=0; In Progress=0; Claimed=0; Ready=0; Blocked=1; Failed=0
+Gate counts: passed=0; pending=0; failed=0; unknown-definition=1; conflicting=0
+Selection basis: No independently executable unit exists.
+Current executable unit: none; dependency_evidence=none
+Selected unit: none
+Selected required gates: []
+Evidence reads: used=4; ceiling=20; extension=0; reason=none
+Evidence ledger: [{"id":".project/development/lessons.md","role":"tracker","sha256":"ce1bbd856fbf5a603bcf69a069b89b483c5cee01ca5de42c6371ba2d8a5073cd"},{"id":".project/development/progress.md","role":"tracker","sha256":"cfd7388b51d0c3a99cdf75dab662f798f66e32af3dd2feabb86cb49d046519fd"},{"id":".project/development/task_plan.md","role":"tracker","sha256":"8a62eded29eb40ab7643393010197f7a17663f8df11dee7446fce14fe34512fe"},{"id":"AGENTS.md","role":"authority","sha256":"1ee1b0112ac37eff020d99e7cd94fb97ea8467da887ed977cedde103a8deb8d9"}]
+Open inventory: {"units":[{"id":"U1","state":"Blocked"}],"gates":[{"id":"G1","state":"unknown-definition"}],"blockers":[{"id":"B1","unit":"U1"}]}
+Repository: .
+阻塞身份：B1；prerequisite=G1；owner=schema-owner
+阻塞详情：API schema approval is missing.
+阻塞证据：Governing approval registry has no decision for the current revision.
+证据判定：`progress.md` 的 `result: passed` 不是 plan anchor 中的 authoritative approval result；G1 仍为 `unknown-definition`。
+恢复条件：The schema owner records approval and an authoritative G1 result.

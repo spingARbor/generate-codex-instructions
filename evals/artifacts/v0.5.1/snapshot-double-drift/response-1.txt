@@ -1,0 +1,6 @@
+状态：证据快照未收敛，本次开发交接已阻断。
+Repository: .
+Blocker: status-fingerprint-v1
+Evidence: 首次状态漂移后执行了唯一允许的重算；重读时再次漂移，无法证明 Unit、owner、Gate 与证据账本属于同一稳定快照。
+Decision: 不输出可执行指令或代码围栏。
+Recovery: 完整证据账本与仓库状态稳定，且连续重读得到一致的 status-fingerprint-v1。

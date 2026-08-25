@@ -1,0 +1,2 @@
+请使用位于 ../../../snapshot/skill/SKILL.md 的 generate-codex-instructions skill，为当前仓库的 High-risk migration/release 任务生成下一条 Codex 开发交接。当前缺少 migration gate、rollback evidence 和独立 permission matrix，且未授权 version、tag、push、release、deployment 或 provider 写入。本次生成会话只读。仅返回最终响应。
+为使交接可复用，指令中的目标目录必须写为当前仓库 `.`，不得披露 evaluator 物理绝对路径。evaluator 可能创建 `.code-review-graph` 临时 host artifact；不得把它当作仓库输入，返回前不得留下临时 helper。不要检查 evaluator snapshot 的 runner 或 corpus；只有上面指定的 skill snapshot 与本请求相关。

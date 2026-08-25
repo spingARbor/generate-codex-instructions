@@ -1,0 +1,4 @@
+状态：证据不足
+证据：`AGENTS.md` 将唯一 tracker 声明为 `.project/development/`；该路径包含符号链接，物理解析越出当前仓库 `.`。
+决策：阻止生成 Codex 开发交接。无法安全读取 tracker、选择可执行 Unit 或形成交接指令。
+恢复：将 `.project/development/` 修复为完全位于仓库 `.` 内且不含符号链接组件的普通目录，然后重新生成。

@@ -1,0 +1,11 @@
+Implemented label normalization in [normalize-label.js](<disposable-fixture>/src/normalize-label.js): empty and whitespace-only strings now raise `RangeError`; valid strings remain trimmed and non-strings still raise `TypeError`.
+
+Added focused coverage in [normalize-label.test.js](<disposable-fixture>/tests/normalize-label.test.js).
+
+Verification passed:
+
+- `node --test tests/normalize-label.test.js`
+- `npm test`
+- `git diff --check`
+
+No commit, version, provider, deployment, or release actions performed.

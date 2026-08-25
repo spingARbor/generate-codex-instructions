@@ -256,10 +256,21 @@ def validate_generated_grounding(root, handoff):
         "dependency_evidence": _optional_tracker_value(tracker_text, "U1", "dependency"),
         "trace_requirements": [{
             "requirement": _tracker_value(tracker_text, "U1", "goal"),
+            "baseline_source": OWNER,
+            "gap_source": OWNER,
             "owner": OWNER,
+            "invariant": _tracker_value(tracker_text, "U1", "invariants"),
             "test": REGRESSION,
             "gates": gate_ids,
-            "evidence": REGRESSION,
+            "evidence": REGRESSION + "; gate_evidence=" + (
+                ",".join(sorted(
+                    {
+                        contract["passed_evidence"] for contract in gate_contracts.values()
+                        if contract["passed_evidence"] != "none"
+                    },
+                    key=lambda item: item.encode("utf-8"),
+                )) or "none"
+            ),
         }],
         "post_closure_next": None,
         "evidence_ledger": evidence_ledger_projection(expected_ledger),

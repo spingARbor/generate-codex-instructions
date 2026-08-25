@@ -113,10 +113,10 @@ def response():
         "Capability: repository-native Python unittest; fallback=none\n"
         "Authoritative inputs: " + canonical(authoritative_inputs) + "\n"
         'Owner boundary: ["src/normalize_label.py","tests/test_normalize_label.py"]\n'
-        "Invariants: valid labels trim; non-strings raise TypeError; public path is stable\n"
+        "Invariants: Preserve trim, TypeError, and public path.\n"
         "Non-goals: API redesign, unrelated refactor, commit, or publication\n"
         "Requirement -> Baseline -> Root cause/design gap -> Owner change -> Invariant -> Test -> Gate -> Evidence\n"
-        + requirement + " -> src/normalize_label.py currently returns an empty string -> the documented guard is absent -> change src/normalize_label.py and tests/test_normalize_label.py -> preserve trim, TypeError, and public path -> tests/test_normalize_label.py positive and negative regression -> G1 -> tests/test_normalize_label.py output\n"
+        + requirement + " -> src/normalize_label.py: currently returns an empty string -> src/normalize_label.py: the documented guard is absent -> src/normalize_label.py: add the guard and update tests/test_normalize_label.py -> Preserve trim, TypeError, and public path. -> tests/test_normalize_label.py: positive and negative regression -> G1 -> tests/test_normalize_label.py; gate_evidence=none\n"
         "Permission matrix:\n"
         "Implementation | Tests | Update tracker | Local commit | Change version | Tag | Push/release\n"
         "authorized: user | authorized: user | authorized: AGENTS.md | not authorized: absent | not authorized: absent | not authorized: absent | not authorized: absent\n\n"
@@ -214,6 +214,7 @@ def generic_grounding_vector():
         "goal: " + requirement + "\n"
         "owner: src/normalize_label.py\nauthoritative_design: docs/design.md\n"
         "nearest_test: tests/test_normalize_label.py\n"
+        "invariants: Preserve trim, TypeError, and public path.\n"
         "next_convergence_condition: G1 passes\ngate_refs: G1\n\n"
         "## Required gate registry\n\n"
         "### G1\n\nrequired: true\nstatus: pending\nowners: U1\n"
@@ -302,6 +303,11 @@ def high_risk_grounding_vector():
         "path": "package.json", "mode": "100644", "bytes": len(package_raw),
         "sha256": hashlib.sha256(package_raw).hexdigest(),
     })
+    scoped_authority_raw = b"# Scoped source instructions\n"
+    manifest["files"].append({
+        "path": "src/AGENTS.md", "mode": "100644", "bytes": len(scoped_authority_raw),
+        "sha256": hashlib.sha256(scoped_authority_raw).hexdigest(),
+    })
     manifest["files"].sort(key=lambda entry: entry["path"].encode("utf-8"))
     grounding = {
         "schema_version": 1,
@@ -314,6 +320,7 @@ def high_risk_grounding_vector():
         "AGENTS.md": "authority",
         "docs/design.md": "design",
         "package.json": "integration",
+        "src/AGENTS.md": "authority",
         "src/normalize_label.py": "owner",
         "tests/test_normalize_label.py": "regression",
     }
@@ -343,7 +350,7 @@ def high_risk_grounding_vector():
         + "Compatibility gate: " + compatibility + "\n"
         + "Rollback evidence: " + rollback + "\n",
     )
-    grounded = re.sub(r"(?m)^Evidence reads: .+$", "Evidence reads: used=6; ceiling=20; extension=0; reason=none", grounded)
+    grounded = re.sub(r"(?m)^Evidence reads: .+$", "Evidence reads: used=7; ceiling=20; extension=0; reason=none", grounded)
     grounded = re.sub(
         r"(?m)^Evidence ledger: .+$",
         "Evidence ledger: " + canonical(evidence_ledger_projection(ledger)),
@@ -371,15 +378,15 @@ def arguments():
 
 
 def main():
-    if PROFILES["Light"]["body"] != 5632:
+    if PROFILES["Light"]["body"] != 5120:
         fail("Light body budget")
     baseline = response()
     body = baseline.split("```text\n", 1)[1].rsplit("```", 1)[0]
-    padding = 10241 - len(body.encode("utf-8"))
+    padding = 9217 - len(body.encode("utf-8"))
     if padding <= 0:
         fail("positive fixture exceeds Standard body budget")
     oversized = baseline.replace("Non-goals: ", "Non-goals: " + "x" * padding, 1)
-    expect_rejected("Standard 10240-byte body budget", parse_handoff, oversized, inventory())
+    expect_rejected("Standard 9216-byte body budget", parse_handoff, oversized, inventory())
     extra_artifact_separator = baseline.replace(
         "artifacts=repository-relative command output",
         "artifacts=command output; diff output",
@@ -402,6 +409,14 @@ def main():
         "legacy per-row ledger output",
         parse_handoff,
         response().replace(canonical(projection), canonical(ledger), 1),
+        inventory(),
+    )
+    invalid_projection = json.loads(json.dumps(projection))
+    invalid_projection["rows"][1]["role"] = "not-a-contract-role"
+    expect_rejected(
+        "unsupported evidence role",
+        parse_handoff,
+        response().replace(canonical(projection), canonical(invalid_projection), 1),
         inventory(),
     )
     expect_rejected(
@@ -480,6 +495,46 @@ def main():
         "permission evidence prose",
         parse_handoff,
         response().replace("authorized: user", "authorized: user request", 1),
+        inventory(),
+    )
+    expect_rejected(
+        "redundant standalone diff check",
+        parse_handoff,
+        response().replace(
+            "git status --porcelain=v1 --untracked-files=all",
+            "git diff --check",
+            1,
+        ),
+        inventory(),
+    )
+    expect_rejected(
+        "chained observation commands",
+        parse_handoff,
+        response().replace(
+            "git status --porcelain=v1 --untracked-files=all",
+            "git status --porcelain=v1 --untracked-files=all && git diff --check",
+            1,
+        ),
+        inventory(),
+    )
+    duplicate_appended_diff = response().replace(
+        "\n\nStep: 5\n",
+        "\n\n"
+        + step(
+            5,
+            "test",
+            "repeat the same acceptance and diff check",
+            "python3 -m unittest discover -s tests -v && git diff --check",
+            "unit=U1; owner=src/normalize_label.py; transitions=none; from_revision=observed-prior; gate=none",
+            ["src/normalize_label.py", "tests/test_normalize_label.py"],
+        )
+        + "\n\nStep: 6\n",
+        1,
+    )
+    expect_rejected(
+        "multiple appended diff checks",
+        parse_handoff,
+        duplicate_appended_diff,
         inventory(),
     )
     expect_rejected(
@@ -566,10 +621,13 @@ def main():
         "dependency_evidence": "none",
         "trace_requirements": [{
             "requirement": "Reject blank normalized labels at the owner boundary",
+            "baseline_source": "src/normalize_label.py",
+            "gap_source": "src/normalize_label.py",
             "owner": "src/normalize_label.py",
+            "invariant": "Preserve trim, TypeError, and public path.",
             "test": "tests/test_normalize_label.py",
             "gates": ["G1"],
-            "evidence": "tests/test_normalize_label.py",
+            "evidence": "tests/test_normalize_label.py; gate_evidence=none",
         }],
         "post_closure_next": None,
         "evidence_ledger": evidence_ledger_projection(evidence_ledger()),
@@ -626,6 +684,16 @@ def main():
     high_handoff = validate_forward_case("high-risk-public-consumer", high_response)
     validate_generic_handoff_grounding(
         "high-risk-public-consumer", high_handoff, high_manifest, high_sources
+    )
+    expect_rejected(
+        "High-risk missing nested authority",
+        validate_grounded_response,
+        "high-risk-public-consumer",
+        high_response.replace(
+            ',{"id":"src/AGENTS.md","role":"authority"}', "", 1
+        ),
+        high_manifest,
+        high_sources,
     )
     expect_rejected(
         "High-risk keyword-only consumer evidence",
@@ -718,8 +786,31 @@ def main():
         (
             "generic fabricated trace",
             generic_response.replace(
-                "Reject blank normalized labels at the owner boundary -> src/normalize_label.py currently returns an empty string -> the documented guard is absent -> change src/normalize_label.py and tests/test_normalize_label.py -> preserve trim, TypeError, and public path -> tests/test_normalize_label.py positive and negative regression -> G1 -> tests/test_normalize_label.py output",
+                "Reject blank normalized labels at the owner boundary -> src/normalize_label.py: currently returns an empty string -> src/normalize_label.py: the documented guard is absent -> src/normalize_label.py: add the guard and update tests/test_normalize_label.py -> Preserve trim, TypeError, and public path. -> tests/test_normalize_label.py: positive and negative regression -> G1 -> tests/test_normalize_label.py; gate_evidence=none",
                 "A -> B -> C -> D -> E -> F -> G -> H",
+            ),
+        ),
+        (
+            "generic fabricated causal trace cells",
+            generic_response.replace(
+                "Reject blank normalized labels at the owner boundary -> src/normalize_label.py: currently returns an empty string -> src/normalize_label.py: the documented guard is absent -> src/normalize_label.py: add the guard and update tests/test_normalize_label.py -> Preserve trim, TypeError, and public path. -> tests/test_normalize_label.py: positive and negative regression -> G1 -> tests/test_normalize_label.py; gate_evidence=none",
+                "Reject blank normalized labels at the owner boundary -> FABRICATED baseline -> FABRICATED gap -> unrelated prose mentioning src/normalize_label.py -> FABRICATED invariant -> unrelated prose mentioning tests/test_normalize_label.py -> G1 -> tests/test_normalize_label.py; gate_evidence=none",
+            ),
+        ),
+        (
+            "generic extra trace Gate",
+            generic_response.replace(
+                " -> G1 -> tests/test_normalize_label.py; gate_evidence=none",
+                " -> G1,G999 -> tests/test_normalize_label.py; gate_evidence=none",
+                1,
+            ),
+        ),
+        (
+            "generic false pending-Gate evidence",
+            generic_response.replace(
+                " -> G1 -> tests/test_normalize_label.py; gate_evidence=none",
+                " -> G1 -> tests/test_normalize_label.py; G1 is already passed with bound evidence at r1",
+                1,
             ),
         ),
         (
@@ -800,12 +891,12 @@ def main():
         inventory(),
     )
     blank_trace = response().replace(
-        "Reject blank normalized labels at the owner boundary -> src/normalize_label.py currently returns an empty string -> the documented guard is absent -> change src/normalize_label.py and tests/test_normalize_label.py -> preserve trim, TypeError, and public path -> tests/test_normalize_label.py positive and negative regression -> G1 -> tests/test_normalize_label.py output",
-        "Reject blank normalized labels at the owner boundary ->  -> the documented guard is absent -> change src/normalize_label.py and tests/test_normalize_label.py -> preserve trim, TypeError, and public path -> tests/test_normalize_label.py positive and negative regression -> G1 -> tests/test_normalize_label.py output",
+        "Reject blank normalized labels at the owner boundary -> src/normalize_label.py: currently returns an empty string -> src/normalize_label.py: the documented guard is absent -> src/normalize_label.py: add the guard and update tests/test_normalize_label.py -> Preserve trim, TypeError, and public path. -> tests/test_normalize_label.py: positive and negative regression -> G1 -> tests/test_normalize_label.py; gate_evidence=none",
+        "Reject blank normalized labels at the owner boundary ->  -> src/normalize_label.py: the documented guard is absent -> src/normalize_label.py: add the guard and update tests/test_normalize_label.py -> Preserve trim, TypeError, and public path. -> tests/test_normalize_label.py: positive and negative regression -> G1 -> tests/test_normalize_label.py; gate_evidence=none",
     )
     expect_rejected("blank trace cell", parse_handoff, blank_trace, inventory())
     receipt_only_trace = response().replace(
-        "G1 -> tests/test_normalize_label.py output",
+        "G1 -> tests/test_normalize_label.py; gate_evidence=none",
         "G1 -> .project/development/evidence/G1.pass",
         1,
     )
@@ -1032,6 +1123,10 @@ def main():
         "状态：阻塞；tracker: none；read-only projection；no mutation。\n",
     )
     validate_forward_case(
+        "tracker-none-projection",
+        "状态：阻塞；tracker: none；只读 projection；不修改仓库。\n",
+    )
+    validate_forward_case(
         "migration-permission-release-blocker",
         "状态：阻塞（High-risk）；迁移 Gate 未通过，权限矩阵未授权，因此发布保持阻塞。\n",
     )
@@ -1046,6 +1141,12 @@ def main():
         validate_forward_case,
         "tracker-none-projection",
         "状态：阻塞；tracker：none；read-only projection；no mutation。\n",
+    )
+    expect_rejected(
+        "tracker-none missing read-only semantics",
+        validate_forward_case,
+        "tracker-none-projection",
+        "状态：阻塞；tracker: none；没有 governing tracker。\n",
     )
     validate_forward_case(
         "snapshot-double-drift",

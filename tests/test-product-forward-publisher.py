@@ -117,6 +117,7 @@ def make_capture(root, name):
             "tracker_revision: r1\nselection_decision: U1 is dependency-free and closes the only tracked goal\n\n"
             "### U1\n\nstate: Ready\nclaim: none\ndependency: none\n"
             "goal: Reject blank normalized labels at the owner boundary\n"
+            "invariants: Preserve trim, TypeError, and public path.\n"
             "next_convergence_condition: G1 passes\nowner: src/normalize_label.py\ngate_refs: G1\n\n"
             "### G1\n\nstatus: pending\nowners: U1\n"
             "command: python3 -m unittest discover -s tests -v\n"
@@ -218,7 +219,7 @@ def main():
                 'Authoritative inputs: ["README.md"]',
             ),
             "fabricated-trace": lambda value: value.replace(
-                "Reject blank normalized labels at the owner boundary -> src/normalize_label.py currently returns an empty string -> the documented guard is absent -> change src/normalize_label.py and tests/test_normalize_label.py -> preserve trim, TypeError, and public path -> tests/test_normalize_label.py positive and negative regression -> G1 -> tests/test_normalize_label.py output",
+                "Reject blank normalized labels at the owner boundary -> src/normalize_label.py: currently returns an empty string -> src/normalize_label.py: the documented guard is absent -> src/normalize_label.py: add the guard and update tests/test_normalize_label.py -> Preserve trim, TypeError, and public path. -> tests/test_normalize_label.py: positive and negative regression -> G1 -> tests/test_normalize_label.py; gate_evidence=none",
                 "A -> B -> C -> D -> E -> F -> G -> H",
             ),
             "custom-test-bypass": lambda value: value.replace(

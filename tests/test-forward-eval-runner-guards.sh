@@ -15,26 +15,35 @@ grep -F 'if stat.S_ISDIR(metadata.st_mode):' "$runner" >/dev/null || \
     fail "tracker subdirectory handling"
 grep -F 'future executor to edit the selected owner/test' "$runner" >/dev/null || \
     fail "future executor authority prompt"
-grep -F "profile-specific body cap" "$runner" >/dev/null || \
-    fail "profile-specific body cap prompt"
-grep -F '对应 profile 的正文上限' "$runner" >/dev/null || \
-    fail "Chinese profile-specific body cap prompt"
+grep -F 'generate the next Codex development handoff for the current repository' "$runner" >/dev/null || \
+    fail "natural English generation prompt"
+grep -F '为当前仓库生成下一条 Codex 开发交接' "$runner" >/dev/null || \
+    fail "natural Chinese generation prompt"
 grep -F 'git_status_raw != status_before' "$runner" >/dev/null || \
     fail "preexisting dirty status preservation"
 grep -F 'duplicate passed evidence fingerprint' "$runner" >/dev/null || \
     fail "passed evidence fingerprint binding"
 grep -F 'ordinary Gate receipt binding' "$runner" >/dev/null || \
     fail "ordinary implementation receipt binding"
-grep -F 'Never substitute a capability/package helper as authority' "$runner" >/dev/null || \
-    fail "closed ledger-role prompt"
-grep -F 'Gate commands alone do not escalate docs/config work' "$runner" >/dev/null || \
-    fail "profile-impact prompt"
-grep -F 'open the fence only after the exact Open inventory line' "$runner" >/dev/null || \
-    fail "preamble fence-boundary prompt"
-grep -F '只能在精确 Open inventory 行之后打开 fence' "$runner" >/dev/null || \
-    fail "Chinese preamble fence-boundary prompt"
+grep -F 'src/AGENTS.md' "$runner" >/dev/null || \
+    fail "nested authority fixture"
+for leaked_answer in \
+    'profile-specific body cap' \
+    '对应 profile 的正文上限' \
+    'Never substitute a capability/package helper as authority' \
+    'Gate commands alone do not escalate docs/config work' \
+    'open the fence only after the exact Open inventory line' \
+    '只能在精确 Open inventory 行之后打开 fence'
+do
+    if grep -F "$leaked_answer" "$runner" >/dev/null; then
+        fail "answer-bearing prompt leaked: $leaked_answer"
+    fi
+done
 grep -F "printf '%s\\n' '.project/' '.code-review-graph/'" "$runner" >/dev/null || \
     fail "evaluator graph status isolation"
+grep -F 'generator inspected helper source or used an unsupported helper command' "$runner" >/dev/null || \
+    fail "helper source-inspection guard"
+grep -F '\`tracker: none\`' "$runner" >/dev/null || fail "tracker-none shell quoting"
 
 new_run_root() {
     candidate=$test_root/$1
@@ -133,5 +142,35 @@ FORWARD_EVAL_GUARD_ONLY=1 sh "$runner" chinese-mixed-state-first-delivery "$root
 root=$(new_run_root public)
 chmod 0755 "$root"
 sh "$runner" init "$root" >/dev/null 2>&1 && fail "public run root accepted"
+
+fake_bin=$test_root/fake-bin
+mkdir "$fake_bin"
+cat >"$fake_bin/codex" <<'EOF'
+#!/bin/sh
+output=
+while [ "$#" -gt 0 ]; do
+    if [ "$1" = -o ]; then output=$2; shift 2; else shift; fi
+done
+[ -z "${FAKE_PROMPT_CAPTURE:-}" ] || cat >"$FAKE_PROMPT_CAPTURE"
+[ -z "$output" ] || : >"$output"
+printf '%s\n' "/usr/bin/zsh -lc 'sed -n 1,40p ../../../snapshot/skill/scripts/status_fingerprint.py' in /tmp/fixture"
+EOF
+chmod 0700 "$fake_bin/codex"
+root=$(new_run_root helper-read)
+sh "$runner" init "$root" >/dev/null 2>&1 || fail "helper-read snapshot initialization"
+if PATH="$fake_bin:$PATH" sh "$runner" light-documentation "$root" >"$test_root/helper-read.log" 2>&1; then
+    fail "helper source inspection accepted"
+fi
+grep -F 'generator inspected helper source or used an unsupported helper command' "$test_root/helper-read.log" >/dev/null || \
+    fail "helper source inspection failed for another reason"
+
+root=$(new_run_root tracker-none-shell)
+sh "$runner" init "$root" >/dev/null 2>&1 || fail "tracker-none snapshot initialization"
+FAKE_PROMPT_CAPTURE=$test_root/tracker-none.prompt PATH="$fake_bin:$PATH" \
+    sh "$runner" tracker-none-projection "$root" >"$test_root/tracker-none.log" 2>&1 || :
+grep -F '`tracker: none`' "$test_root/tracker-none.prompt" >/dev/null || fail "tracker-none prompt literal"
+if grep -F 'tracker:: not found' "$test_root/tracker-none.log" >/dev/null; then
+    fail "tracker-none prompt executed by shell"
+fi
 
 printf '%s\n' 'PASS: forward eval runner ownership, containment, and snapshot guards'

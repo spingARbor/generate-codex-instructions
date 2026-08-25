@@ -123,6 +123,26 @@ PY
     rm -- "$graph_dir/.gitignore" "$graph_dir/graph.db"
     rmdir -- "$graph_dir"
 }
+validate_generator_log() {
+    python3 - "$1" <<'PY'
+from pathlib import Path
+import re
+import sys
+
+for line in Path(sys.argv[1]).read_text(encoding="utf-8", errors="replace").splitlines():
+    if "skill/scripts/status_fingerprint.py" not in line or " in " not in line:
+        continue
+    readers = re.search(
+        r"(?<![A-Za-z0-9_.-])(?:cat|sed|head|tail|less|more|awk|perl|ruby|grep|rg|dd|xxd|od|sha(?:1|224|256|384|512)sum)\b",
+        line,
+    )
+    invocation = "--help" in line or all(
+        flag in line for flag in ("--repository", "--tracker", "--unit", "--profile", "--emit")
+    )
+    if readers or not invocation or re.search(r"\bpython3?\b", line) is None:
+        raise SystemExit("FAIL: generator inspected helper source or used an unsupported helper command")
+PY
+}
 mkdir -p "$fixture/docs" "$fixture/src" "$fixture/tests" "$fixture/.project/development"
 mkdir "$product_capture"
 cat >"$fixture/.gitignore" <<'EOF'
@@ -292,6 +312,7 @@ PYTHONDONTWRITEBYTECODE=1 timeout --foreground --kill-after=30s "${eval_timeout_
     -C "$fixture" -o "$generation_output" - <"$generation_prompt" \
     >"$generation_log" 2>&1
 cleanup_evaluator_graph
+validate_generator_log "$generation_log"
 snapshot_fixture "$generation_snapshot_after"
 sed "s|$repo_root|<skill-repository>|g" "$generation_prompt" >"$product_capture/generation-prompt.txt"
 cp "$generation_output" "$product_capture/generation-response.txt"

@@ -1,0 +1,13 @@
+Executed U1 successfully.
+
+- `src/normalize_label.py` now raises `ValueError` for empty normalized labels.
+- `tests/test_normalize_label.py` covers empty and whitespace-only inputs.
+- G1 passed: 4 tests.
+- `git diff --check` passed.
+- Tracker closed at `r3`; U1 is Complete and G1 passed.
+- Final status contains only `src/normalize_label.py` and `tests/test_normalize_label.py`. `.project/` is Git-ignored, but both tracker files are persisted and verified.
+- No unrelated changes or prohibited operations occurred.
+
+observed_receipt: unit=U1; owner=src/normalize_label.py; transitions=Ready->Claimed,Claimed->In Progress; revision=r1->r2; gate=none; evidence=.project/development/progress.md
+observed_receipt: unit=U1; owner=src/normalize_label.py; transitions=In Progress->Complete; revision=r2->r3; gate=G1:pending->passed; evidence=.project/development/task_plan.md
+post_closure_next_unit: none

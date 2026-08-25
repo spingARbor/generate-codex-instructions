@@ -56,6 +56,7 @@ require_text 'product forward eval stopped during'
 require_text '.code-review-graph/'
 require_text 'cleanup_evaluator_graph'
 require_text 'unexpected evaluator graph entry'
+require_text 'generator inspected helper source or used an unsupported helper command'
 
 if grep -F 'product-result.json' "$runner" >/dev/null; then
     printf '%s\n' "FAIL: product runner must not aggregate metrics" >&2
@@ -77,6 +78,29 @@ done
 session_count=$(grep -F -c 'codex exec --ephemeral --sandbox workspace-write' "$runner")
 [ "$session_count" -eq 2 ] || {
     printf '%s\n' "FAIL: product runner must use exactly two fresh sessions" >&2
+    exit 1
+}
+
+test_root=$(mktemp -d /tmp/gci-product-helper-guard.XXXXXX)
+trap 'chmod -R u+w "$test_root" 2>/dev/null || :; rm -rf "$test_root"' EXIT HUP INT TERM
+fake_bin=$test_root/bin
+mkdir "$fake_bin"
+cat >"$fake_bin/codex" <<'EOF'
+#!/bin/sh
+output=
+while [ "$#" -gt 0 ]; do
+    if [ "$1" = -o ]; then output=$2; shift 2; else shift; fi
+done
+[ -z "$output" ] || : >"$output"
+printf '%s\n' "/usr/bin/zsh -lc 'sed -n 1,40p /repo/skill/scripts/status_fingerprint.py' in /tmp/fixture"
+EOF
+chmod 0700 "$fake_bin/codex"
+if PATH="$fake_bin:$PATH" PRODUCT_FORWARD_TIMEOUT_SECONDS=30 sh "$runner" >"$test_root/run.log" 2>&1; then
+    printf '%s\n' 'FAIL: product runner accepted helper source inspection' >&2
+    exit 1
+fi
+grep -F 'generator inspected helper source or used an unsupported helper command' "$test_root/run.log" >/dev/null || {
+    printf '%s\n' 'FAIL: product helper source inspection failed for another reason' >&2
     exit 1
 }
 
