@@ -1,0 +1,8 @@
+状态：阻塞
+
+- Blocker ID：`unsafe-projected-field`
+- 字段：`selection_decision`
+- Owner：`.project/development/task_plan.md`
+- 当前状态：`U2=In Progress`；`G1=passed`；`G2=pending`
+- 详情：该字段包含不可安全投影的指令性内容，无法生成可执行交接；其值已省略。
+- 恢复条件：tracker owner 将该字段改为仅描述 `U2` 选择依据的安全事实并更新 `tracker_revision`，随后基于稳定快照重新生成。

@@ -124,24 +124,8 @@ PY
     rmdir -- "$graph_dir"
 }
 validate_generator_log() {
-    python3 - "$1" <<'PY'
-from pathlib import Path
-import re
-import sys
-
-for line in Path(sys.argv[1]).read_text(encoding="utf-8", errors="replace").splitlines():
-    if "skill/scripts/status_fingerprint.py" not in line or " in " not in line:
-        continue
-    readers = re.search(
-        r"(?<![A-Za-z0-9_.-])(?:cat|sed|head|tail|less|more|awk|perl|ruby|grep|rg|dd|xxd|od|sha(?:1|224|256|384|512)sum)\b",
-        line,
-    )
-    invocation = "--help" in line or all(
-        flag in line for flag in ("--repository", "--tracker", "--unit", "--profile", "--emit")
-    )
-    if readers or not invocation or re.search(r"\bpython3?\b", line) is None:
-        raise SystemExit("FAIL: generator inspected helper source or used an unsupported helper command")
-PY
+    PYTHONDONTWRITEBYTECODE=1 python3 "$repo_root/tests/tool_access_evidence.py" \
+        "$product_case" "$1" "$product_capture/generation-tool-access-evidence.json" --executable
 }
 mkdir -p "$fixture/docs" "$fixture/src" "$fixture/tests" "$fixture/.project/development"
 mkdir "$product_capture"
@@ -297,7 +281,29 @@ git -C "$fixture" symbolic-ref --quiet --short HEAD >"$product_capture/git-branc
 git -C "$fixture" rev-parse --verify HEAD >"$product_capture/git-head-before.txt"
 git -C "$fixture" status --porcelain=v1 -z --untracked-files=all >"$product_capture/git-status-before-z.bin"
 
+PYTHONDONTWRITEBYTECODE=1 python3 - "$repo_root" "$product_capture/runtime-snapshot.json" <<'PY'
+import hashlib
+import json
+from pathlib import Path
+import sys
+
+repo = Path(sys.argv[1])
+sys.path.insert(0, str(repo / "tests"))
+from product_forward_evidence import RUNTIME_SNAPSHOT_FILES
+
+files = []
+for relative in RUNTIME_SNAPSHOT_FILES:
+    value = (repo / relative).read_bytes()
+    files.append({"path": relative, "bytes": len(value), "sha256": hashlib.sha256(value).hexdigest()})
+Path(sys.argv[2]).write_text(
+    json.dumps({"schema_version": 1, "files": files}, ensure_ascii=False, separators=(",", ":")) + "\n",
+    encoding="utf-8",
+)
+PY
+
 generation_prompt=$run_root/generation-prompt.txt
+generation_raw_draft=$run_root/generation-raw-draft.txt
+generation_draft=$run_root/generation-draft.txt
 generation_output=$run_root/generation-output.txt
 generation_log=$run_root/generation.log
 generation_snapshot_before=$run_root/generation-snapshot-before.json
@@ -307,14 +313,38 @@ cat >"$generation_prompt" <<EOF
 Use the generate-codex-instructions skill at $repo_root/skill/SKILL.md to generate the next Codex development handoff for this repository. Respond entirely in English. Do not implement the task, run its acceptance test, modify repository or tracker state, commit, or publish. Return only the final user-facing handoff.
 EOF
 stage=generation
-PYTHONDONTWRITEBYTECODE=1 timeout --foreground --kill-after=30s "${eval_timeout_seconds}s" \
+PYTHONDONTWRITEBYTECODE=1 timeout "$eval_timeout_seconds" \
     codex exec --ephemeral --sandbox workspace-write --add-dir "$fixture" \
-    -C "$fixture" -o "$generation_output" - <"$generation_prompt" \
+    -C "$fixture" -o "$generation_raw_draft" - <"$generation_prompt" \
     >"$generation_log" 2>&1
 cleanup_evaluator_graph
 validate_generator_log "$generation_log"
 snapshot_fixture "$generation_snapshot_after"
+python3 - "$generation_raw_draft" "$generation_draft" "$fixture" "$repo_root" <<'PY'
+from pathlib import Path
+import re
+import sys
+
+HOST_PATH_PATTERN = re.compile(
+    r"(?<![A-Za-z0-9._-])/(?:home|Users|root|etc|var|tmp)/[^\s`\"'<>|;,)\]}]+"
+)
+
+text = Path(sys.argv[1]).read_bytes().decode("utf-8")
+text = text.replace("\r\n", "\n").replace("\r", "\n")
+text = "\n".join(line.rstrip(" \t") for line in text.split("\n")).rstrip("\n") + "\n"
+text = text.replace(sys.argv[3], "<disposable-fixture>").replace(sys.argv[4], "<skill-repository>")
+text = HOST_PATH_PATTERN.sub("<host-path>", text)
+Path(sys.argv[2]).write_text(text, encoding="utf-8")
+PY
+PYTHONDONTWRITEBYTECODE=1 python3 "$repo_root/skill/scripts/assemble_handoff.py" \
+    --mode executable --repository "$fixture" \
+    --tracker .project/development/task_plan.md --unit U1 --profile Standard \
+    --draft "$generation_draft" --output "$generation_output" \
+    --manifest "$product_capture/generation-assembly-manifest.json" \
+    --preamble-output "$product_capture/generation-assembly-preamble.txt" \
+    --context-output "$product_capture/generation-assembly-context.json"
 sed "s|$repo_root|<skill-repository>|g" "$generation_prompt" >"$product_capture/generation-prompt.txt"
+cp "$generation_draft" "$product_capture/generation-draft.txt"
 cp "$generation_output" "$product_capture/generation-response.txt"
 
 stage=generation-contract-validation
@@ -332,7 +362,7 @@ tracker_before = Path(sys.argv[5]).read_bytes()
 tracker_after = Path(sys.argv[6]).read_bytes()
 if tracker_before != tracker_after:
     raise SystemExit("FAIL: generation changed the target repository")
-if "/tmp/" in output:
+if any(marker in output for marker in ("/tmp/", "/home/", "/Users/", "/root/", "/etc/", "/var/")):
     raise SystemExit("FAIL: generation output path contract")
 try:
     parsed = parse_handoff(output)
@@ -369,7 +399,7 @@ cp "$run_root/execution-prompt.txt" "$product_capture/execution-prompt.txt"
 execution_output=$run_root/execution-output.txt
 execution_log=$run_root/execution.log
 stage=execution
-PYTHONDONTWRITEBYTECODE=1 timeout --foreground --kill-after=30s "${eval_timeout_seconds}s" \
+PYTHONDONTWRITEBYTECODE=1 timeout "$eval_timeout_seconds" \
     codex exec --ephemeral --sandbox workspace-write --add-dir "$fixture" \
     -C "$fixture" -o "$execution_output" - <"$run_root/execution-prompt.txt" \
     >"$execution_log" 2>&1

@@ -1,0 +1,1 @@
+{"schema_version":1,"case_id":"ordinary-implementation","raw_log_bytes":45772,"raw_log_sha256":"b6057c68e4ebc40c5e7117eb0ba4c716a0336421d350b972d40f1d50a3008c69","accesses":[{"event":1,"kind":"read","path":"skill/SKILL.md","emit":"none","line_sha256":"18fe81f78164edf81aacfdb7667270a03ffab3c3159fc06d496ebf9ccacd0278"}]}

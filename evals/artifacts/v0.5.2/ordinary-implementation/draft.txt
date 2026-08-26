@@ -1,0 +1,8 @@
+Implemented label normalization so trimmed empty values throw `RangeError`, while preserving `TypeError` for non-strings and trimming valid labels.
+
+Added focused coverage for empty and whitespace-only labels.
+
+Verification passed:
+
+- `node --test tests/normalize-label.test.js`
+- `npm test`

@@ -29,21 +29,28 @@ validate_runtime_bundle() {
     [ -d "$runtime_root" ] && [ ! -L "$runtime_root" ] \
         || runtime_bundle_error "root must be a physical directory"
     unexpected_root=$(find "$runtime_root" -mindepth 1 -maxdepth 1 \
-        ! -name SKILL.md ! -name agents ! -name scripts -exec printf x \;)
+        ! -name SKILL.md ! -name agents ! -name references ! -name scripts -exec printf x \;)
     [ -z "$unexpected_root" ] || runtime_bundle_error "unexpected root entry"
     [ -d "$runtime_root/agents" ] && [ ! -L "$runtime_root/agents" ] \
         || runtime_bundle_error "agents must be a physical directory"
     unexpected_agents=$(find "$runtime_root/agents" -mindepth 1 -maxdepth 1 \
         ! -name openai.yaml -exec printf x \;)
     [ -z "$unexpected_agents" ] || runtime_bundle_error "unexpected agents entry"
+    [ -d "$runtime_root/references" ] && [ ! -L "$runtime_root/references" ] \
+        || runtime_bundle_error "references must be a physical directory"
+    unexpected_references=$(find "$runtime_root/references" -mindepth 1 -maxdepth 1 \
+        ! -name handoff-contract.md -exec printf x \;)
+    [ -z "$unexpected_references" ] || runtime_bundle_error "unexpected references entry"
     [ -d "$runtime_root/scripts" ] && [ ! -L "$runtime_root/scripts" ] \
         || runtime_bundle_error "scripts must be a physical directory"
     unexpected_scripts=$(find "$runtime_root/scripts" -mindepth 1 -maxdepth 1 \
-        ! -name status_fingerprint.py -exec printf x \;)
+        ! -name assemble_handoff.py ! -name status_fingerprint.py -exec printf x \;)
     [ -z "$unexpected_scripts" ] || runtime_bundle_error "unexpected scripts entry"
 
     for runtime_file in \
         "$runtime_root/SKILL.md" "$runtime_root/agents/openai.yaml" \
+        "$runtime_root/references/handoff-contract.md" \
+        "$runtime_root/scripts/assemble_handoff.py" \
         "$runtime_root/scripts/status_fingerprint.py"
     do
         [ -f "$runtime_file" ] && [ ! -L "$runtime_file" ] \
@@ -53,8 +60,10 @@ validate_runtime_bundle() {
     done
 
     for runtime_entry in \
-        "$runtime_root" "$runtime_root/agents" "$runtime_root/scripts" \
+        "$runtime_root" "$runtime_root/agents" "$runtime_root/references" "$runtime_root/scripts" \
         "$runtime_root/SKILL.md" "$runtime_root/agents/openai.yaml" \
+        "$runtime_root/references/handoff-contract.md" \
+        "$runtime_root/scripts/assemble_handoff.py" \
         "$runtime_root/scripts/status_fingerprint.py"
     do
         owned=$(find "$runtime_entry" -prune -user "$runtime_owner" -exec printf x \;)

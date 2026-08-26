@@ -1,0 +1,90 @@
+{
+  "schema_version": 4,
+  "version": "0.5.2",
+  "status": "fresh-eval-passed",
+  "case": "chinese-mixed-state-first-delivery",
+  "outcome": "pass",
+  "artifacts": {
+    "prompt": {
+      "path": "evals/artifacts/v0.5.2/chinese-mixed-state-first-delivery/prompt.txt",
+      "sha256": "400eb38e61771ebfca037f91eba829ade7f3004ac819a739082558bad704978a",
+      "bytes": 871
+    },
+    "draft": {
+      "path": "evals/artifacts/v0.5.2/chinese-mixed-state-first-delivery/draft.txt",
+      "sha256": "b5f0eeeef930e112af5f6b3e9306b6599c0c29538e78279af6e6f95cb2f1fdac",
+      "bytes": 9495
+    },
+    "assembly_manifest": {
+      "path": "evals/artifacts/v0.5.2/chinese-mixed-state-first-delivery/assembly-manifest.json",
+      "sha256": "7a24e850ad1578e3e3b9845735ed0555d904ab15d02aa422094551b02f1ed865",
+      "bytes": 460
+    },
+    "assembly_preamble": {
+      "path": "evals/artifacts/v0.5.2/chinese-mixed-state-first-delivery/assembly-preamble.txt",
+      "sha256": "5a2855e94dcd0b0dcd23d2a58ce538379431b45fb0af71e4b4e74b6a99e6dfa9",
+      "bytes": 1943
+    },
+    "assembly_context": {
+      "path": "evals/artifacts/v0.5.2/chinese-mixed-state-first-delivery/assembly-context.json",
+      "sha256": "d10984176be652be04643c28d24f9ba036b1b275412235c5a3bbbb837e78d38c",
+      "bytes": 635
+    },
+    "fixture_manifest": {
+      "path": "evals/artifacts/v0.5.2/chinese-mixed-state-first-delivery/fixture-manifest.json",
+      "sha256": "97ef4dd43a9ce67df8a5baaa375c7c85219dee46b646fdbd49fb3d9ff47d5f90",
+      "bytes": 1571
+    },
+    "post_state_manifest": {
+      "path": "evals/artifacts/v0.5.2/chinese-mixed-state-first-delivery/post-state-manifest.json",
+      "sha256": "97ef4dd43a9ce67df8a5baaa375c7c85219dee46b646fdbd49fb3d9ff47d5f90",
+      "bytes": 1571
+    },
+    "grounding_sources": {
+      "path": "evals/artifacts/v0.5.2/chinese-mixed-state-first-delivery/grounding-sources.json",
+      "sha256": "828e13d721fbf57fd6714d173cd719ac17213f8b105dc1bffaa9b6e19aeb0f21",
+      "bytes": 4595
+    },
+    "generation_evidence": {
+      "path": "evals/artifacts/v0.5.2/chinese-mixed-state-first-delivery/generation-evidence.json",
+      "sha256": "4db4a03432acb605d0a3800a3030e3e2bc7e4973b97d6bd654cada5c3fa642ff",
+      "bytes": 1302
+    },
+    "side_effect_evidence": {
+      "path": "evals/artifacts/v0.5.2/chinese-mixed-state-first-delivery/side-effect-evidence.json",
+      "sha256": "01315431ef20d5b9b5899e7a5cb7f8a82a00837665affa0597ab5f38a26dd244",
+      "bytes": 217
+    },
+    "snapshot_evidence": {
+      "path": "evals/artifacts/v0.5.2/chinese-mixed-state-first-delivery/snapshot-evidence.json",
+      "sha256": "459de92c57c094581b2e3f1a038db5a328fb8013a3df1ad07de524b26790aeea",
+      "bytes": 390
+    },
+    "tool_access_evidence": {
+      "path": "evals/artifacts/v0.5.2/chinese-mixed-state-first-delivery/tool-access-evidence.json",
+      "sha256": "be80a747c9d6ccbbd881d1986d75262ccc6c90b41e986001e67cbf04757d8692",
+      "bytes": 1189
+    },
+    "responses": [
+      {
+        "path": "evals/artifacts/v0.5.2/chinese-mixed-state-first-delivery/response-1.txt",
+        "sha256": "b5f0eeeef930e112af5f6b3e9306b6599c0c29538e78279af6e6f95cb2f1fdac",
+        "bytes": 9495
+      }
+    ]
+  },
+  "evidence_source": "aggregate-publisher-semantic-replay-v3-poststate-bound",
+  "bindings": {
+    "skill_sha256": "506c8ae6f91a3504a19742f191e6d7fddffe4022a2236fab3a9eabfc142aacb4",
+    "handoff_contract_sha256": "6c88467229ec813cb8e2d7efac4418dd0520d40ab7cfaf00b86093f85aa0e24b",
+    "runtime_assembler_sha256": "0ddd406da8a666c0a20bf41e9342c080c3728c6db0cfc5e2d27a01ba5ca1b21b",
+    "runtime_fingerprint_sha256": "1b50ec997335d9026fac94523e19ff119715c5a72479f153078543053d3f338e",
+    "runner_sha256": "8c2f0f7842a195fa36eb4c62c5bd5754cb2d6e49b252c368a63ed5baaa3b0f80",
+    "corpus_sha256": "4b42b6ac993645c2c31628334cf3f489eadef9e63434e28f3e756d9ab3ddefb5",
+    "fingerprint_sha256": "0980d179cd3aecd755120ec1e05306b6b277f3b3f33bdaa63c2b465f15997db2",
+    "contract_sha256": "7d4fa7b0cfebd7d613f77e193a5193c8e972eaed4ce68d9517ae488b1ecce989",
+    "forward_evidence_sha256": "c2d24ac074b905263f4b249d348b59647b91a41e812abea0a84d2beb9a2ec730",
+    "tool_access_evidence_sha256": "9175f0ea793c1ae5c83124ff02548e49046912e63a623102ad03a1612e15360c"
+  },
+  "release_authorized": false
+}

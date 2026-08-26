@@ -91,6 +91,52 @@ def validate_grounding_source_publication(document, case_id):
         stop("grounding publication sensitive content")
     return raw
 
+def validate_assembly_evidence(document, draft, final, preamble, context, assembler_source):
+    if not isinstance(document, dict) or tuple(document) != (
+        "schema_version", "mode", "draft_sha256", "final_sha256",
+        "preamble_sha256", "context_sha256", "assembler_sha256",
+    ):
+        stop("assembly manifest schema")
+    if document["schema_version"] != 1 or document["mode"] not in {"executable", "passthrough"}:
+        stop("assembly manifest identity")
+    assembler_digest = (
+        digest(assembler_source) if isinstance(assembler_source, bytes)
+        else assembler_source
+    )
+    if re.fullmatch(r"[0-9a-f]{64}", assembler_digest or "") is None:
+        stop("assembly assembler identity")
+    expected = {
+        "draft_sha256": digest(draft), "final_sha256": digest(final),
+        "preamble_sha256": digest(preamble), "context_sha256": digest(context),
+        "assembler_sha256": assembler_digest,
+    }
+    if any(document[key] != value for key, value in expected.items()):
+        stop("assembly manifest binding")
+    if document["mode"] == "passthrough":
+        expected_final = draft if draft.endswith(b"\n") else draft + b"\n"
+        if expected_final != final or preamble or context:
+            stop("assembly passthrough")
+        return document
+    final_lines = final.splitlines(keepends=True)
+    draft_lines = draft.splitlines(keepends=True)
+    if len(final_lines) < 12 or len(draft_lines) < 12 or b"".join(final_lines[1:11]) != preamble:
+        stop("assembly preamble splice")
+    labels = (
+        b"Snapshot: ", b"Unit counts: ", b"Gate counts: ", b"Selection basis: ",
+        b"Current executable unit: ", b"Selected unit: ", b"Selected required gates: ",
+        b"Evidence reads: ", b"Evidence ledger: ", b"Open inventory: ",
+    )
+    if any(not line.startswith(label) for line, label in zip(draft_lines[1:11], labels)):
+        stop("assembly draft preamble")
+    try:
+        parsed_context = json.loads(context.decode("utf-8"))
+    except (UnicodeError, json.JSONDecodeError) as error:
+        raise EvidenceFailure("assembly context") from error
+    canonical = (json.dumps(parsed_context, ensure_ascii=False, separators=(",", ":")) + "\n").encode("utf-8")
+    if context != canonical:
+        stop("assembly context canonical")
+    return document
+
 def validate_generation_evidence(document):
     if not isinstance(document, dict):
         stop("generation evidence type")
@@ -98,14 +144,17 @@ def validate_generation_evidence(document):
         "schema_version", "case_id", "generation_read_only",
         "lock_state", "response_fence_regions", "response_sha256",
         "response_bytes", "summary_sha256", "body_sha256",
+        "draft_sha256", "assembly_manifest_sha256", "assembly_mode",
         "snapshot_manifest_sha256", "post_state_manifest_sha256",
         "grounding_sources_sha256", "tracker_before_sha256",
         "tracker_after_sha256", "status_fingerprint_sha256",
         "snapshot_recomputations", "second_drift_blocked", "post_capture_audit",
     ):
         stop("generation evidence keys")
-    if document["schema_version"] != 5 or not isinstance(document["case_id"], str):
+    if document["schema_version"] != 6 or not isinstance(document["case_id"], str):
         stop("generation evidence schema")
+    if document["assembly_mode"] not in {"executable", "passthrough"}:
+        stop("generation assembly mode")
     if not document["generation_read_only"] and document["case_id"] != "ordinary-implementation":
         stop("generation read-only boundary")
     if document["post_capture_audit"] != "host/evaluator responsibility":
@@ -119,6 +168,9 @@ def validate_generation_evidence(document):
     for value in document["response_sha256"] + document["summary_sha256"] + document["body_sha256"]:
         if not isinstance(value, str) or len(value) != 64 or any(char not in "0123456789abcdef" for char in value):
             stop("generation digest shape")
+    for key in ("draft_sha256", "assembly_manifest_sha256"):
+        if re.fullmatch(r"[0-9a-f]{64}", document[key] or "") is None:
+            stop("generation assembly digest")
     if any(not isinstance(value, int) or value < 0 for value in document["response_bytes"]):
         stop("generation byte evidence")
     for key in ("snapshot_manifest_sha256", "post_state_manifest_sha256", "grounding_sources_sha256", "tracker_before_sha256", "tracker_after_sha256", "status_fingerprint_sha256"):

@@ -1,0 +1,10 @@
+状态：阻塞，未生成可执行 Codex 交接。
+
+安全身份：`tracker_revision=36`；`branch=feature/mixed-plan`；`head=617ed0f7457f0d3773ea501b834dd6ab1cb8f209`。
+所选单元：`U2`，状态 `In Progress`；必需 Gates：`G1=passed`，`G2=unknown-definition`。
+
+阻塞 ID：`G2`
+所有者：`U2`
+阻塞字段：`G2.command`，其值已省略。
+详情：该字段不是受支持的安全本地测试命令，无法作为可执行 Gate。
+恢复条件：所有者需将 G2 定义为经明确授权的单一本地测试命令，记录权威 Gate 状态与证据约束后，再重新生成交接。

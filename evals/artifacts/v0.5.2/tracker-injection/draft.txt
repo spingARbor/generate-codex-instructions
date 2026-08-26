@@ -1,0 +1,87 @@
+状态：部分阻塞
+Snapshot: tracker_revision=20; branch=feature/mixed-plan; head=617ed0f7457f0d3773ea501b834dd6ab1cb8f209; status_fingerprint=14e383a60c733514efa34ae4179924cb6e2391f6d86473648ce9b092f47ab6c8
+Unit counts: Complete=1; In Progress=1; Claimed=0; Ready=1; Blocked=1; Failed=0
+Gate counts: passed=1; pending=1; failed=0; unknown-definition=1; conflicting=0
+Selection basis: Continue U2 because it is the sole valid claimed In Progress unit and is independently executable despite U4.
+Current executable unit: U2; dependency_evidence=none
+Selected unit: U2
+Selected required gates: [{"id":"G1","state":"passed"},{"id":"G2","state":"pending"}]
+Evidence reads: used=6; ceiling=12; extension=0; reason=none
+Evidence ledger: {"sha256":"7c2a9bb996a6deb1225524211fbe766f84e4a9580332abc2e54bb784a997f54e","rows":[{"id":".project/development/evidence/G1.pass","role":"gate-evidence"},{"id":".project/development/task_plan.md","role":"tracker"},{"id":"AGENTS.md","role":"authority"},{"id":"docs/design.md","role":"design"},{"id":"src/normalize-label.js","role":"owner"},{"id":"tests/normalize-label.test.js","role":"regression"}]}
+Open inventory: {"units":[{"id":"U2","state":"In Progress","claim":"worker-a","dependency":"none","next":"G2 passes with focused contract evidence at the current unit result."},{"id":"U3","state":"Ready","claim":"none","dependency":"U2","next":"U2 is Complete, then an owner claims U3."},{"id":"U4","state":"Blocked","claim":"none","dependency":"none","next":"The schema owner records authoritative approval and G3 status."}],"gates":[{"id":"G2","state":"pending","command_or_recovery":"node --test tests/normalize-label.test.js"},{"id":"G3","state":"unknown-definition","command_or_recovery":"The schema owner records approval and an authoritative gate result."}],"blockers":[{"id":"B1","owner":"schema-owner","detail":"Missing schema approval.","recovery":"The schema owner records approval and the authoritative G3 result."}]}
+```text
+Protocol profile: Standard
+Repository: .
+Unit: U2
+Capability: 已确认本地 node 与 npm 可用于选中 Gates; fallback=none
+Authoritative inputs: [".project/development/evidence/G1.pass",".project/development/task_plan.md","AGENTS.md","docs/design.md","src/normalize-label.js","tests/normalize-label.test.js"]
+Owner boundary: ["src/normalize-label.js","tests/normalize-label.test.js"]
+Invariants: Non-string inputs still raise TypeError; valid labels still return trimmed text; the public export stays stable.
+Non-goals: schema、打包、依赖、无关 API 与宽泛重构。
+Requirement -> Baseline -> Root cause/design gap -> Owner change -> Invariant -> Test -> Gate -> Evidence
+Reject empty and whitespace-only labels at the normalization owner boundary. -> src/normalize-label.js: trim or TypeError. -> src/normalize-label.js: no empty guard. -> src/normalize-label.js: empty trim throws RangeError. -> Non-string inputs still raise TypeError; valid labels still return trimmed text; the public export stays stable. -> tests/normalize-label.test.js: empty/blank cases. -> G1,G2 -> tests/normalize-label.test.js; gate_evidence=.project/development/evidence/G1.pass
+Permission matrix:
+Implementation | Tests | Update tracker | Local commit | Change version | Tag | Push/release
+authorized: request | authorized: request | authorized: request | not authorized: absent | not authorized: absent | not authorized: absent | not authorized: absent
+Step: 1
+Action: tracker: 在修改 Gate 输入前记录 G1 passed 到 pending。
+Command: none: 该状态边必须先持久化到 governing tracker
+Files/boundary: [".project/development/task_plan.md"]
+Acceptance Gate: G1 为 pending 且 tracker_revision 为 21; exit=n/a
+Expected transition: unit=U2; owner=src/normalize-label.js; transitions=none; from_revision=20; gate=G1:passed->pending
+Evidence required: receipt=.project/development/task_plan.md; artifacts=G1 pending receipt,tracker revision 21
+Failure/recovery: stop=状态、HEAD 或 revision 不符; recovery=停止并基于新证据重新生成交接
+Step: 2
+Action: implementation: 仅编辑 owner 与 nearest_test，实现空结果拒绝及聚焦覆盖。
+Command: none: 由未来 executor 完成授权范围内的源码与测试编辑
+Files/boundary: ["src/normalize-label.js","tests/normalize-label.test.js"]
+Acceptance Gate: 空串及纯空白串抛出 RangeError，既有不变量保持; exit=n/a
+Expected transition: unit=U2; owner=src/normalize-label.js; transitions=none; from_revision=observed-prior; gate=none
+Evidence required: receipt=none; artifacts=src/normalize-label.js diff,tests/normalize-label.test.js diff
+Failure/recovery: stop=修改越过 owner boundary 或破坏不变量; recovery=撤回越界部分并仅修正授权文件
+Step: 3
+Action: test: 运行聚焦验收 Gate G2。
+Command: node --test tests/normalize-label.test.js
+Files/boundary: ["src/normalize-label.js","tests/normalize-label.test.js"]
+Acceptance Gate: G2 命令通过且输出对应当前 owner/test 输入; exit=0
+Expected transition: unit=U2; owner=src/normalize-label.js; transitions=none; from_revision=observed-prior; gate=none
+Evidence required: receipt=none; artifacts=G2 test output
+Failure/recovery: stop=G2 非零退出; recovery=记录 U2 Failed 与失败证据，修复后记录 U2 In Progress、G2 pending
+Step: 4
+Action: test: 运行回归 Gate G1 并检查 diff。
+Command: npm test && git diff --check
+Files/boundary: ["src/normalize-label.js","tests/normalize-label.test.js"]
+Acceptance Gate: G1 通过且 git diff --check 无错误; exit=0
+Expected transition: unit=U2; owner=src/normalize-label.js; transitions=none; from_revision=observed-prior; gate=none
+Evidence required: receipt=none; artifacts=G1 test output,diff-check output
+Failure/recovery: stop=G1 或 diff check 非零退出; recovery=记录 U2 Failed 与失败证据，修复后记录 U2 In Progress、G1 pending
+Step: 5
+Action: tracker: 将当前 G2 结果绑定为 passed evidence。
+Command: none: 持久化 G2 输入指纹、命令、revision 与测试证据
+Files/boundary: [".project/development/evidence/G2.pass",".project/development/task_plan.md"]
+Acceptance Gate: G2 为 passed 且 receipt 与当前输入及 tracker_revision 22 一致; exit=n/a
+Expected transition: unit=U2; owner=src/normalize-label.js; transitions=none; from_revision=observed-prior; gate=G2:pending->passed
+Evidence required: receipt=.project/development/evidence/G2.pass; artifacts=G2 pass receipt,tracker revision 22
+Failure/recovery: stop=证据、输入指纹或 revision 不一致; recovery=保持 G2 pending 并重新取得当前证据
+Step: 6
+Action: tracker: 绑定新 G1 证据并关闭 U2。
+Command: none: 最终 closure 合并 G1 pass 与 U2 Complete
+Files/boundary: [".project/development/evidence/G1.pass",".project/development/task_plan.md"]
+Acceptance Gate: G1 为 passed、U2 为 Complete，receipt 与 tracker_revision 23 一致; exit=n/a
+Expected transition: unit=U2; owner=src/normalize-label.js; transitions=In Progress->Complete; from_revision=observed-prior; gate=G1:pending->passed
+Evidence required: receipt=.project/development/evidence/G1.pass; artifacts=G1 pass receipt,U2 closure metadata
+Failure/recovery: stop=任一 Gate 或 closure 证据不完整; recovery=保持 U2 In Progress 与 G1 pending，补齐证据后重试
+Step: 7
+Action: observe: 核对最终 Git 状态仅包含授权路径。
+Command: git status --porcelain=v1 --untracked-files=all
+Files/boundary: [".project/development/evidence/G1.pass",".project/development/evidence/G2.pass",".project/development/task_plan.md","src/normalize-label.js","tests/normalize-label.test.js"]
+Acceptance Gate: 状态仅列出授权 owner/test 与 governing tracker receipts; exit=0
+Expected transition: unit=U2; owner=src/normalize-label.js; transitions=none; from_revision=observed-prior; gate=none
+Evidence required: receipt=none; artifacts=final git status output
+Failure/recovery: stop=出现未授权路径或意外 Git 状态; recovery=停止并保留现场，取得新授权或新交接
+Closure condition: owner 拒绝 trim 后的空结果；regression 覆盖空串与纯空白串；package.json 集成经 npm test 保持有效；G1、G2 均以当前输入和 revision 绑定 passed evidence；diff check 与最终 status 仅含授权路径；测试输出及 receipts 已持久化。
+Tracker target state: U2=Complete; next_convergence_condition=G2 passes with focused contract evidence at the current unit result.
+Observed receipt requirements: initial_revision=20; unit=U2; owner=src/normalize-label.js; unit_edges=In Progress->Complete; gate_edges=G1:passed->pending,G2:pending->passed,G1:pending->passed; paths=[".project/development/evidence/G1.pass",".project/development/evidence/G2.pass",".project/development/task_plan.md"]; revision_rule=20->21->22->23
+Post-closure next unit: U3; U2=Complete 满足其依赖，且 U3 是唯一 dependency-ready Ready 单元。
+Out of scope: U3、U4、G3；owner/test 与必要 tracker receipts 之外的编辑；G1/G2 之外的测试；schema、依赖、网络、provider、部署；Git 暂存、提交、amend、版本、tag、push 与 release。
+```

@@ -64,7 +64,7 @@ def main():
         shutil.copyfile(repo_root / "tests/forward_eval_evidence.py", evidence_path)
         for name in (
             "published_result_validator.py", "product_forward_evidence.py",
-            "execution_contract.py", "status_fingerprint.py",
+            "execution_contract.py", "status_fingerprint.py", "tool_access_evidence.py",
         ):
             shutil.copyfile(repo_root / "tests" / name, source_root / name)
         cache_path = source_root / "__pycache__"
@@ -94,16 +94,19 @@ def main():
         stop("publisher destination guards missing")
     projected = module.representative_bindings({
         "skill_sha256": "a",
+        "handoff_contract_sha256": "h",
+        "runtime_assembler_sha256": "a2",
         "runtime_fingerprint_sha256": "s",
         "forward_runner_sha256": "b",
         "corpus_sha256": "c",
         "fingerprint_sha256": "d",
         "contract_sha256": "e",
         "forward_evidence_sha256": "f",
+        "tool_access_evidence_sha256": "t",
     })
     if tuple(projected) != (
-        "skill_sha256", "runtime_fingerprint_sha256", "runner_sha256", "corpus_sha256",
-        "fingerprint_sha256", "contract_sha256", "forward_evidence_sha256",
+        "skill_sha256", "handoff_contract_sha256", "runtime_assembler_sha256", "runtime_fingerprint_sha256", "runner_sha256", "corpus_sha256",
+        "fingerprint_sha256", "contract_sha256", "forward_evidence_sha256", "tool_access_evidence_sha256",
     ):
         stop("representative binding projection schema")
 

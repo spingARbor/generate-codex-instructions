@@ -1,0 +1,1 @@
+{"schema_version":1,"case_id":"snapshot-double-drift","raw_log_bytes":10308,"raw_log_sha256":"bafde630a03062cfe1b0c28f3cc14610e81da1daa4573c5d2038302aaed12075","accesses":[{"event":1,"kind":"read","path":"skill/SKILL.md","emit":"none","line_sha256":"7e31c3b3683e6188036d3de1125840ff94a1a11a5cd9377d9972f9c4d870662a"}]}

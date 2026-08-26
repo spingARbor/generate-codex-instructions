@@ -15,11 +15,13 @@ from forward_eval_evidence import (
     manifest_file_sha256,
     regular_bytes,
     validate_generation_evidence,
+    validate_assembly_evidence,
     validate_grounding_source_publication,
     validate_side_effect_evidence,
     validate_snapshot_evidence,
     validate_state_manifest,
 )
+from tool_access_evidence import ToolAccessError, validate_tool_access
 from published_result_validator import (
     ResultValidationError,
     representative_bindings,
@@ -159,12 +161,15 @@ def verify_snapshot(run_root, repo_root):
         stop("snapshot manifest")
     expected = {
         "skill/SKILL.md": repo_root / "skill/SKILL.md",
+        "skill/references/handoff-contract.md": repo_root / "skill/references/handoff-contract.md",
+        "skill/scripts/assemble_handoff.py": repo_root / "skill/scripts/assemble_handoff.py",
         "skill/scripts/status_fingerprint.py": repo_root / "skill/scripts/status_fingerprint.py",
         "runner.sh": repo_root / "tests/run-forward-evals.sh",
         "cases.json": repo_root / "evals/cases.json",
         "status_fingerprint.py": repo_root / "tests/status_fingerprint.py",
         "execution_contract.py": repo_root / "tests/execution_contract.py",
         "forward_eval_evidence.py": repo_root / "tests/forward_eval_evidence.py",
+        "tool_access_evidence.py": repo_root / "tests/tool_access_evidence.py",
     }
     seen = set()
     for entry in manifest.get("files", []):
@@ -222,11 +227,22 @@ def main():
                 stop("case not complete")
             destination = temp_root / source_root.name
             destination.mkdir(mode=0o700)
-            names = ("prompt.txt", "fixture-manifest.json", "post-state-manifest.json", "grounding-sources.json", "generation-evidence.json", "side-effect-evidence.json", "snapshot-evidence.json")
+            names = ("prompt.txt", "draft.txt", "assembly-manifest.json", "assembly-preamble.txt", "assembly-context.json", "fixture-manifest.json", "post-state-manifest.json", "grounding-sources.json", "generation-evidence.json", "side-effect-evidence.json", "snapshot-evidence.json", "tool-access-evidence.json")
             for name in names:
                 copy_artifact(source_root / name, destination / name, source_root.name + " " + name)
             generation = canonical_json(source_root / "generation-evidence.json")
             validate_generation_evidence(generation)
+            assembly = canonical_json(source_root / "assembly-manifest.json")
+            validate_assembly_evidence(
+                assembly,
+                regular_bytes(source_root / "draft.txt", source_root.name + " draft"),
+                regular_bytes(source_root / "response-1.txt", source_root.name + " final"),
+                regular_bytes(source_root / "assembly-preamble.txt", source_root.name + " preamble"),
+                regular_bytes(source_root / "assembly-context.json", source_root.name + " context"),
+                regular_bytes(run_root / "snapshot/skill/scripts/assemble_handoff.py", "snapshot assembler"),
+            )
+            if generation["draft_sha256"] != assembly["draft_sha256"] or generation["assembly_manifest_sha256"] != digest(regular_bytes(source_root / "assembly-manifest.json", "assembly manifest")) or generation["assembly_mode"] != assembly["mode"]:
+                stop("generation assembly binding")
             fixture_manifest = canonical_json(source_root / "fixture-manifest.json")
             post_state_manifest = canonical_json(source_root / "post-state-manifest.json")
             validate_state_manifest(fixture_manifest, source_root.name)
@@ -238,6 +254,7 @@ def main():
                 snapshot_digests["skill/SKILL.md"], snapshot_digests["runner.sh"], snapshot_digests["cases.json"],
             ))
             side_effect = canonical_json(source_root / "side-effect-evidence.json")
+            tool_access = canonical_json(source_root / "tool-access-evidence.json")
             validate_side_effect_evidence(
                 side_effect, source_root.name, generation["generation_read_only"],
                 fixture_manifest, post_state_manifest,
@@ -279,10 +296,11 @@ def main():
                     )
                     if generation["status_fingerprint_sha256"] != handoff["snapshot"]["status_fingerprint"]:
                         stop("generation status fingerprint binding")
-            except (UnicodeError, ContractError) as error:
+                validate_tool_access(tool_access, source_root.name, handoff is not None)
+            except (UnicodeError, ContractError, ToolAccessError) as error:
                 stop("case semantic replay " + source_root.name + ": " + str(error))
             artifacts = {}
-            for key, name in (("prompt", "prompt.txt"), ("fixture_manifest", "fixture-manifest.json"), ("post_state_manifest", "post-state-manifest.json"), ("grounding_sources", "grounding-sources.json"), ("generation_evidence", "generation-evidence.json"), ("side_effect_evidence", "side-effect-evidence.json"), ("snapshot_evidence", "snapshot-evidence.json")):
+            for key, name in (("prompt", "prompt.txt"), ("draft", "draft.txt"), ("assembly_manifest", "assembly-manifest.json"), ("assembly_preamble", "assembly-preamble.txt"), ("assembly_context", "assembly-context.json"), ("fixture_manifest", "fixture-manifest.json"), ("post_state_manifest", "post-state-manifest.json"), ("grounding_sources", "grounding-sources.json"), ("generation_evidence", "generation-evidence.json"), ("side_effect_evidence", "side-effect-evidence.json"), ("snapshot_evidence", "snapshot-evidence.json"), ("tool_access_evidence", "tool-access-evidence.json")):
                 artifacts[key] = published_reference(repo_root, destination / name, final_root / source_root.name / name)
             artifacts["responses"] = responses
             case_documents.append({"id": source_root.name, "outcome": "pass", "artifacts": artifacts, "session_command": COMMAND_TEMPLATE})
@@ -294,12 +312,15 @@ def main():
         raise
     bindings = {
         "skill": artifact_reference(repo_root, repo_root / "skill/SKILL.md"),
+        "handoff_contract": artifact_reference(repo_root, repo_root / "skill/references/handoff-contract.md"),
+        "runtime_assembler": artifact_reference(repo_root, repo_root / "skill/scripts/assemble_handoff.py"),
         "runtime_fingerprint": artifact_reference(repo_root, repo_root / "skill/scripts/status_fingerprint.py"),
         "runner": artifact_reference(repo_root, repo_root / "tests/run-forward-evals.sh"),
         "corpus": artifact_reference(repo_root, repo_root / "evals/cases.json"),
         "status_fingerprint": artifact_reference(repo_root, repo_root / "tests/status_fingerprint.py"),
         "execution_contract": artifact_reference(repo_root, repo_root / "tests/execution_contract.py"),
         "forward_eval_evidence": artifact_reference(repo_root, repo_root / "tests/forward_eval_evidence.py"),
+        "tool_access_evidence": artifact_reference(repo_root, repo_root / "tests/tool_access_evidence.py"),
         "snapshot_manifest": artifact_reference(repo_root, final_root / "snapshot-manifest.json"),
     }
     result = {
@@ -307,7 +328,7 @@ def main():
         "version": version,
         "status": "fresh-eval-passed",
         "runner": {"binary": "codex", "command_template": COMMAND_TEMPLATE, "snapshot_protocol": "read-only-snapshot-v2"},
-        "runtime": ["skill/SKILL.md", "skill/agents/openai.yaml", "skill/scripts/status_fingerprint.py"],
+        "runtime": ["skill/SKILL.md", "skill/agents/openai.yaml", "skill/references/handoff-contract.md", "skill/scripts/assemble_handoff.py", "skill/scripts/status_fingerprint.py"],
         "bindings": bindings,
         "cases": case_documents,
         "metrics": product["metrics"],
@@ -325,12 +346,15 @@ def main():
         "evidence_source": "aggregate-publisher-semantic-replay-v3-poststate-bound",
         "bindings": representative_bindings({
             "skill_sha256": bindings["skill"]["sha256"],
+            "handoff_contract_sha256": bindings["handoff_contract"]["sha256"],
+            "runtime_assembler_sha256": bindings["runtime_assembler"]["sha256"],
             "runtime_fingerprint_sha256": bindings["runtime_fingerprint"]["sha256"],
             "forward_runner_sha256": bindings["runner"]["sha256"],
             "corpus_sha256": bindings["corpus"]["sha256"],
             "fingerprint_sha256": bindings["status_fingerprint"]["sha256"],
             "contract_sha256": bindings["execution_contract"]["sha256"],
             "forward_evidence_sha256": bindings["forward_eval_evidence"]["sha256"],
+            "tool_access_evidence_sha256": bindings["tool_access_evidence"]["sha256"],
         }),
         "release_authorized": False,
     }

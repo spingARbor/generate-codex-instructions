@@ -1,0 +1,24 @@
+目标目录：`.`
+
+交接状态：`High-risk`，`partially blocked`。当前不生成可执行 Codex 指令。
+
+快照：tracker revision `32`；分支 `feature/mixed-plan`；HEAD `617ed0f7457f0d3773ea501b834dd6ab1cb8f209`；工作树无可见变更。
+
+- 阻塞项 ID：`U1`
+- owner：`schema owner`
+- Unit 状态：`Blocked`
+- detail：`API schema approval is missing.`
+- recovery：`The schema owner records approval and the authoritative G1 result.`
+- Gate：`G1`
+- Gate 状态：`unknown-definition`
+
+`progress.md` 与 `evidence/G1.pass` 声称 `G1` 已 `passed`，但 Gate registry 仍缺少完整定义、输入绑定、`input_fingerprint` 和有效的 `passed_evidence`，且明确记录没有 authoritative approval result，因此不能据此关闭 Gate。
+
+四项 High-risk 条件均未满足：
+
+1. 当前 revision 没有已批准且绑定的 migration gate。
+2. 没有已批准的 rollback evidence。
+3. 没有独立、逐动作记录 owner 与授权范围的 permission matrix；tracker prose 不构成授权。
+4. `version`、`tag`、`push`、`release`、`deployment` 和 provider 写入均未授权；测试、tracker 更新、本地 commit 也需要分别授权。
+
+恢复条件是：为 migration、rollback、permission 和 release 条件分别记录明确 ID、owner、当前 revision 绑定证据与结果；补全并协调 `G1` 的 authoritative 状态；由有权主体提供逐动作授权。满足这些条件后，才能在未漂移的仓库快照上重新生成交接。

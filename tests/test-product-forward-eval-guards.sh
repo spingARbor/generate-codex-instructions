@@ -56,7 +56,11 @@ require_text 'product forward eval stopped during'
 require_text '.code-review-graph/'
 require_text 'cleanup_evaluator_graph'
 require_text 'unexpected evaluator graph entry'
-require_text 'generator inspected helper source or used an unsupported helper command'
+require_text 'tool_access_evidence.py'
+require_text 'generation-tool-access-evidence.json'
+require_text 'runtime-snapshot.json'
+require_text 'HOST_PATH_PATTERN = re.compile('
+require_text 'HOST_PATH_PATTERN.sub("<host-path>", text)'
 
 if grep -F 'product-result.json' "$runner" >/dev/null; then
     printf '%s\n' "FAIL: product runner must not aggregate metrics" >&2
@@ -101,6 +105,25 @@ if PATH="$fake_bin:$PATH" PRODUCT_FORWARD_TIMEOUT_SECONDS=30 sh "$runner" >"$tes
 fi
 grep -F 'generator inspected helper source or used an unsupported helper command' "$test_root/run.log" >/dev/null || {
     printf '%s\n' 'FAIL: product helper source inspection failed for another reason' >&2
+    exit 1
+}
+
+cat >"$fake_bin/codex" <<'EOF'
+#!/bin/sh
+output=
+while [ "$#" -gt 0 ]; do
+    if [ "$1" = -o ]; then output=$2; shift 2; else shift; fi
+done
+[ -z "$output" ] || : >"$output"
+printf '%s\n' "/usr/bin/zsh -lc 'find /repo/skill -maxdepth 2 -type f' in /tmp/fixture"
+EOF
+chmod 0700 "$fake_bin/codex"
+if PATH="$fake_bin:$PATH" PRODUCT_FORWARD_TIMEOUT_SECONDS=30 sh "$runner" >"$test_root/package-list.log" 2>&1; then
+    printf '%s\n' 'FAIL: product runner accepted skill package listing' >&2
+    exit 1
+fi
+grep -F 'generator accessed an undeclared skill-package path' "$test_root/package-list.log" >/dev/null || {
+    printf '%s\n' 'FAIL: product package listing failed for another reason' >&2
     exit 1
 }
 

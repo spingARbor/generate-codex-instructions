@@ -17,9 +17,11 @@ from execution_contract import (
     parse_receipt,
     reconcile_expectations,
     validate_handoff_grounding,
+    validate_fixture_trace_semantics,
     validate_transition_protocol,
 )
 from status_fingerprint import FingerprintError, fingerprint
+from forward_eval_evidence import EvidenceFailure, validate_assembly_evidence
 
 
 class ProductEvidenceError(ValueError):
@@ -30,9 +32,29 @@ CASE_ID = "product-forward-label-validation"
 OWNER = "src/normalize_label.py"
 REGRESSION = "tests/test_normalize_label.py"
 ACCEPTANCE_COMMAND = "python3 -m unittest discover -s tests -v"
+RUNTIME_SNAPSHOT_FILES = (
+    "skill/SKILL.md",
+    "skill/agents/openai.yaml",
+    "skill/references/handoff-contract.md",
+    "skill/scripts/assemble_handoff.py",
+    "skill/scripts/status_fingerprint.py",
+    "tests/execution_contract.py",
+    "tests/forward_eval_evidence.py",
+    "tests/product_forward_evidence.py",
+    "tests/run-product-forward-eval.sh",
+    "tests/status_fingerprint.py",
+    "tests/tool_access_evidence.py",
+    "evals/cases.json",
+)
 RAW_ARTIFACTS = (
+    "runtime-snapshot.json",
     "generation-prompt.txt",
+    "generation-draft.txt",
     "generation-response.txt",
+    "generation-assembly-manifest.json",
+    "generation-assembly-preamble.txt",
+    "generation-assembly-context.json",
+    "generation-tool-access-evidence.json",
     "execution-prompt.txt",
     "execution-response.txt",
     "agents-before.md",
@@ -100,6 +122,25 @@ def regular_bytes(path, label):
     ):
         raise ProductEvidenceError(label + " ownership")
     return value
+
+
+def validate_runtime_snapshot(root, repo_root):
+    raw = regular_bytes(root / "runtime-snapshot.json", "runtime snapshot")
+    try:
+        document = json.loads(raw.decode("utf-8"))
+    except (UnicodeError, json.JSONDecodeError) as error:
+        raise ProductEvidenceError("runtime snapshot parse") from error
+    if raw != (json.dumps(document, ensure_ascii=False, separators=(",", ":")) + "\n").encode("utf-8"):
+        raise ProductEvidenceError("runtime snapshot canonical bytes")
+    if not isinstance(document, dict) or tuple(document) != ("schema_version", "files") or document["schema_version"] != 1:
+        raise ProductEvidenceError("runtime snapshot schema")
+    expected = []
+    for relative in RUNTIME_SNAPSHOT_FILES:
+        value = regular_bytes(repo_root / relative, "runtime source " + relative)
+        expected.append({"path": relative, "bytes": len(value), "sha256": digest(value)})
+    if document["files"] != expected:
+        raise ProductEvidenceError("runtime snapshot source binding")
+    return document
 
 
 def _text(root, name):
@@ -278,6 +319,7 @@ def validate_generated_grounding(root, handoff):
     }
     try:
         validate_handoff_grounding(handoff, expected)
+        validate_fixture_trace_semantics(handoff, "label-normalization")
     except ContractError as error:
         raise ProductEvidenceError("generated handoff grounding: " + str(error)) from error
 
@@ -443,6 +485,23 @@ def derive_product_result(root):
     if (root / "product-result.json").exists() or (root / "product-result.json").is_symlink():
         raise ProductEvidenceError("runner-aggregated product result is forbidden")
     generation_response = _text(root, "generation-response.txt")
+    try:
+        assembly_manifest = json.loads(_text(root, "generation-assembly-manifest.json"))
+        runtime_snapshot = json.loads(_text(root, "runtime-snapshot.json"))
+        assembler_digest = next(
+            entry["sha256"] for entry in runtime_snapshot["files"]
+            if entry["path"] == "skill/scripts/assemble_handoff.py"
+        )
+        validate_assembly_evidence(
+            assembly_manifest,
+            regular_bytes(root / "generation-draft.txt", "generation draft"),
+            generation_response.encode("utf-8"),
+            regular_bytes(root / "generation-assembly-preamble.txt", "assembly preamble"),
+            regular_bytes(root / "generation-assembly-context.json", "assembly context"),
+            assembler_digest,
+        )
+    except (EvidenceFailure, KeyError, StopIteration, json.JSONDecodeError) as error:
+        raise ProductEvidenceError("generation assembly evidence: " + str(error)) from error
     execution_response = _text(root, "execution-response.txt")
     if any(marker in generation_response or marker in execution_response for marker in ("/tmp/", "/home/", "/Users/")):
         raise ProductEvidenceError("response contains evaluator path")

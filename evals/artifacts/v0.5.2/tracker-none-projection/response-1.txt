@@ -1,0 +1,19 @@
+目标目录：`.`
+
+状态：`insufficient`。未生成可执行指令围栏。
+
+证据：
+
+- 分支：`feature/mixed-plan`
+- HEAD：`617ed0f7457f0d3773ea501b834dd6ab1cb8f209`
+- 仓库工作区干净。
+- 当前只读 projection 为 `tracker: none`。
+- `AGENTS.md` 指定的唯一 tracker `.project/development/` 当前不存在，且未授权创建 fallback tracker。
+- 因无 tracker，开放项数量、Unit 状态、owner、设计、测试及 Gate 定义均不可确定，无法证明唯一可执行 Unit。
+
+阻断条件：
+
+- ID：`tracker: none`
+- Owner：仓库规划所有者，具体 owner 未投影
+- Detail：不存在可供选择的 canonical Unit 或 Gate 记录。
+- Recovery：由获授权的仓库规划所有者提供 `.project/development/task_plan.md` 及其证据 projection，包含唯一 Unit ID、状态、owner、依赖和完整 Gate 定义后，方可重新生成交接。

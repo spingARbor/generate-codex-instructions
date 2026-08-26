@@ -1,0 +1,12 @@
+生成状态：阻塞，未生成 Codex 开发交接。
+
+- 仓库：`.`
+- Tracker：`.project/development/task_plan.md`，revision `24`
+- 选中单元：`U2`，状态 `In Progress`
+- Gates：`G1` = `passed`，`G2` = `pending`
+- blocker ID：`.project/development/.instruction-generation.lock`
+- owner：`preexisting invocation ownership`
+- detail：现有生成会话仍持有 tracker lock，并发生成被仓库规则禁止。
+- recovery：由当前持有者完成会话并移除 lock 后，重新请求生成。
+
+本次未修改 claim、lock、tracker、仓库文件或 Git 状态，也未留下临时 helper。

@@ -1,0 +1,16 @@
+状态：`partially blocked`，无法生成可执行的下一条 Codex 开发交接。
+
+目标目录：`.`
+Tracker：`.project/development/task_plan.md`，revision `32`
+分支/HEAD：`feature/mixed-plan` / `617ed0f7457f0d3773ea501b834dd6ab1cb8f209`，与 Git 一致，工作区干净。
+
+阻塞证据：
+
+- Unit `U1`：`Blocked`
+- Gate `G1`：`unknown-definition`
+- Blocker ID：`B1`
+- Owner：`schema-owner`
+- Detail：`API schema approval is missing.`
+- Recovery：`The schema owner records approval and an authoritative G1 result.`
+
+`progress.md` 虽记录 `G1` 为 `passed`，但缺少当前 revision 的权威审批结果，且与 plan anchor 中的 Gate 状态冲突，不能据此选择可执行 Unit。仓库、tracker 和 Git 状态均未修改。

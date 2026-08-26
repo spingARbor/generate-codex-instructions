@@ -19,8 +19,9 @@ from execution_contract import (
     gate_input_fingerprint,
     parse_handoff,
 )
-from product_forward_evidence import PRESTATE_SOURCES, digest, write_capture_manifest
+from product_forward_evidence import RUNTIME_SNAPSHOT_FILES, PRESTATE_SOURCES, digest, write_capture_manifest
 from status_fingerprint import fingerprint
+from tool_access_evidence import project_tool_access
 
 
 def fail(message):
@@ -83,6 +84,8 @@ def make_repo(source_root, root, name):
     for relative in (
         "skill/SKILL.md",
         "skill/agents/openai.yaml",
+        "skill/references/handoff-contract.md",
+        "skill/scripts/assemble_handoff.py",
         "skill/scripts/status_fingerprint.py",
         "tests/run-product-forward-eval.sh",
         "tests/publish-product-forward-results.py",
@@ -90,6 +93,7 @@ def make_repo(source_root, root, name):
         "tests/execution_contract.py",
         "tests/forward_eval_evidence.py",
         "tests/status_fingerprint.py",
+        "tests/tool_access_evidence.py",
         "evals/cases.json",
     ):
         destination = repo / relative
@@ -99,11 +103,36 @@ def make_repo(source_root, root, name):
     return repo
 
 
-def make_capture(root, name):
+def make_capture(root, name, repo=None):
     capture = root / name
     capture.mkdir(mode=0o700)
+    repo = repo or root / "repo"
+    runtime_files = []
+    for relative in RUNTIME_SNAPSHOT_FILES:
+        value = (repo / relative).read_bytes()
+        runtime_files.append({"path": relative, "bytes": len(value), "sha256": digest(value)})
     values = {
+        "runtime-snapshot.json": json.dumps(
+            {"schema_version": 1, "files": runtime_files},
+            ensure_ascii=False,
+            separators=(",", ":"),
+        ) + "\n",
         "generation-prompt.txt": "Generate a handoff.\n",
+        "generation-tool-access-evidence.json": json.dumps(
+            project_tool_access(
+                "product-forward-label-validation",
+                "\n".join((
+                    "/usr/bin/zsh -lc 'sed -n 1,80p /repo/skill/SKILL.md' in /tmp/fixture",
+                    "/usr/bin/zsh -lc 'sed -n 1,220p /repo/skill/references/handoff-contract.md' in /tmp/fixture",
+                    "/usr/bin/zsh -lc 'python3 /repo/skill/scripts/status_fingerprint.py --repository . --tracker .project/development/task_plan.md --unit U1 --profile Standard --emit context' in /tmp/fixture",
+                    "/usr/bin/zsh -lc 'python3 /repo/skill/scripts/status_fingerprint.py --repository . --tracker .project/development/task_plan.md --unit U1 --profile Standard --emit context' in /tmp/fixture",
+                    "/usr/bin/zsh -lc 'python3 /repo/skill/scripts/status_fingerprint.py --repository . --tracker .project/development/task_plan.md --unit U1 --profile Standard --emit preamble' in /tmp/fixture",
+                    "/usr/bin/zsh -lc 'python3 /repo/skill/scripts/status_fingerprint.py --repository . --tracker .project/development/task_plan.md --unit U1 --profile Standard --emit preamble' in /tmp/fixture",
+                )).encode("utf-8"),
+            ),
+            ensure_ascii=False,
+            separators=(",", ":"),
+        ) + "\n",
         "execution-prompt.txt": "Execute the handoff.\n",
         "execution-response.txt": "Implemented owner, regression, gate, and tracker closure.\n",
         "agents-before.md": "# Product fixture\n",
@@ -158,6 +187,20 @@ def make_capture(root, name):
         ),
     )
     values["generation-response.txt"] = grounded_generation_response(values)
+    values["generation-draft.txt"] = values["generation-response.txt"]
+    response_lines = values["generation-response.txt"].splitlines(keepends=True)
+    values["generation-assembly-preamble.txt"] = "".join(response_lines[1:11])
+    values["generation-assembly-context.json"] = "{}\n"
+    assembler_bytes = (repo / "skill/scripts/assemble_handoff.py").read_bytes()
+    values["generation-assembly-manifest.json"] = json.dumps({
+        "schema_version": 1,
+        "mode": "executable",
+        "draft_sha256": digest(values["generation-draft.txt"].encode("utf-8")),
+        "final_sha256": digest(values["generation-response.txt"].encode("utf-8")),
+        "preamble_sha256": digest(values["generation-assembly-preamble.txt"].encode("utf-8")),
+        "context_sha256": digest(values["generation-assembly-context.json"].encode("utf-8")),
+        "assembler_sha256": digest(assembler_bytes),
+    }, ensure_ascii=False, separators=(",", ":")) + "\n"
     for relative, value in values.items():
         path = capture / relative
         if isinstance(value, bytes):
@@ -175,6 +218,21 @@ def publish(repo, capture):
         text=True,
         capture_output=True,
     )
+
+
+def refresh_generation_assembly(capture, repo):
+    final = (capture / "generation-response.txt").read_bytes()
+    (capture / "generation-draft.txt").write_bytes(final)
+    preamble = b"".join(final.splitlines(keepends=True)[1:11])
+    (capture / "generation-assembly-preamble.txt").write_bytes(preamble)
+    context = (capture / "generation-assembly-context.json").read_bytes()
+    assembler = (repo / "skill/scripts/assemble_handoff.py").read_bytes()
+    (capture / "generation-assembly-manifest.json").write_text(json.dumps({
+        "schema_version": 1, "mode": "executable",
+        "draft_sha256": digest(final), "final_sha256": digest(final),
+        "preamble_sha256": digest(preamble), "context_sha256": digest(context),
+        "assembler_sha256": digest(assembler),
+    }, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
 
 
 def main():
@@ -199,6 +257,17 @@ def main():
         }:
             fail("raw artifact inventory")
 
+        runtime_tamper = make_capture(root, "runtime-tamper")
+        runtime_document = json.loads((runtime_tamper / "runtime-snapshot.json").read_text(encoding="utf-8"))
+        runtime_document["files"][0]["sha256"] = "0" * 64
+        (runtime_tamper / "runtime-snapshot.json").write_text(
+            json.dumps(runtime_document, ensure_ascii=False, separators=(",", ":")) + "\n",
+            encoding="utf-8",
+        )
+        runtime_result = publish(repo, runtime_tamper)
+        if runtime_result.returncode == 0 or "runtime snapshot source binding" not in runtime_result.stderr:
+            fail("tampered generation runtime snapshot accepted")
+
         semantic_mutations = {
             "repository-escape": lambda value: value.replace(
                 "Repository: .\n", "Repository: ../outside\n"
@@ -219,8 +288,12 @@ def main():
                 'Authoritative inputs: ["README.md"]',
             ),
             "fabricated-trace": lambda value: value.replace(
-                "Reject blank normalized labels at the owner boundary -> src/normalize_label.py: currently returns an empty string -> src/normalize_label.py: the documented guard is absent -> src/normalize_label.py: add the guard and update tests/test_normalize_label.py -> Preserve trim, TypeError, and public path. -> tests/test_normalize_label.py: positive and negative regression -> G1 -> tests/test_normalize_label.py; gate_evidence=none",
+                "Reject blank normalized labels at the owner boundary -> src/normalize_label.py: currently returns an empty string -> src/normalize_label.py: the documented empty-result guard is absent -> src/normalize_label.py: trim once, add the empty-result guard, and update tests/test_normalize_label.py -> Preserve trim, TypeError, and public path. -> tests/test_normalize_label.py: empty and whitespace-only positive/negative regression -> G1 -> tests/test_normalize_label.py; gate_evidence=none",
                 "A -> B -> C -> D -> E -> F -> G -> H",
+            ),
+            "source-prefixed-fabricated-trace": lambda value: value.replace(
+                "Reject blank normalized labels at the owner boundary -> src/normalize_label.py: currently returns an empty string -> src/normalize_label.py: the documented empty-result guard is absent -> src/normalize_label.py: trim once, add the empty-result guard, and update tests/test_normalize_label.py -> Preserve trim, TypeError, and public path. -> tests/test_normalize_label.py: empty and whitespace-only positive/negative regression -> G1 -> tests/test_normalize_label.py; gate_evidence=none",
+                "Reject blank normalized labels at the owner boundary -> src/normalize_label.py: FABRICATED baseline -> src/normalize_label.py: FABRICATED gap -> src/normalize_label.py: FABRICATED change -> Preserve trim, TypeError, and public path. -> tests/test_normalize_label.py: FABRICATED test -> G1 -> tests/test_normalize_label.py; gate_evidence=none",
             ),
             "custom-test-bypass": lambda value: value.replace(
                 "Action: test: run post-change acceptance and retain its fresh output",
@@ -291,6 +364,7 @@ def main():
         )
         (false_next / "progress-after.md").write_text(progress, encoding="utf-8")
         (false_next / "generation-response.txt").write_text(generated, encoding="utf-8")
+        refresh_generation_assembly(false_next, false_next_repo)
         write_capture_manifest(false_next)
         rejected = publish(false_next_repo, false_next)
         if rejected.returncode == 0 or not any(
@@ -328,7 +402,9 @@ def main():
         )
         write_capture_manifest(stub)
         rejected = publish(stub_repo, stub)
-        if rejected.returncode == 0 or "generated handoff" not in rejected.stderr:
+        if rejected.returncode == 0 or not any(
+            marker in rejected.stderr for marker in ("generated handoff", "generation assembly evidence")
+        ):
             fail("stub generated handoff accepted")
 
         mismatch_repo = make_repo(source_root, root, "mismatch-repo")
@@ -338,6 +414,7 @@ def main():
             "transitions=In Progress->Failed; from_revision=observed-prior; gate=G1:pending->failed",
         )
         (mismatch / "generation-response.txt").write_text(generated, encoding="utf-8")
+        refresh_generation_assembly(mismatch, mismatch_repo)
         write_capture_manifest(mismatch)
         rejected = publish(mismatch_repo, mismatch)
         if rejected.returncode == 0 or not any(
@@ -351,6 +428,7 @@ def main():
             "branch=product-forward", "branch=fabricated-branch", 1
         )
         (snapshot / "generation-response.txt").write_text(generated, encoding="utf-8")
+        refresh_generation_assembly(snapshot, snapshot_repo)
         write_capture_manifest(snapshot)
         rejected = publish(snapshot_repo, snapshot)
         if rejected.returncode == 0 or "ungrounded snapshot" not in rejected.stderr:
@@ -364,6 +442,7 @@ def main():
             "Unit counts: Complete=0; In Progress=1; Claimed=0; Ready=0; Blocked=0; Failed=0",
         ).replace('"id":"U1","state":"Ready"', '"id":"U1","state":"In Progress"')
         (inventory_capture / "generation-response.txt").write_text(generated, encoding="utf-8")
+        refresh_generation_assembly(inventory_capture, inventory_repo)
         write_capture_manifest(inventory_capture)
         rejected = publish(inventory_repo, inventory_capture)
         if rejected.returncode == 0 or "ungrounded open inventory" not in rejected.stderr:
@@ -374,6 +453,7 @@ def main():
         generated = (ledger_capture / "generation-response.txt").read_text(encoding="utf-8")
         generated = re.sub(r'"sha256":"[0-9a-f]{64}"', '"sha256":"' + "0" * 64 + '"', generated, count=1)
         (ledger_capture / "generation-response.txt").write_text(generated, encoding="utf-8")
+        refresh_generation_assembly(ledger_capture, ledger_repo)
         write_capture_manifest(ledger_capture)
         rejected = publish(ledger_repo, ledger_capture)
         if rejected.returncode == 0 or "ungrounded evidence ledger" not in rejected.stderr:

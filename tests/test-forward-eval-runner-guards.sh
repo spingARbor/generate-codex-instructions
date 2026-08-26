@@ -25,6 +25,10 @@ grep -F 'duplicate passed evidence fingerprint' "$runner" >/dev/null || \
     fail "passed evidence fingerprint binding"
 grep -F 'ordinary Gate receipt binding' "$runner" >/dev/null || \
     fail "ordinary implementation receipt binding"
+grep -F 'allowed_receipt_keys' "$runner" >/dev/null || \
+    fail "ordinary receipt optional evidence fields"
+grep -F 'if relative == "AGENTS.md" and case_id == "no-local-authority":' "$runner" >/dev/null || \
+    fail "zero-authority fingerprint evidence"
 grep -F 'src/AGENTS.md' "$runner" >/dev/null || \
     fail "nested authority fixture"
 for leaked_answer in \
@@ -41,8 +45,12 @@ do
 done
 grep -F "printf '%s\\n' '.project/' '.code-review-graph/'" "$runner" >/dev/null || \
     fail "evaluator graph status isolation"
-grep -F 'generator inspected helper source or used an unsupported helper command' "$runner" >/dev/null || \
-    fail "helper source-inspection guard"
+grep -F 'tool_access_evidence.py' "$runner" >/dev/null || \
+    fail "skill-package access evidence guard"
+grep -F 'HOST_PATH_PATTERN = re.compile(' "$runner" >/dev/null || \
+    fail "host-path sanitizer pattern"
+grep -F 'HOST_PATH_PATTERN.sub("<host-path>", text)' "$runner" >/dev/null || \
+    fail "host-path sanitizer application"
 grep -F '\`tracker: none\`' "$runner" >/dev/null || fail "tracker-none shell quoting"
 
 new_run_root() {
@@ -163,6 +171,25 @@ if PATH="$fake_bin:$PATH" sh "$runner" light-documentation "$root" >"$test_root/
 fi
 grep -F 'generator inspected helper source or used an unsupported helper command' "$test_root/helper-read.log" >/dev/null || \
     fail "helper source inspection failed for another reason"
+
+cat >"$fake_bin/codex" <<'EOF'
+#!/bin/sh
+output=
+while [ "$#" -gt 0 ]; do
+    if [ "$1" = -o ]; then output=$2; shift 2; else shift; fi
+done
+[ -z "${FAKE_PROMPT_CAPTURE:-}" ] || cat >"$FAKE_PROMPT_CAPTURE"
+[ -z "$output" ] || : >"$output"
+printf '%s\n' "/usr/bin/zsh -lc 'find ../../../snapshot/skill -maxdepth 2 -type f' in /tmp/fixture"
+EOF
+chmod 0700 "$fake_bin/codex"
+root=$(new_run_root package-list)
+sh "$runner" init "$root" >/dev/null 2>&1 || fail "package-list snapshot initialization"
+if PATH="$fake_bin:$PATH" sh "$runner" light-documentation "$root" >"$test_root/package-list.log" 2>&1; then
+    fail "skill package listing accepted"
+fi
+grep -F 'generator accessed an undeclared skill-package path' "$test_root/package-list.log" >/dev/null || \
+    fail "skill package listing failed for another reason"
 
 root=$(new_run_root tracker-none-shell)
 sh "$runner" init "$root" >/dev/null 2>&1 || fail "tracker-none snapshot initialization"

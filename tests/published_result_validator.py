@@ -13,6 +13,7 @@ from forward_eval_evidence import (
     contains_sensitive_evidence,
     manifest_file_sha256,
     validate_generation_evidence,
+    validate_assembly_evidence,
     validate_grounding_source_publication,
     validate_side_effect_evidence,
     validate_snapshot_evidence,
@@ -22,12 +23,14 @@ from product_forward_evidence import (
     ProductEvidenceError,
     RAW_ARTIFACTS,
     derive_product_result,
+    validate_runtime_snapshot,
 )
 from execution_contract import (
     ContractError,
     validate_forward_case,
     validate_generic_handoff_grounding,
 )
+from tool_access_evidence import ToolAccessError, validate_tool_access
 
 
 class ResultValidationError(ValueError):
@@ -37,12 +40,17 @@ class ResultValidationError(ValueError):
 COMMAND_TEMPLATE = "codex exec --ephemeral --sandbox workspace-write --add-dir <disposable-fixture> -C <disposable-fixture> -o <evaluator-output> -"
 GENERIC_ARTIFACTS = {
     "prompt": "prompt.txt",
+    "draft": "draft.txt",
+    "assembly_manifest": "assembly-manifest.json",
+    "assembly_preamble": "assembly-preamble.txt",
+    "assembly_context": "assembly-context.json",
     "fixture_manifest": "fixture-manifest.json",
     "post_state_manifest": "post-state-manifest.json",
     "grounding_sources": "grounding-sources.json",
     "generation_evidence": "generation-evidence.json",
     "side_effect_evidence": "side-effect-evidence.json",
     "snapshot_evidence": "snapshot-evidence.json",
+    "tool_access_evidence": "tool-access-evidence.json",
 }
 
 
@@ -165,6 +173,8 @@ def _validate_fixture_manifest(document, case_id):
 def _current_bindings(repo_root):
     return {
         "skill_sha256": digest(_regular_bytes(repo_root / "skill/SKILL.md", "skill")),
+        "handoff_contract_sha256": digest(_regular_bytes(repo_root / "skill/references/handoff-contract.md", "handoff contract")),
+        "runtime_assembler_sha256": digest(_regular_bytes(repo_root / "skill/scripts/assemble_handoff.py", "runtime assembler")),
         "runtime_fingerprint_sha256": digest(_regular_bytes(repo_root / "skill/scripts/status_fingerprint.py", "runtime fingerprint")),
         "forward_runner_sha256": digest(_regular_bytes(repo_root / "tests/run-forward-evals.sh", "forward runner")),
         "product_runner_sha256": digest(_regular_bytes(repo_root / "tests/run-product-forward-eval.sh", "product runner")),
@@ -172,25 +182,29 @@ def _current_bindings(repo_root):
         "fingerprint_sha256": digest(_regular_bytes(repo_root / "tests/status_fingerprint.py", "status fingerprint")),
         "contract_sha256": digest(_regular_bytes(repo_root / "tests/execution_contract.py", "execution contract")),
         "forward_evidence_sha256": digest(_regular_bytes(repo_root / "tests/forward_eval_evidence.py", "forward evidence")),
+        "tool_access_evidence_sha256": digest(_regular_bytes(repo_root / "tests/tool_access_evidence.py", "tool access evidence")),
     }
 
 
 def representative_bindings(core):
     required = {
-        "skill_sha256", "runtime_fingerprint_sha256", "forward_runner_sha256", "corpus_sha256",
+        "skill_sha256", "handoff_contract_sha256", "runtime_assembler_sha256", "runtime_fingerprint_sha256", "forward_runner_sha256", "corpus_sha256",
         "fingerprint_sha256", "contract_sha256",
-        "forward_evidence_sha256",
+        "forward_evidence_sha256", "tool_access_evidence_sha256",
     }
     if not isinstance(core, dict) or not required.issubset(core):
         raise ResultValidationError("representative binding source")
     return {
         "skill_sha256": core["skill_sha256"],
+        "handoff_contract_sha256": core["handoff_contract_sha256"],
+        "runtime_assembler_sha256": core["runtime_assembler_sha256"],
         "runtime_fingerprint_sha256": core["runtime_fingerprint_sha256"],
         "runner_sha256": core["forward_runner_sha256"],
         "corpus_sha256": core["corpus_sha256"],
         "fingerprint_sha256": core["fingerprint_sha256"],
         "contract_sha256": core["contract_sha256"],
         "forward_evidence_sha256": core["forward_evidence_sha256"],
+        "tool_access_evidence_sha256": core["tool_access_evidence_sha256"],
     }
 
 
@@ -198,11 +212,14 @@ def validate_product_result(repo_root, version, product):
     core = _current_bindings(repo_root)
     pending_bindings = {
         "skill_sha256": core["skill_sha256"],
+        "handoff_contract_sha256": core["handoff_contract_sha256"],
+        "runtime_assembler_sha256": core["runtime_assembler_sha256"],
         "runtime_fingerprint_sha256": core["runtime_fingerprint_sha256"],
         "runner_sha256": core["product_runner_sha256"],
         "corpus_sha256": core["corpus_sha256"],
         "fingerprint_sha256": core["fingerprint_sha256"],
         "contract_sha256": core["contract_sha256"],
+        "tool_access_evidence_sha256": core["tool_access_evidence_sha256"],
     }
     if product.get("version") != version or product.get("case") != "product-forward-label-validation":
         raise ResultValidationError("product identity")
@@ -220,6 +237,8 @@ def validate_product_result(repo_root, version, product):
         raise ResultValidationError("product provenance")
     expected_bindings = {
         "skill_sha256": core["skill_sha256"],
+        "handoff_contract_sha256": core["handoff_contract_sha256"],
+        "runtime_assembler_sha256": core["runtime_assembler_sha256"],
         "runtime_fingerprint_sha256": core["runtime_fingerprint_sha256"],
         "runner_sha256": core["product_runner_sha256"],
         "publisher_sha256": digest(_regular_bytes(repo_root / "tests/publish-product-forward-results.py", "product publisher")),
@@ -227,6 +246,7 @@ def validate_product_result(repo_root, version, product):
         "transition_helper_sha256": digest(_regular_bytes(repo_root / "tests/execution_contract.py", "transition helper")),
         "corpus_sha256": core["corpus_sha256"],
         "fingerprint_sha256": core["fingerprint_sha256"],
+        "tool_access_evidence_sha256": core["tool_access_evidence_sha256"],
     }
     if product.get("bindings") != expected_bindings:
         raise ResultValidationError("product bindings")
@@ -242,11 +262,19 @@ def validate_product_result(repo_root, version, product):
     if actual_names != expected_names:
         raise ResultValidationError("product artifact directory")
     try:
+        validate_runtime_snapshot(root, repo_root)
         derived = derive_product_result(root)
     except ProductEvidenceError as error:
         raise ResultValidationError("product replay: " + str(error)) from error
     if product.get("metrics") != derived["metrics"] or product.get("evidence") != derived["evidence"]:
         raise ResultValidationError("product derived claims")
+    try:
+        tool_access = json.loads(_regular_bytes(
+            root / "generation-tool-access-evidence.json", "product tool access"
+        ).decode("utf-8"))
+        validate_tool_access(tool_access, "product-forward-label-validation", True)
+    except (UnicodeError, json.JSONDecodeError, ToolAccessError) as error:
+        raise ResultValidationError("product tool access replay: " + str(error)) from error
     return True
 
 
@@ -265,7 +293,7 @@ def validate_repository(repo_root, require_release=False):
     if result.get("version") != version:
         raise ResultValidationError("result version")
     if result.get("status") == "pending-fresh-eval":
-        if result.get("schema_version") != 4 or result.get("runtime") != ["skill/SKILL.md", "skill/agents/openai.yaml", "skill/scripts/status_fingerprint.py"]:
+        if result.get("schema_version") != 4 or result.get("runtime") != ["skill/SKILL.md", "skill/agents/openai.yaml", "skill/references/handoff-contract.md", "skill/scripts/assemble_handoff.py", "skill/scripts/status_fingerprint.py"]:
             raise ResultValidationError("pending result schema/runtime")
         if result.get("cases") != [] or result.get("metrics") is not None or result.get("release_authorized") is not False:
             raise ResultValidationError("pending result claims")
@@ -279,7 +307,7 @@ def validate_repository(repo_root, require_release=False):
         return False
     if result.get("status") != "fresh-eval-passed" or result.get("schema_version") != 7:
         raise ResultValidationError("fresh result schema")
-    if result.get("runtime") != ["skill/SKILL.md", "skill/agents/openai.yaml", "skill/scripts/status_fingerprint.py"]:
+    if result.get("runtime") != ["skill/SKILL.md", "skill/agents/openai.yaml", "skill/references/handoff-contract.md", "skill/scripts/assemble_handoff.py", "skill/scripts/status_fingerprint.py"]:
         raise ResultValidationError("fresh runtime binding")
     if not product_ready:
         raise ResultValidationError("fresh result lacks fresh product evidence")
@@ -288,12 +316,15 @@ def validate_repository(repo_root, require_release=False):
     source_bindings = result.get("bindings")
     expected_sources = {
         "skill": "skill/SKILL.md",
+        "handoff_contract": "skill/references/handoff-contract.md",
+        "runtime_assembler": "skill/scripts/assemble_handoff.py",
         "runtime_fingerprint": "skill/scripts/status_fingerprint.py",
         "runner": "tests/run-forward-evals.sh",
         "corpus": "evals/cases.json",
         "status_fingerprint": "tests/status_fingerprint.py",
         "execution_contract": "tests/execution_contract.py",
         "forward_eval_evidence": "tests/forward_eval_evidence.py",
+        "tool_access_evidence": "tests/tool_access_evidence.py",
         "snapshot_manifest": "evals/artifacts/v" + version + "/snapshot-manifest.json",
     }
     if not isinstance(source_bindings, dict) or set(source_bindings) != set(expected_sources):
@@ -305,12 +336,15 @@ def validate_repository(repo_root, require_release=False):
     snapshot_manifest = json.loads(source_values["snapshot_manifest"].decode("utf-8"))
     expected_snapshot = {
         "skill/SKILL.md": digest(source_values["skill"]),
+        "skill/references/handoff-contract.md": digest(source_values["handoff_contract"]),
+        "skill/scripts/assemble_handoff.py": digest(source_values["runtime_assembler"]),
         "skill/scripts/status_fingerprint.py": digest(source_values["runtime_fingerprint"]),
         "runner.sh": digest(source_values["runner"]),
         "cases.json": digest(source_values["corpus"]),
         "status_fingerprint.py": digest(source_values["status_fingerprint"]),
         "execution_contract.py": digest(source_values["execution_contract"]),
         "forward_eval_evidence.py": digest(source_values["forward_eval_evidence"]),
+        "tool_access_evidence.py": digest(source_values["tool_access_evidence"]),
     }
     if snapshot_manifest.get("schema_version") != 1:
         raise ResultValidationError("snapshot manifest schema")
@@ -335,14 +369,22 @@ def validate_repository(repo_root, require_release=False):
         _validate_fixture_manifest(fixture, case_id)
         post_state = json.loads(values["post_state_manifest"].decode("utf-8"))
         generation = json.loads(values["generation_evidence"].decode("utf-8"))
+        assembly = json.loads(values["assembly_manifest"].decode("utf-8"))
         side_effect = json.loads(values["side_effect_evidence"].decode("utf-8"))
         snapshot = json.loads(values["snapshot_evidence"].decode("utf-8"))
         grounding_sources = json.loads(values["grounding_sources"].decode("utf-8"))
+        tool_access = json.loads(values["tool_access_evidence"].decode("utf-8"))
         try:
             validate_state_manifest(fixture, case_id)
             validate_state_manifest(post_state, case_id)
             validate_grounding_source_publication(grounding_sources, case_id)
             validate_generation_evidence(generation)
+            validate_assembly_evidence(
+                assembly, values["draft"],
+                _reference(repo_root, artifacts["responses"][-1], root + "/response-" + str(len(artifacts["responses"])) + ".txt"),
+                values["assembly_preamble"], values["assembly_context"],
+                source_values["runtime_assembler"],
+            )
             validate_side_effect_evidence(
                 side_effect, case_id, generation["generation_read_only"], fixture, post_state
             )
@@ -359,6 +401,8 @@ def validate_repository(repo_root, require_release=False):
             raise ResultValidationError("case tracker-before binding")
         if generation["tracker_after_sha256"] != manifest_file_sha256(post_state, ".project/development/task_plan.md"):
             raise ResultValidationError("case tracker-after binding")
+        if generation["draft_sha256"] != assembly["draft_sha256"] or generation["assembly_manifest_sha256"] != digest(values["assembly_manifest"]) or generation["assembly_mode"] != assembly["mode"]:
+            raise ResultValidationError("case assembly binding")
         responses = artifacts["responses"]
         if not isinstance(responses, list) or len(responses) != len(generation["response_sha256"]):
             raise ResultValidationError("case response count")
@@ -382,7 +426,8 @@ def validate_repository(repo_root, require_release=False):
                 )
                 if generation["status_fingerprint_sha256"] != handoff["snapshot"]["status_fingerprint"]:
                     raise ResultValidationError("case status fingerprint binding")
-        except (UnicodeError, ContractError) as error:
+            validate_tool_access(tool_access, case_id, handoff is not None)
+        except (UnicodeError, ContractError, ToolAccessError) as error:
             raise ResultValidationError("case semantic replay " + case_id + ": " + str(error)) from error
         actual = {path.name for path in (repo_root / root).iterdir()}
         expected = set(GENERIC_ARTIFACTS.values()) | {"response-" + str(index) + ".txt" for index in range(1, len(responses) + 1)}

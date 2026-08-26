@@ -1,0 +1,1 @@
+{"schema_version":1,"case_id":"plugin-prerequisites","raw_log_bytes":26789,"raw_log_sha256":"bb446e14517dab7ec8dbe015a7c6e91a95b64ca140103df4f43ecdacd71c04a3","accesses":[{"event":1,"kind":"read","path":"skill/SKILL.md","emit":"none","line_sha256":"a62cbd241488428d8a0b20e2f2e2d1e44d5e41dd5f41a85c44988262bf7ee94e"}]}

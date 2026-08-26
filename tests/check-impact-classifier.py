@@ -16,9 +16,9 @@ CHECKS = {
 
 def classify(path):
     normalized = PurePosixPath(path).as_posix()
-    if normalized in {"skill/SKILL.md", "README.md", "docs/superpowers/specs/2026-08-16-plan-convergence-output-design.md"}:
+    if normalized in {"skill/SKILL.md", "skill/references/handoff-contract.md", "README.md", "docs/superpowers/specs/2026-08-16-plan-convergence-output-design.md"}:
         return {"output_contract" if normalized.startswith("skill/") else "text"}
-    if normalized in {"skill/agents/openai.yaml", "skill/scripts/status_fingerprint.py", "install.sh"}:
+    if normalized in {"skill/agents/openai.yaml", "skill/scripts/assemble_handoff.py", "skill/scripts/status_fingerprint.py", "install.sh"}:
         return {"runtime_install"}
     if normalized.startswith("tests/run-") or normalized.startswith("tests/publish-"):
         return {"runner_or_publisher"}
@@ -44,8 +44,9 @@ def main():
         return
     vectors = {
         ("skill/SKILL.md",): {"output_contract"},
+        ("skill/references/handoff-contract.md",): {"output_contract"},
         ("README.md",): {"text"},
-        ("skill/agents/openai.yaml", "skill/scripts/status_fingerprint.py", "install.sh"): {"runtime_install"},
+        ("skill/agents/openai.yaml", "skill/scripts/assemble_handoff.py", "skill/scripts/status_fingerprint.py", "install.sh"): {"runtime_install"},
         ("tests/run-forward-evals.sh", "evals/cases.json"): {"behavior_protocol", "runner_or_publisher"},
         ("tests/forward_eval_evidence.py",): {"behavior_protocol"},
     }

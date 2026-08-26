@@ -1,0 +1,1 @@
+{"schema_version":1,"case_id":"generic-blocker","raw_log_bytes":17528,"raw_log_sha256":"8160c0e6eb9fd74767d1336fda9688446c4311da3d698f6bbd9f5ed7150f1cae","accesses":[{"event":1,"kind":"read","path":"skill/SKILL.md","emit":"none","line_sha256":"23676f0b0da29dcfc0348b192c07d6ce79aebe7e182fe572c3e6388c72e580ad"}]}

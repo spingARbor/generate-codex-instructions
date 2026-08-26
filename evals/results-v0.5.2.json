@@ -1,0 +1,1641 @@
+{
+  "schema_version": 7,
+  "version": "0.5.2",
+  "status": "fresh-eval-passed",
+  "runner": {
+    "binary": "codex",
+    "command_template": "codex exec --ephemeral --sandbox workspace-write --add-dir <disposable-fixture> -C <disposable-fixture> -o <evaluator-output> -",
+    "snapshot_protocol": "read-only-snapshot-v2"
+  },
+  "runtime": [
+    "skill/SKILL.md",
+    "skill/agents/openai.yaml",
+    "skill/references/handoff-contract.md",
+    "skill/scripts/assemble_handoff.py",
+    "skill/scripts/status_fingerprint.py"
+  ],
+  "bindings": {
+    "skill": {
+      "path": "skill/SKILL.md",
+      "sha256": "506c8ae6f91a3504a19742f191e6d7fddffe4022a2236fab3a9eabfc142aacb4",
+      "bytes": 7195
+    },
+    "handoff_contract": {
+      "path": "skill/references/handoff-contract.md",
+      "sha256": "6c88467229ec813cb8e2d7efac4418dd0520d40ab7cfaf00b86093f85aa0e24b",
+      "bytes": 9063
+    },
+    "runtime_assembler": {
+      "path": "skill/scripts/assemble_handoff.py",
+      "sha256": "0ddd406da8a666c0a20bf41e9342c080c3728c6db0cfc5e2d27a01ba5ca1b21b",
+      "bytes": 6670
+    },
+    "runtime_fingerprint": {
+      "path": "skill/scripts/status_fingerprint.py",
+      "sha256": "1b50ec997335d9026fac94523e19ff119715c5a72479f153078543053d3f338e",
+      "bytes": 26707
+    },
+    "runner": {
+      "path": "tests/run-forward-evals.sh",
+      "sha256": "8c2f0f7842a195fa36eb4c62c5bd5754cb2d6e49b252c368a63ed5baaa3b0f80",
+      "bytes": 69223
+    },
+    "corpus": {
+      "path": "evals/cases.json",
+      "sha256": "4b42b6ac993645c2c31628334cf3f489eadef9e63434e28f3e756d9ab3ddefb5",
+      "bytes": 5992
+    },
+    "status_fingerprint": {
+      "path": "tests/status_fingerprint.py",
+      "sha256": "0980d179cd3aecd755120ec1e05306b6b277f3b3f33bdaa63c2b465f15997db2",
+      "bytes": 5263
+    },
+    "execution_contract": {
+      "path": "tests/execution_contract.py",
+      "sha256": "7d4fa7b0cfebd7d613f77e193a5193c8e972eaed4ce68d9517ae488b1ecce989",
+      "bytes": 77004
+    },
+    "forward_eval_evidence": {
+      "path": "tests/forward_eval_evidence.py",
+      "sha256": "c2d24ac074b905263f4b249d348b59647b91a41e812abea0a84d2beb9a2ec730",
+      "bytes": 14501
+    },
+    "tool_access_evidence": {
+      "path": "tests/tool_access_evidence.py",
+      "sha256": "9175f0ea793c1ae5c83124ff02548e49046912e63a623102ad03a1612e15360c",
+      "bytes": 12819
+    },
+    "snapshot_manifest": {
+      "path": "evals/artifacts/v0.5.2/snapshot-manifest.json",
+      "sha256": "f8102d049550761849e4872447ac08bbdae172b803b2c8c44f7322d290118597",
+      "bytes": 1272
+    }
+  },
+  "cases": [
+    {
+      "id": "chinese-mixed-state-first-delivery",
+      "outcome": "pass",
+      "artifacts": {
+        "prompt": {
+          "path": "evals/artifacts/v0.5.2/chinese-mixed-state-first-delivery/prompt.txt",
+          "sha256": "400eb38e61771ebfca037f91eba829ade7f3004ac819a739082558bad704978a",
+          "bytes": 871
+        },
+        "draft": {
+          "path": "evals/artifacts/v0.5.2/chinese-mixed-state-first-delivery/draft.txt",
+          "sha256": "b5f0eeeef930e112af5f6b3e9306b6599c0c29538e78279af6e6f95cb2f1fdac",
+          "bytes": 9495
+        },
+        "assembly_manifest": {
+          "path": "evals/artifacts/v0.5.2/chinese-mixed-state-first-delivery/assembly-manifest.json",
+          "sha256": "7a24e850ad1578e3e3b9845735ed0555d904ab15d02aa422094551b02f1ed865",
+          "bytes": 460
+        },
+        "assembly_preamble": {
+          "path": "evals/artifacts/v0.5.2/chinese-mixed-state-first-delivery/assembly-preamble.txt",
+          "sha256": "5a2855e94dcd0b0dcd23d2a58ce538379431b45fb0af71e4b4e74b6a99e6dfa9",
+          "bytes": 1943
+        },
+        "assembly_context": {
+          "path": "evals/artifacts/v0.5.2/chinese-mixed-state-first-delivery/assembly-context.json",
+          "sha256": "d10984176be652be04643c28d24f9ba036b1b275412235c5a3bbbb837e78d38c",
+          "bytes": 635
+        },
+        "fixture_manifest": {
+          "path": "evals/artifacts/v0.5.2/chinese-mixed-state-first-delivery/fixture-manifest.json",
+          "sha256": "97ef4dd43a9ce67df8a5baaa375c7c85219dee46b646fdbd49fb3d9ff47d5f90",
+          "bytes": 1571
+        },
+        "post_state_manifest": {
+          "path": "evals/artifacts/v0.5.2/chinese-mixed-state-first-delivery/post-state-manifest.json",
+          "sha256": "97ef4dd43a9ce67df8a5baaa375c7c85219dee46b646fdbd49fb3d9ff47d5f90",
+          "bytes": 1571
+        },
+        "grounding_sources": {
+          "path": "evals/artifacts/v0.5.2/chinese-mixed-state-first-delivery/grounding-sources.json",
+          "sha256": "828e13d721fbf57fd6714d173cd719ac17213f8b105dc1bffaa9b6e19aeb0f21",
+          "bytes": 4595
+        },
+        "generation_evidence": {
+          "path": "evals/artifacts/v0.5.2/chinese-mixed-state-first-delivery/generation-evidence.json",
+          "sha256": "4db4a03432acb605d0a3800a3030e3e2bc7e4973b97d6bd654cada5c3fa642ff",
+          "bytes": 1302
+        },
+        "side_effect_evidence": {
+          "path": "evals/artifacts/v0.5.2/chinese-mixed-state-first-delivery/side-effect-evidence.json",
+          "sha256": "01315431ef20d5b9b5899e7a5cb7f8a82a00837665affa0597ab5f38a26dd244",
+          "bytes": 217
+        },
+        "snapshot_evidence": {
+          "path": "evals/artifacts/v0.5.2/chinese-mixed-state-first-delivery/snapshot-evidence.json",
+          "sha256": "459de92c57c094581b2e3f1a038db5a328fb8013a3df1ad07de524b26790aeea",
+          "bytes": 390
+        },
+        "tool_access_evidence": {
+          "path": "evals/artifacts/v0.5.2/chinese-mixed-state-first-delivery/tool-access-evidence.json",
+          "sha256": "be80a747c9d6ccbbd881d1986d75262ccc6c90b41e986001e67cbf04757d8692",
+          "bytes": 1189
+        },
+        "responses": [
+          {
+            "path": "evals/artifacts/v0.5.2/chinese-mixed-state-first-delivery/response-1.txt",
+            "sha256": "b5f0eeeef930e112af5f6b3e9306b6599c0c29538e78279af6e6f95cb2f1fdac",
+            "bytes": 9495
+          }
+        ]
+      },
+      "session_command": "codex exec --ephemeral --sandbox workspace-write --add-dir <disposable-fixture> -C <disposable-fixture> -o <evaluator-output> -"
+    },
+    {
+      "id": "complete-plan",
+      "outcome": "pass",
+      "artifacts": {
+        "prompt": {
+          "path": "evals/artifacts/v0.5.2/complete-plan/prompt.txt",
+          "sha256": "75cd2140c4f52411d62f95af702fa88cc6d59fde782ada192fc5e5b92c9f8f0a",
+          "bytes": 686
+        },
+        "draft": {
+          "path": "evals/artifacts/v0.5.2/complete-plan/draft.txt",
+          "sha256": "224e09bc55b941a500feda8b14fefe9acbdab5942e56d5cb48edfbc978d35d9a",
+          "bytes": 766
+        },
+        "assembly_manifest": {
+          "path": "evals/artifacts/v0.5.2/complete-plan/assembly-manifest.json",
+          "sha256": "01a0e95aff3414bf6487cc07790a9ff51e28a0ece6963c23ec128c0bf00cdfa5",
+          "bytes": 461
+        },
+        "assembly_preamble": {
+          "path": "evals/artifacts/v0.5.2/complete-plan/assembly-preamble.txt",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "assembly_context": {
+          "path": "evals/artifacts/v0.5.2/complete-plan/assembly-context.json",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "fixture_manifest": {
+          "path": "evals/artifacts/v0.5.2/complete-plan/fixture-manifest.json",
+          "sha256": "1d71294ccc8515b3a5ed0bb075a0ff7e5593107ecf080f76a96732e2de6864c9",
+          "bytes": 1550
+        },
+        "post_state_manifest": {
+          "path": "evals/artifacts/v0.5.2/complete-plan/post-state-manifest.json",
+          "sha256": "1d71294ccc8515b3a5ed0bb075a0ff7e5593107ecf080f76a96732e2de6864c9",
+          "bytes": 1550
+        },
+        "grounding_sources": {
+          "path": "evals/artifacts/v0.5.2/complete-plan/grounding-sources.json",
+          "sha256": "4726d72d94cd086de32264f81e0ab4c7d99c85c03e28486b3c18986b5f0982ad",
+          "bytes": 1482
+        },
+        "generation_evidence": {
+          "path": "evals/artifacts/v0.5.2/complete-plan/generation-evidence.json",
+          "sha256": "87c040bc881affe37cd72cbfef68c67beed1d3cf0a52a101842c84eeecbe83df",
+          "bytes": 1281
+        },
+        "side_effect_evidence": {
+          "path": "evals/artifacts/v0.5.2/complete-plan/side-effect-evidence.json",
+          "sha256": "fb423412fb5fa7331b17daa5b5c2de288f9a4be261875b44b447520fc8cb19cb",
+          "bytes": 196
+        },
+        "snapshot_evidence": {
+          "path": "evals/artifacts/v0.5.2/complete-plan/snapshot-evidence.json",
+          "sha256": "367e7a5b389f9ddaae76fbb88006c651146b0fdaba0db1b8d491159a7f70d1fa",
+          "bytes": 369
+        },
+        "tool_access_evidence": {
+          "path": "evals/artifacts/v0.5.2/complete-plan/tool-access-evidence.json",
+          "sha256": "24ca92dfb5b527b68ed78b8e96ed07fe1019aaf01fccc0a1df0af6b15e4fb1d8",
+          "bytes": 311
+        },
+        "responses": [
+          {
+            "path": "evals/artifacts/v0.5.2/complete-plan/response-1.txt",
+            "sha256": "224e09bc55b941a500feda8b14fefe9acbdab5942e56d5cb48edfbc978d35d9a",
+            "bytes": 766
+          }
+        ]
+      },
+      "session_command": "codex exec --ephemeral --sandbox workspace-write --add-dir <disposable-fixture> -C <disposable-fixture> -o <evaluator-output> -"
+    },
+    {
+      "id": "concurrency-conflict",
+      "outcome": "pass",
+      "artifacts": {
+        "prompt": {
+          "path": "evals/artifacts/v0.5.2/concurrency-conflict/prompt.txt",
+          "sha256": "fee067d66bc00fa8cf340ec5bd3cfd65fac1f31335b6a9e06fbf21b1337e36ae",
+          "bytes": 679
+        },
+        "draft": {
+          "path": "evals/artifacts/v0.5.2/concurrency-conflict/draft.txt",
+          "sha256": "4428d1b762fc7a50a4c0f884c51ca241045ed517a195673ca53334ca3a55bdb7",
+          "bytes": 615
+        },
+        "assembly_manifest": {
+          "path": "evals/artifacts/v0.5.2/concurrency-conflict/assembly-manifest.json",
+          "sha256": "f4fe3cf02f10446f2a22c930f4b8dbc089d751c5525cfef83d7f67e739582426",
+          "bytes": 461
+        },
+        "assembly_preamble": {
+          "path": "evals/artifacts/v0.5.2/concurrency-conflict/assembly-preamble.txt",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "assembly_context": {
+          "path": "evals/artifacts/v0.5.2/concurrency-conflict/assembly-context.json",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "fixture_manifest": {
+          "path": "evals/artifacts/v0.5.2/concurrency-conflict/fixture-manifest.json",
+          "sha256": "ab4cc35be7f46b239e5b78c5ed92e056a9432355b9582f0a84c7c4f8efb0259d",
+          "bytes": 1721
+        },
+        "post_state_manifest": {
+          "path": "evals/artifacts/v0.5.2/concurrency-conflict/post-state-manifest.json",
+          "sha256": "ab4cc35be7f46b239e5b78c5ed92e056a9432355b9582f0a84c7c4f8efb0259d",
+          "bytes": 1721
+        },
+        "grounding_sources": {
+          "path": "evals/artifacts/v0.5.2/concurrency-conflict/grounding-sources.json",
+          "sha256": "cd543fd34c6fdf89fa05b7424d643871c6c206e1c9c4716970083414d1ea0ad6",
+          "bytes": 4581
+        },
+        "generation_evidence": {
+          "path": "evals/artifacts/v0.5.2/concurrency-conflict/generation-evidence.json",
+          "sha256": "3c64f6852bf552f94ce71abf7621c9d9180bb60e47e9a7036ed5278e47a8bbfa",
+          "bytes": 1303
+        },
+        "side_effect_evidence": {
+          "path": "evals/artifacts/v0.5.2/concurrency-conflict/side-effect-evidence.json",
+          "sha256": "a1638dbc130071d065ac65b6b723f37605d71f5354532cb20858efdb663b5a24",
+          "bytes": 203
+        },
+        "snapshot_evidence": {
+          "path": "evals/artifacts/v0.5.2/concurrency-conflict/snapshot-evidence.json",
+          "sha256": "f5d972056c4d91774152d01461ec76f4c9f5d1507d59c015eb5e0f70747c73a6",
+          "bytes": 376
+        },
+        "tool_access_evidence": {
+          "path": "evals/artifacts/v0.5.2/concurrency-conflict/tool-access-evidence.json",
+          "sha256": "f942ce40ee3ad5cef17c7db5853bbfad924539af0e7d39b842dcaff005f8df64",
+          "bytes": 318
+        },
+        "responses": [
+          {
+            "path": "evals/artifacts/v0.5.2/concurrency-conflict/response-1.txt",
+            "sha256": "4428d1b762fc7a50a4c0f884c51ca241045ed517a195673ca53334ca3a55bdb7",
+            "bytes": 615
+          }
+        ]
+      },
+      "session_command": "codex exec --ephemeral --sandbox workspace-write --add-dir <disposable-fixture> -C <disposable-fixture> -o <evaluator-output> -"
+    },
+    {
+      "id": "correct-prerequisite-blocker",
+      "outcome": "pass",
+      "artifacts": {
+        "prompt": {
+          "path": "evals/artifacts/v0.5.2/correct-prerequisite-blocker/prompt.txt",
+          "sha256": "75cd2140c4f52411d62f95af702fa88cc6d59fde782ada192fc5e5b92c9f8f0a",
+          "bytes": 686
+        },
+        "draft": {
+          "path": "evals/artifacts/v0.5.2/correct-prerequisite-blocker/draft.txt",
+          "sha256": "f2156c1890b1e3d247215c5f3953eba2285db0437394138a864260a36ebfb11a",
+          "bytes": 757
+        },
+        "assembly_manifest": {
+          "path": "evals/artifacts/v0.5.2/correct-prerequisite-blocker/assembly-manifest.json",
+          "sha256": "3117cce7a4cfe54b549e941f1ee1fd25b50f232286a8e6a91c7fcc9673ffae22",
+          "bytes": 461
+        },
+        "assembly_preamble": {
+          "path": "evals/artifacts/v0.5.2/correct-prerequisite-blocker/assembly-preamble.txt",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "assembly_context": {
+          "path": "evals/artifacts/v0.5.2/correct-prerequisite-blocker/assembly-context.json",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "fixture_manifest": {
+          "path": "evals/artifacts/v0.5.2/correct-prerequisite-blocker/fixture-manifest.json",
+          "sha256": "1116271516ccace001a86453898d2507254f627dfb42971ba37aab8beaaa2106",
+          "bytes": 1565
+        },
+        "post_state_manifest": {
+          "path": "evals/artifacts/v0.5.2/correct-prerequisite-blocker/post-state-manifest.json",
+          "sha256": "1116271516ccace001a86453898d2507254f627dfb42971ba37aab8beaaa2106",
+          "bytes": 1565
+        },
+        "grounding_sources": {
+          "path": "evals/artifacts/v0.5.2/correct-prerequisite-blocker/grounding-sources.json",
+          "sha256": "ebec641bc59e84e91c8eb33ead5cb6ce4b436fd35a81260bd6a68845c996713b",
+          "bytes": 1773
+        },
+        "generation_evidence": {
+          "path": "evals/artifacts/v0.5.2/correct-prerequisite-blocker/generation-evidence.json",
+          "sha256": "97da6bb45919d37c9ee753ede367ef6aa306819c346e96cd9867c7a13265f99a",
+          "bytes": 1296
+        },
+        "side_effect_evidence": {
+          "path": "evals/artifacts/v0.5.2/correct-prerequisite-blocker/side-effect-evidence.json",
+          "sha256": "8c2d4e0291f75ec51e126aacb25655afdafa883b8fbde2edca3294712e336b4e",
+          "bytes": 211
+        },
+        "snapshot_evidence": {
+          "path": "evals/artifacts/v0.5.2/correct-prerequisite-blocker/snapshot-evidence.json",
+          "sha256": "9ba890eb6ce76e5955a87753042620c7af5f6345069e0b70c1501e2b017a0c56",
+          "bytes": 384
+        },
+        "tool_access_evidence": {
+          "path": "evals/artifacts/v0.5.2/correct-prerequisite-blocker/tool-access-evidence.json",
+          "sha256": "87d575ab2aebca88df3a448ff80d35091fdbacb12f5275d3e4066813aef7dd22",
+          "bytes": 326
+        },
+        "responses": [
+          {
+            "path": "evals/artifacts/v0.5.2/correct-prerequisite-blocker/response-1.txt",
+            "sha256": "f2156c1890b1e3d247215c5f3953eba2285db0437394138a864260a36ebfb11a",
+            "bytes": 757
+          }
+        ]
+      },
+      "session_command": "codex exec --ephemeral --sandbox workspace-write --add-dir <disposable-fixture> -C <disposable-fixture> -o <evaluator-output> -"
+    },
+    {
+      "id": "english-localization",
+      "outcome": "pass",
+      "artifacts": {
+        "prompt": {
+          "path": "evals/artifacts/v0.5.2/english-localization/prompt.txt",
+          "sha256": "057aff1bb008cbb0a9b48760b6f5d97cc5a6ce98698219817cd7d1b9141bba9e",
+          "bytes": 979
+        },
+        "draft": {
+          "path": "evals/artifacts/v0.5.2/english-localization/draft.txt",
+          "sha256": "06cc58e690c2198af21590d2e03c9c3c6ea824cffe52b87321543273f631b4ef",
+          "bytes": 9909
+        },
+        "assembly_manifest": {
+          "path": "evals/artifacts/v0.5.2/english-localization/assembly-manifest.json",
+          "sha256": "2b9c00331df98e349e0e18c105afcc71ce5b319a3efdb7700419a67fbed02874",
+          "bytes": 460
+        },
+        "assembly_preamble": {
+          "path": "evals/artifacts/v0.5.2/english-localization/assembly-preamble.txt",
+          "sha256": "e4321dd6c867dc8c2f8c31b661e1957257f41aeea1baabb23ad74037f4d5bca7",
+          "bytes": 1943
+        },
+        "assembly_context": {
+          "path": "evals/artifacts/v0.5.2/english-localization/assembly-context.json",
+          "sha256": "d10984176be652be04643c28d24f9ba036b1b275412235c5a3bbbb837e78d38c",
+          "bytes": 635
+        },
+        "fixture_manifest": {
+          "path": "evals/artifacts/v0.5.2/english-localization/fixture-manifest.json",
+          "sha256": "aa28cea7f800c9ad1958bfd590fd5c7abbad385191042fd293f511bb18e716dd",
+          "bytes": 1557
+        },
+        "post_state_manifest": {
+          "path": "evals/artifacts/v0.5.2/english-localization/post-state-manifest.json",
+          "sha256": "aa28cea7f800c9ad1958bfd590fd5c7abbad385191042fd293f511bb18e716dd",
+          "bytes": 1557
+        },
+        "grounding_sources": {
+          "path": "evals/artifacts/v0.5.2/english-localization/grounding-sources.json",
+          "sha256": "096a3f8236cf8e7172366925c7e2bd4ac996fb8f0ad473358e8056a48772c16a",
+          "bytes": 4581
+        },
+        "generation_evidence": {
+          "path": "evals/artifacts/v0.5.2/english-localization/generation-evidence.json",
+          "sha256": "ef19407eaedc970d525d41058af4f36d0e14bcb77b361c01b481fe95f8485689",
+          "bytes": 1288
+        },
+        "side_effect_evidence": {
+          "path": "evals/artifacts/v0.5.2/english-localization/side-effect-evidence.json",
+          "sha256": "e19b70c080233daa2715b3c79e34bc0cb9b412d673e5be2b268594ac9dcbe0df",
+          "bytes": 203
+        },
+        "snapshot_evidence": {
+          "path": "evals/artifacts/v0.5.2/english-localization/snapshot-evidence.json",
+          "sha256": "61fea3a05c09f2c62e690b488e75236e0d7662731ebf121f546bcb5cfabbf9f1",
+          "bytes": 376
+        },
+        "tool_access_evidence": {
+          "path": "evals/artifacts/v0.5.2/english-localization/tool-access-evidence.json",
+          "sha256": "8ff455d21485c8f356385d5237bb66b1698c51249d345801ed68cb27fe679d43",
+          "bytes": 1175
+        },
+        "responses": [
+          {
+            "path": "evals/artifacts/v0.5.2/english-localization/response-1.txt",
+            "sha256": "06cc58e690c2198af21590d2e03c9c3c6ea824cffe52b87321543273f631b4ef",
+            "bytes": 9909
+          }
+        ]
+      },
+      "session_command": "codex exec --ephemeral --sandbox workspace-write --add-dir <disposable-fixture> -C <disposable-fixture> -o <evaluator-output> -"
+    },
+    {
+      "id": "fence-safety",
+      "outcome": "pass",
+      "artifacts": {
+        "prompt": {
+          "path": "evals/artifacts/v0.5.2/fence-safety/prompt.txt",
+          "sha256": "9a5e1c3c627915002e6571cf2b6ea5d9971c87ec6d38feed3252af361420b207",
+          "bytes": 851
+        },
+        "draft": {
+          "path": "evals/artifacts/v0.5.2/fence-safety/draft.txt",
+          "sha256": "2d5031ce275f0078a491bf1b5da61f379822951eb5582546d608281b8bd96150",
+          "bytes": 10162
+        },
+        "assembly_manifest": {
+          "path": "evals/artifacts/v0.5.2/fence-safety/assembly-manifest.json",
+          "sha256": "1e6bf39d5eec843aac5b296d4f987dbd89380570c69a317261cd2afd460aefe6",
+          "bytes": 460
+        },
+        "assembly_preamble": {
+          "path": "evals/artifacts/v0.5.2/fence-safety/assembly-preamble.txt",
+          "sha256": "4af56dfce9529615a447ae6fa27cd07fce13321151b19d64d9d5f20b6fff7a38",
+          "bytes": 1943
+        },
+        "assembly_context": {
+          "path": "evals/artifacts/v0.5.2/fence-safety/assembly-context.json",
+          "sha256": "d10984176be652be04643c28d24f9ba036b1b275412235c5a3bbbb837e78d38c",
+          "bytes": 635
+        },
+        "fixture_manifest": {
+          "path": "evals/artifacts/v0.5.2/fence-safety/fixture-manifest.json",
+          "sha256": "9c2e42194786158209210f672ed7f07f37e51dd745be17eba2be8776ec8598d1",
+          "bytes": 1549
+        },
+        "post_state_manifest": {
+          "path": "evals/artifacts/v0.5.2/fence-safety/post-state-manifest.json",
+          "sha256": "9c2e42194786158209210f672ed7f07f37e51dd745be17eba2be8776ec8598d1",
+          "bytes": 1549
+        },
+        "grounding_sources": {
+          "path": "evals/artifacts/v0.5.2/fence-safety/grounding-sources.json",
+          "sha256": "a9f4e32e653d0218134a10e333d41976f50efb0d7126c720618a0eff295da723",
+          "bytes": 4573
+        },
+        "generation_evidence": {
+          "path": "evals/artifacts/v0.5.2/fence-safety/generation-evidence.json",
+          "sha256": "f007152d250412233d065ad90e4480e72b7157d1e37713b9c690beb202e5a8a6",
+          "bytes": 1281
+        },
+        "side_effect_evidence": {
+          "path": "evals/artifacts/v0.5.2/fence-safety/side-effect-evidence.json",
+          "sha256": "1d8b3df53b22a3dc15a40ab8f299087f32d8bb29b76b2d67c720ec8460a1f075",
+          "bytes": 195
+        },
+        "snapshot_evidence": {
+          "path": "evals/artifacts/v0.5.2/fence-safety/snapshot-evidence.json",
+          "sha256": "93e6aff7d74213ec8ee498325319c0764f523a667439a2a8d482a3f021651893",
+          "bytes": 368
+        },
+        "tool_access_evidence": {
+          "path": "evals/artifacts/v0.5.2/fence-safety/tool-access-evidence.json",
+          "sha256": "c9e7b2db49b60fb6eebb1d1dd90b9bcd06408a4868f6a8c4f91048c80e6b4c90",
+          "bytes": 1167
+        },
+        "responses": [
+          {
+            "path": "evals/artifacts/v0.5.2/fence-safety/response-1.txt",
+            "sha256": "2d5031ce275f0078a491bf1b5da61f379822951eb5582546d608281b8bd96150",
+            "bytes": 10162
+          }
+        ]
+      },
+      "session_command": "codex exec --ephemeral --sandbox workspace-write --add-dir <disposable-fixture> -C <disposable-fixture> -o <evaluator-output> -"
+    },
+    {
+      "id": "generic-blocker",
+      "outcome": "pass",
+      "artifacts": {
+        "prompt": {
+          "path": "evals/artifacts/v0.5.2/generic-blocker/prompt.txt",
+          "sha256": "75cd2140c4f52411d62f95af702fa88cc6d59fde782ada192fc5e5b92c9f8f0a",
+          "bytes": 686
+        },
+        "draft": {
+          "path": "evals/artifacts/v0.5.2/generic-blocker/draft.txt",
+          "sha256": "ba274ea3ce8c6f216b76757d5575d7672b9834df59563295c30fb2334a5fcba4",
+          "bytes": 743
+        },
+        "assembly_manifest": {
+          "path": "evals/artifacts/v0.5.2/generic-blocker/assembly-manifest.json",
+          "sha256": "6799fa290cc07564ec31b0e888219f0a2a0dfb2d695f94b914fd8c98be4f90a1",
+          "bytes": 461
+        },
+        "assembly_preamble": {
+          "path": "evals/artifacts/v0.5.2/generic-blocker/assembly-preamble.txt",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "assembly_context": {
+          "path": "evals/artifacts/v0.5.2/generic-blocker/assembly-context.json",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "fixture_manifest": {
+          "path": "evals/artifacts/v0.5.2/generic-blocker/fixture-manifest.json",
+          "sha256": "035c20f3cf69895f524a9f4763e666c34f03b75baf0ccc8c2293b6caf58d2b8e",
+          "bytes": 1551
+        },
+        "post_state_manifest": {
+          "path": "evals/artifacts/v0.5.2/generic-blocker/post-state-manifest.json",
+          "sha256": "035c20f3cf69895f524a9f4763e666c34f03b75baf0ccc8c2293b6caf58d2b8e",
+          "bytes": 1551
+        },
+        "grounding_sources": {
+          "path": "evals/artifacts/v0.5.2/generic-blocker/grounding-sources.json",
+          "sha256": "61ad677085a4ba82540c1407e3eeb422f3782b41beb25d896dae17d1573a3d9c",
+          "bytes": 1420
+        },
+        "generation_evidence": {
+          "path": "evals/artifacts/v0.5.2/generic-blocker/generation-evidence.json",
+          "sha256": "6187ce53abeea3284adf9e29cd9ee3826cd4e609ca839f2c4e26049d14af9558",
+          "bytes": 1283
+        },
+        "side_effect_evidence": {
+          "path": "evals/artifacts/v0.5.2/generic-blocker/side-effect-evidence.json",
+          "sha256": "6db4b954c11769ed753afc54a454cf07ad9967903c8955493431f4111e26cdc2",
+          "bytes": 198
+        },
+        "snapshot_evidence": {
+          "path": "evals/artifacts/v0.5.2/generic-blocker/snapshot-evidence.json",
+          "sha256": "8ecb81c0402ce9828dc439893f21a1da3f0b23abcc3b71f5fda43242e02da25d",
+          "bytes": 371
+        },
+        "tool_access_evidence": {
+          "path": "evals/artifacts/v0.5.2/generic-blocker/tool-access-evidence.json",
+          "sha256": "3d77d49dd290ad754fd4702f5e962d0b271dafd872f982a9200669a6c7e81ce9",
+          "bytes": 313
+        },
+        "responses": [
+          {
+            "path": "evals/artifacts/v0.5.2/generic-blocker/response-1.txt",
+            "sha256": "ba274ea3ce8c6f216b76757d5575d7672b9834df59563295c30fb2334a5fcba4",
+            "bytes": 743
+          }
+        ]
+      },
+      "session_command": "codex exec --ephemeral --sandbox workspace-write --add-dir <disposable-fixture> -C <disposable-fixture> -o <evaluator-output> -"
+    },
+    {
+      "id": "git-permission-split",
+      "outcome": "pass",
+      "artifacts": {
+        "prompt": {
+          "path": "evals/artifacts/v0.5.2/git-permission-split/prompt.txt",
+          "sha256": "be6a0bb308f28d2c65379e7677c752eaff4fb20d2d8879b01f440673022778b6",
+          "bytes": 939
+        },
+        "draft": {
+          "path": "evals/artifacts/v0.5.2/git-permission-split/draft.txt",
+          "sha256": "983672006399d2dfd94460d4069784b55d185135aba165c9ef0f9f3da969ccdb",
+          "bytes": 9761
+        },
+        "assembly_manifest": {
+          "path": "evals/artifacts/v0.5.2/git-permission-split/assembly-manifest.json",
+          "sha256": "8f44f04156c19f4e53cb2ca93b0b167e24b5021e69deaa692aaa0a48e8fb4864",
+          "bytes": 460
+        },
+        "assembly_preamble": {
+          "path": "evals/artifacts/v0.5.2/git-permission-split/assembly-preamble.txt",
+          "sha256": "f9b7b60db2d983567f0843809556368daebfa9e738fcbabcf5cf39c78dcbdac7",
+          "bytes": 1943
+        },
+        "assembly_context": {
+          "path": "evals/artifacts/v0.5.2/git-permission-split/assembly-context.json",
+          "sha256": "d10984176be652be04643c28d24f9ba036b1b275412235c5a3bbbb837e78d38c",
+          "bytes": 635
+        },
+        "fixture_manifest": {
+          "path": "evals/artifacts/v0.5.2/git-permission-split/fixture-manifest.json",
+          "sha256": "677803b56a576ff6c23daab8098903d3f4acaecf605f72344a8ad3fe8e1ec1e0",
+          "bytes": 1557
+        },
+        "post_state_manifest": {
+          "path": "evals/artifacts/v0.5.2/git-permission-split/post-state-manifest.json",
+          "sha256": "677803b56a576ff6c23daab8098903d3f4acaecf605f72344a8ad3fe8e1ec1e0",
+          "bytes": 1557
+        },
+        "grounding_sources": {
+          "path": "evals/artifacts/v0.5.2/git-permission-split/grounding-sources.json",
+          "sha256": "1178feea6cf3a51c453fd269bec4140736fcc0dca1f37459b4f3ec7661a25bbd",
+          "bytes": 4713
+        },
+        "generation_evidence": {
+          "path": "evals/artifacts/v0.5.2/git-permission-split/generation-evidence.json",
+          "sha256": "7d7026973ee516a47ad7f0121b537676855966a9702ce43415fa4ec5533f2f23",
+          "bytes": 1288
+        },
+        "side_effect_evidence": {
+          "path": "evals/artifacts/v0.5.2/git-permission-split/side-effect-evidence.json",
+          "sha256": "155528b76b10bb123e0d0bd4bc804169b15e96ce0ffcb7ad5102c098c2f096c6",
+          "bytes": 203
+        },
+        "snapshot_evidence": {
+          "path": "evals/artifacts/v0.5.2/git-permission-split/snapshot-evidence.json",
+          "sha256": "063bd56d5563e83b744cd8e7adbeaff5c61a043d268e1d235103609f6a2bdbaf",
+          "bytes": 376
+        },
+        "tool_access_evidence": {
+          "path": "evals/artifacts/v0.5.2/git-permission-split/tool-access-evidence.json",
+          "sha256": "07ec2622debe1c2666b8aacaf31e5c58ee67103b97489a48ecd703228b5e159f",
+          "bytes": 1175
+        },
+        "responses": [
+          {
+            "path": "evals/artifacts/v0.5.2/git-permission-split/response-1.txt",
+            "sha256": "983672006399d2dfd94460d4069784b55d185135aba165c9ef0f9f3da969ccdb",
+            "bytes": 9761
+          }
+        ]
+      },
+      "session_command": "codex exec --ephemeral --sandbox workspace-write --add-dir <disposable-fixture> -C <disposable-fixture> -o <evaluator-output> -"
+    },
+    {
+      "id": "high-risk-public-consumer",
+      "outcome": "pass",
+      "artifacts": {
+        "prompt": {
+          "path": "evals/artifacts/v0.5.2/high-risk-public-consumer/prompt.txt",
+          "sha256": "400eb38e61771ebfca037f91eba829ade7f3004ac819a739082558bad704978a",
+          "bytes": 871
+        },
+        "draft": {
+          "path": "evals/artifacts/v0.5.2/high-risk-public-consumer/draft.txt",
+          "sha256": "72f5cc6affd3d9206094437f18c261e031eb4b253f6b4256ab8909d06c3e3e70",
+          "bytes": 10761
+        },
+        "assembly_manifest": {
+          "path": "evals/artifacts/v0.5.2/high-risk-public-consumer/assembly-manifest.json",
+          "sha256": "5777dc55405d6eeca5d5e82e1e4f23c64cd571e03eb506d5a222e93b2c1a5f58",
+          "bytes": 460
+        },
+        "assembly_preamble": {
+          "path": "evals/artifacts/v0.5.2/high-risk-public-consumer/assembly-preamble.txt",
+          "sha256": "c8257d8ab972c464ea0473e62d138428885f5530d2a73a4c8212eb68783f8ace",
+          "bytes": 2028
+        },
+        "assembly_context": {
+          "path": "evals/artifacts/v0.5.2/high-risk-public-consumer/assembly-context.json",
+          "sha256": "5e46676b93330dea8316a77cea9e78e7ba435b8dc174215b44563bc8a8a7fa63",
+          "bytes": 1011
+        },
+        "fixture_manifest": {
+          "path": "evals/artifacts/v0.5.2/high-risk-public-consumer/fixture-manifest.json",
+          "sha256": "7e3d0cfb5044957a2db0f5a8929ced23d30e75da98e2bba690234abfd3314e1f",
+          "bytes": 1691
+        },
+        "post_state_manifest": {
+          "path": "evals/artifacts/v0.5.2/high-risk-public-consumer/post-state-manifest.json",
+          "sha256": "7e3d0cfb5044957a2db0f5a8929ced23d30e75da98e2bba690234abfd3314e1f",
+          "bytes": 1691
+        },
+        "grounding_sources": {
+          "path": "evals/artifacts/v0.5.2/high-risk-public-consumer/grounding-sources.json",
+          "sha256": "6f240eb17e3fa88d0284e44fc277f26cb3f64cd816deb661c6ad16d2b8760355",
+          "bytes": 5146
+        },
+        "generation_evidence": {
+          "path": "evals/artifacts/v0.5.2/high-risk-public-consumer/generation-evidence.json",
+          "sha256": "b6c75aece52c80ca0e9d51d148d371235487add7ed937887df37fa58d7c75c5f",
+          "bytes": 1294
+        },
+        "side_effect_evidence": {
+          "path": "evals/artifacts/v0.5.2/high-risk-public-consumer/side-effect-evidence.json",
+          "sha256": "a8edf221c3991ade3fe0bfaa42bb2992ab7894b10684e1e038b16a9aa1a822e0",
+          "bytes": 208
+        },
+        "snapshot_evidence": {
+          "path": "evals/artifacts/v0.5.2/high-risk-public-consumer/snapshot-evidence.json",
+          "sha256": "da33a6dda0431a6842bd15e64f9c9fc8ea2634f891d69cfebba6874b4f61a5ec",
+          "bytes": 381
+        },
+        "tool_access_evidence": {
+          "path": "evals/artifacts/v0.5.2/high-risk-public-consumer/tool-access-evidence.json",
+          "sha256": "41d8dba42bfe927d113582ca42b4e0ade1537833064dbefddf1b4ebeaf5be392",
+          "bytes": 1180
+        },
+        "responses": [
+          {
+            "path": "evals/artifacts/v0.5.2/high-risk-public-consumer/response-1.txt",
+            "sha256": "72f5cc6affd3d9206094437f18c261e031eb4b253f6b4256ab8909d06c3e3e70",
+            "bytes": 10761
+          }
+        ]
+      },
+      "session_command": "codex exec --ephemeral --sandbox workspace-write --add-dir <disposable-fixture> -C <disposable-fixture> -o <evaluator-output> -"
+    },
+    {
+      "id": "insufficient-information",
+      "outcome": "pass",
+      "artifacts": {
+        "prompt": {
+          "path": "evals/artifacts/v0.5.2/insufficient-information/prompt.txt",
+          "sha256": "75cd2140c4f52411d62f95af702fa88cc6d59fde782ada192fc5e5b92c9f8f0a",
+          "bytes": 686
+        },
+        "draft": {
+          "path": "evals/artifacts/v0.5.2/insufficient-information/draft.txt",
+          "sha256": "4003ad788d146d9f08a574800d53118b11138284326d0dbcaffc54622e2d1925",
+          "bytes": 757
+        },
+        "assembly_manifest": {
+          "path": "evals/artifacts/v0.5.2/insufficient-information/assembly-manifest.json",
+          "sha256": "fd219982ed0c3c789013925baa3259f9b2c60087682dd096b78d295f98dfe613",
+          "bytes": 461
+        },
+        "assembly_preamble": {
+          "path": "evals/artifacts/v0.5.2/insufficient-information/assembly-preamble.txt",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "assembly_context": {
+          "path": "evals/artifacts/v0.5.2/insufficient-information/assembly-context.json",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "fixture_manifest": {
+          "path": "evals/artifacts/v0.5.2/insufficient-information/fixture-manifest.json",
+          "sha256": "b76256adfcee35050745e01826e45dd9e59694d8f33dcf8f0fff5e61762e81cc",
+          "bytes": 1560
+        },
+        "post_state_manifest": {
+          "path": "evals/artifacts/v0.5.2/insufficient-information/post-state-manifest.json",
+          "sha256": "b76256adfcee35050745e01826e45dd9e59694d8f33dcf8f0fff5e61762e81cc",
+          "bytes": 1560
+        },
+        "grounding_sources": {
+          "path": "evals/artifacts/v0.5.2/insufficient-information/grounding-sources.json",
+          "sha256": "01b0e9ed5182b63bfb65000e1e4468ac1a7e3eb8966cf5a515f2fbfbbd0da4db",
+          "bytes": 1261
+        },
+        "generation_evidence": {
+          "path": "evals/artifacts/v0.5.2/insufficient-information/generation-evidence.json",
+          "sha256": "ae0354e1c0ceb5cb76a2841f61724099f8c750765f8e12cd01cea832fc1a1997",
+          "bytes": 1292
+        },
+        "side_effect_evidence": {
+          "path": "evals/artifacts/v0.5.2/insufficient-information/side-effect-evidence.json",
+          "sha256": "70eb80ad639c4c5c65f1f972de1b74a6b4e9499f3fc122640a3a4340a1ff15eb",
+          "bytes": 207
+        },
+        "snapshot_evidence": {
+          "path": "evals/artifacts/v0.5.2/insufficient-information/snapshot-evidence.json",
+          "sha256": "5c427e03999ae7a0797a68ffe05238e463c901be1915bf7ebd18a3f16d49458e",
+          "bytes": 380
+        },
+        "tool_access_evidence": {
+          "path": "evals/artifacts/v0.5.2/insufficient-information/tool-access-evidence.json",
+          "sha256": "a5ec7d180c3ce00a153f216be009096fcd226c5ae6b0f584d987aa2222fba14e",
+          "bytes": 322
+        },
+        "responses": [
+          {
+            "path": "evals/artifacts/v0.5.2/insufficient-information/response-1.txt",
+            "sha256": "4003ad788d146d9f08a574800d53118b11138284326d0dbcaffc54622e2d1925",
+            "bytes": 757
+          }
+        ]
+      },
+      "session_command": "codex exec --ephemeral --sandbox workspace-write --add-dir <disposable-fixture> -C <disposable-fixture> -o <evaluator-output> -"
+    },
+    {
+      "id": "light-documentation",
+      "outcome": "pass",
+      "artifacts": {
+        "prompt": {
+          "path": "evals/artifacts/v0.5.2/light-documentation/prompt.txt",
+          "sha256": "400eb38e61771ebfca037f91eba829ade7f3004ac819a739082558bad704978a",
+          "bytes": 871
+        },
+        "draft": {
+          "path": "evals/artifacts/v0.5.2/light-documentation/draft.txt",
+          "sha256": "10f3eb2a8fad28dc923e3149ee72d3109f6a8403c6045b4330f616734c9f8c64",
+          "bytes": 6041
+        },
+        "assembly_manifest": {
+          "path": "evals/artifacts/v0.5.2/light-documentation/assembly-manifest.json",
+          "sha256": "34eb72637bd65507fe089c76cf1259c4d04b655883d35ca21118fbfc8d8aff5d",
+          "bytes": 460
+        },
+        "assembly_preamble": {
+          "path": "evals/artifacts/v0.5.2/light-documentation/assembly-preamble.txt",
+          "sha256": "dfc76eb1050943eb2a8596152958747239d2ceffd93cb6c4d32a8fd17fcf1b81",
+          "bytes": 1844
+        },
+        "assembly_context": {
+          "path": "evals/artifacts/v0.5.2/light-documentation/assembly-context.json",
+          "sha256": "ca542b32b774c31c60324717631fc879eeace8fc2d9a9e518eaf096ef15dc1de",
+          "bytes": 2170
+        },
+        "fixture_manifest": {
+          "path": "evals/artifacts/v0.5.2/light-documentation/fixture-manifest.json",
+          "sha256": "045c8f678244af06add740e70fe19b6e51f417ea8a18a0bcda51e44b2a508005",
+          "bytes": 1592
+        },
+        "post_state_manifest": {
+          "path": "evals/artifacts/v0.5.2/light-documentation/post-state-manifest.json",
+          "sha256": "045c8f678244af06add740e70fe19b6e51f417ea8a18a0bcda51e44b2a508005",
+          "bytes": 1592
+        },
+        "grounding_sources": {
+          "path": "evals/artifacts/v0.5.2/light-documentation/grounding-sources.json",
+          "sha256": "c062361e322a6b6de060321fa61d6495ae0f805b5f71026e35fadb17f6ad1066",
+          "bytes": 4308
+        },
+        "generation_evidence": {
+          "path": "evals/artifacts/v0.5.2/light-documentation/generation-evidence.json",
+          "sha256": "ef6d446adb2c72c628777b979b65b5072eae5dc1f5dfe0ff0b1ffbe60b2bd366",
+          "bytes": 1287
+        },
+        "side_effect_evidence": {
+          "path": "evals/artifacts/v0.5.2/light-documentation/side-effect-evidence.json",
+          "sha256": "a843243e105acf5167aa9901749f2ef77fa9c7e7bcb027cc22b827e824294e52",
+          "bytes": 238
+        },
+        "snapshot_evidence": {
+          "path": "evals/artifacts/v0.5.2/light-documentation/snapshot-evidence.json",
+          "sha256": "b3f85b95a0422cd3b3959b3d25bfbc334bb8739c03b09da59f073116d6e81c1a",
+          "bytes": 375
+        },
+        "tool_access_evidence": {
+          "path": "evals/artifacts/v0.5.2/light-documentation/tool-access-evidence.json",
+          "sha256": "586c615afb510a8dd66561c2341cc39cddf505bc85efec2ee1f8bdc0cb6fb8ab",
+          "bytes": 1174
+        },
+        "responses": [
+          {
+            "path": "evals/artifacts/v0.5.2/light-documentation/response-1.txt",
+            "sha256": "10f3eb2a8fad28dc923e3149ee72d3109f6a8403c6045b4330f616734c9f8c64",
+            "bytes": 6041
+          }
+        ]
+      },
+      "session_command": "codex exec --ephemeral --sandbox workspace-write --add-dir <disposable-fixture> -C <disposable-fixture> -o <evaluator-output> -"
+    },
+    {
+      "id": "migration-permission-release-blocker",
+      "outcome": "pass",
+      "artifacts": {
+        "prompt": {
+          "path": "evals/artifacts/v0.5.2/migration-permission-release-blocker/prompt.txt",
+          "sha256": "843b745aac3f705df20f23b9523441a94ac7f31eb8a5f8fe4cec8178fd5190ce",
+          "bytes": 763
+        },
+        "draft": {
+          "path": "evals/artifacts/v0.5.2/migration-permission-release-blocker/draft.txt",
+          "sha256": "4feb35eef242a2ab69fb417d7ae30a2cd2244e8fdf581723ae5026077dc25900",
+          "bytes": 1501
+        },
+        "assembly_manifest": {
+          "path": "evals/artifacts/v0.5.2/migration-permission-release-blocker/assembly-manifest.json",
+          "sha256": "5cd0180f30942bfbcf229d65de96c1a656c1964bd097c22cd6b15ea851721c21",
+          "bytes": 461
+        },
+        "assembly_preamble": {
+          "path": "evals/artifacts/v0.5.2/migration-permission-release-blocker/assembly-preamble.txt",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "assembly_context": {
+          "path": "evals/artifacts/v0.5.2/migration-permission-release-blocker/assembly-context.json",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "fixture_manifest": {
+          "path": "evals/artifacts/v0.5.2/migration-permission-release-blocker/fixture-manifest.json",
+          "sha256": "8abf907ed83a8418ba3d9cf40eda222ac72adce2ee3bf0cbe92abbebb4e17750",
+          "bytes": 1573
+        },
+        "post_state_manifest": {
+          "path": "evals/artifacts/v0.5.2/migration-permission-release-blocker/post-state-manifest.json",
+          "sha256": "8abf907ed83a8418ba3d9cf40eda222ac72adce2ee3bf0cbe92abbebb4e17750",
+          "bytes": 1573
+        },
+        "grounding_sources": {
+          "path": "evals/artifacts/v0.5.2/migration-permission-release-blocker/grounding-sources.json",
+          "sha256": "f1f216969863f96612087a4b4b31e26e9a56ebad9f80c712b952d91ad7ccc644",
+          "bytes": 1981
+        },
+        "generation_evidence": {
+          "path": "evals/artifacts/v0.5.2/migration-permission-release-blocker/generation-evidence.json",
+          "sha256": "b3fc2ca6df000edc4ee041cd1c586071165c0de49bfda335d95840e248d0f382",
+          "bytes": 1305
+        },
+        "side_effect_evidence": {
+          "path": "evals/artifacts/v0.5.2/migration-permission-release-blocker/side-effect-evidence.json",
+          "sha256": "8bff9396453f35029167c6302088383b828a717a30b6b3991279e202c2f95280",
+          "bytes": 219
+        },
+        "snapshot_evidence": {
+          "path": "evals/artifacts/v0.5.2/migration-permission-release-blocker/snapshot-evidence.json",
+          "sha256": "c0d71ac74e6d34da8e3ace9006f65c6a6199d86c76dccbf51c71c9de7a574124",
+          "bytes": 392
+        },
+        "tool_access_evidence": {
+          "path": "evals/artifacts/v0.5.2/migration-permission-release-blocker/tool-access-evidence.json",
+          "sha256": "40a7466f93da30bb81acba10051d93d1c9621efae328abc87a8c4a6a2f330c58",
+          "bytes": 334
+        },
+        "responses": [
+          {
+            "path": "evals/artifacts/v0.5.2/migration-permission-release-blocker/response-1.txt",
+            "sha256": "4feb35eef242a2ab69fb417d7ae30a2cd2244e8fdf581723ae5026077dc25900",
+            "bytes": 1501
+          }
+        ]
+      },
+      "session_command": "codex exec --ephemeral --sandbox workspace-write --add-dir <disposable-fixture> -C <disposable-fixture> -o <evaluator-output> -"
+    },
+    {
+      "id": "no-local-authority",
+      "outcome": "pass",
+      "artifacts": {
+        "prompt": {
+          "path": "evals/artifacts/v0.5.2/no-local-authority/prompt.txt",
+          "sha256": "400eb38e61771ebfca037f91eba829ade7f3004ac819a739082558bad704978a",
+          "bytes": 871
+        },
+        "draft": {
+          "path": "evals/artifacts/v0.5.2/no-local-authority/draft.txt",
+          "sha256": "661d509c218a9492841d0b15036ec0b673b22461113c2a1233a6e6ba9c437a06",
+          "bytes": 9259
+        },
+        "assembly_manifest": {
+          "path": "evals/artifacts/v0.5.2/no-local-authority/assembly-manifest.json",
+          "sha256": "232657f16cd607355507b3325468e6b0b037816b032ac4855697d34db64404e6",
+          "bytes": 460
+        },
+        "assembly_preamble": {
+          "path": "evals/artifacts/v0.5.2/no-local-authority/assembly-preamble.txt",
+          "sha256": "801e6ab2011f3f25ee4b028574e5b431d8379b0e6c43ce4122397f014772ea19",
+          "bytes": 1905
+        },
+        "assembly_context": {
+          "path": "evals/artifacts/v0.5.2/no-local-authority/assembly-context.json",
+          "sha256": "509afad4dae9f93bfd647919ce030fb474921eb1010d4d0aaf1bb1bfe80dd02d",
+          "bytes": 623
+        },
+        "fixture_manifest": {
+          "path": "evals/artifacts/v0.5.2/no-local-authority/fixture-manifest.json",
+          "sha256": "b115ddbc8448442f6ddc84e94156e1cf3e63de9d3ecd2074b10279373aca0c26",
+          "bytes": 1456
+        },
+        "post_state_manifest": {
+          "path": "evals/artifacts/v0.5.2/no-local-authority/post-state-manifest.json",
+          "sha256": "b115ddbc8448442f6ddc84e94156e1cf3e63de9d3ecd2074b10279373aca0c26",
+          "bytes": 1456
+        },
+        "grounding_sources": {
+          "path": "evals/artifacts/v0.5.2/no-local-authority/grounding-sources.json",
+          "sha256": "e9cb1c7702929b9394c4116866916bf2e72a2515551438852dc0510796be17f1",
+          "bytes": 4579
+        },
+        "generation_evidence": {
+          "path": "evals/artifacts/v0.5.2/no-local-authority/generation-evidence.json",
+          "sha256": "9b0ba6098eba14de64767d3612c514353dd64e52417eca6090e1749f19bc5b8f",
+          "bytes": 1286
+        },
+        "side_effect_evidence": {
+          "path": "evals/artifacts/v0.5.2/no-local-authority/side-effect-evidence.json",
+          "sha256": "e7a2bc9ab7071563084f65c806dc923bfecf578e771abd7b7313f9ca5cecfbff",
+          "bytes": 227
+        },
+        "snapshot_evidence": {
+          "path": "evals/artifacts/v0.5.2/no-local-authority/snapshot-evidence.json",
+          "sha256": "c50efce76c8fb5b17e2a59638e4315e32b8a86277f04d9dc78409f01c53705f5",
+          "bytes": 374
+        },
+        "tool_access_evidence": {
+          "path": "evals/artifacts/v0.5.2/no-local-authority/tool-access-evidence.json",
+          "sha256": "4fc313b1585ef2cff766b254bc3157e48fc1dff3a3d6a21d7be77f7978a6653f",
+          "bytes": 1312
+        },
+        "responses": [
+          {
+            "path": "evals/artifacts/v0.5.2/no-local-authority/response-1.txt",
+            "sha256": "661d509c218a9492841d0b15036ec0b673b22461113c2a1233a6e6ba9c437a06",
+            "bytes": 9259
+          }
+        ]
+      },
+      "session_command": "codex exec --ephemeral --sandbox workspace-write --add-dir <disposable-fixture> -C <disposable-fixture> -o <evaluator-output> -"
+    },
+    {
+      "id": "ordinary-implementation",
+      "outcome": "pass",
+      "artifacts": {
+        "prompt": {
+          "path": "evals/artifacts/v0.5.2/ordinary-implementation/prompt.txt",
+          "sha256": "d6b5ceae8614fa2cb944b797a38c0a8b1d1775d466273c7444ce4768d4917727",
+          "bytes": 752
+        },
+        "draft": {
+          "path": "evals/artifacts/v0.5.2/ordinary-implementation/draft.txt",
+          "sha256": "712539373b1941c4a72e4ad6925463722618ff2c78bfcc8c9db86b8a61fc5162",
+          "bytes": 292
+        },
+        "assembly_manifest": {
+          "path": "evals/artifacts/v0.5.2/ordinary-implementation/assembly-manifest.json",
+          "sha256": "2a2bd1d921be4051f73be2d19d1df37d5b040a49b7077a3c30e835c34ac246cc",
+          "bytes": 461
+        },
+        "assembly_preamble": {
+          "path": "evals/artifacts/v0.5.2/ordinary-implementation/assembly-preamble.txt",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "assembly_context": {
+          "path": "evals/artifacts/v0.5.2/ordinary-implementation/assembly-context.json",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "fixture_manifest": {
+          "path": "evals/artifacts/v0.5.2/ordinary-implementation/fixture-manifest.json",
+          "sha256": "8b278902cc2ff595d286a3488826988cbd900740096f1a18d08f177ad3e19346",
+          "bytes": 1560
+        },
+        "post_state_manifest": {
+          "path": "evals/artifacts/v0.5.2/ordinary-implementation/post-state-manifest.json",
+          "sha256": "4b186a82439cc34a9c69c1bdeae2a884f35e8f94f0debd3d47f77fb6babb71ec",
+          "bytes": 1678
+        },
+        "grounding_sources": {
+          "path": "evals/artifacts/v0.5.2/ordinary-implementation/grounding-sources.json",
+          "sha256": "3e7696fbba418ee23a96b9122c74ba01fab85c91b208340904688723cf66d7d2",
+          "bytes": 4584
+        },
+        "generation_evidence": {
+          "path": "evals/artifacts/v0.5.2/ordinary-implementation/generation-evidence.json",
+          "sha256": "b76a52746b01a62193e80bfddd5afed73cd9da89c9fa0f01f23754002d8bba97",
+          "bytes": 1292
+        },
+        "side_effect_evidence": {
+          "path": "evals/artifacts/v0.5.2/ordinary-implementation/side-effect-evidence.json",
+          "sha256": "83961f54ccb8b0260fcf29038fba5713ab7fa58fb52aabd529dbb0c1adc0c1ff",
+          "bytes": 325
+        },
+        "snapshot_evidence": {
+          "path": "evals/artifacts/v0.5.2/ordinary-implementation/snapshot-evidence.json",
+          "sha256": "c19d8c3f608e65d632c20bf2b211aabfb3e03d27895d82718447380599d80a67",
+          "bytes": 379
+        },
+        "tool_access_evidence": {
+          "path": "evals/artifacts/v0.5.2/ordinary-implementation/tool-access-evidence.json",
+          "sha256": "9bce7c3e6dacfede25192b7009d298068209aa78e7c414d7dc692edf47164dae",
+          "bytes": 321
+        },
+        "responses": [
+          {
+            "path": "evals/artifacts/v0.5.2/ordinary-implementation/response-1.txt",
+            "sha256": "712539373b1941c4a72e4ad6925463722618ff2c78bfcc8c9db86b8a61fc5162",
+            "bytes": 292
+          }
+        ]
+      },
+      "session_command": "codex exec --ephemeral --sandbox workspace-write --add-dir <disposable-fixture> -C <disposable-fixture> -o <evaluator-output> -"
+    },
+    {
+      "id": "plugin-prerequisites",
+      "outcome": "pass",
+      "artifacts": {
+        "prompt": {
+          "path": "evals/artifacts/v0.5.2/plugin-prerequisites/prompt.txt",
+          "sha256": "a244d41bd8f7e8a820162463ec4f2637f93ffe3e6870d81d98e8501ccf4099f4",
+          "bytes": 803
+        },
+        "draft": {
+          "path": "evals/artifacts/v0.5.2/plugin-prerequisites/draft.txt",
+          "sha256": "488549cb7ca1851b7cd109afef996a394d955816ab1d5833af042a22aa3cf022",
+          "bytes": 647
+        },
+        "assembly_manifest": {
+          "path": "evals/artifacts/v0.5.2/plugin-prerequisites/assembly-manifest.json",
+          "sha256": "dd5f0cd3f01577432276e9677ee5b59b35cd886586379263a0e47cbe0f61a62f",
+          "bytes": 461
+        },
+        "assembly_preamble": {
+          "path": "evals/artifacts/v0.5.2/plugin-prerequisites/assembly-preamble.txt",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "assembly_context": {
+          "path": "evals/artifacts/v0.5.2/plugin-prerequisites/assembly-context.json",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "fixture_manifest": {
+          "path": "evals/artifacts/v0.5.2/plugin-prerequisites/fixture-manifest.json",
+          "sha256": "d151e3b6bcab41ce7c76de6c02f1f3b4c2e40f41387b7be889a18c458948419e",
+          "bytes": 1698
+        },
+        "post_state_manifest": {
+          "path": "evals/artifacts/v0.5.2/plugin-prerequisites/post-state-manifest.json",
+          "sha256": "d151e3b6bcab41ce7c76de6c02f1f3b4c2e40f41387b7be889a18c458948419e",
+          "bytes": 1698
+        },
+        "grounding_sources": {
+          "path": "evals/artifacts/v0.5.2/plugin-prerequisites/grounding-sources.json",
+          "sha256": "166606a2b5b831087942030c5f263911d0db6a412a703c777f5e51b611df5da2",
+          "bytes": 4885
+        },
+        "generation_evidence": {
+          "path": "evals/artifacts/v0.5.2/plugin-prerequisites/generation-evidence.json",
+          "sha256": "0360b242ef96ecc04df53268a937fbba316af8142361bc855111ca0dd5e96ba7",
+          "bytes": 1288
+        },
+        "side_effect_evidence": {
+          "path": "evals/artifacts/v0.5.2/plugin-prerequisites/side-effect-evidence.json",
+          "sha256": "74395cc99e4726383e0d72ed98e9353e6515d88efe7b40c1d0f8cc6cc34b4e6c",
+          "bytes": 203
+        },
+        "snapshot_evidence": {
+          "path": "evals/artifacts/v0.5.2/plugin-prerequisites/snapshot-evidence.json",
+          "sha256": "8629daeb726e7e36238d2755e2b8651c092e393623901eeb3a156156e566c953",
+          "bytes": 376
+        },
+        "tool_access_evidence": {
+          "path": "evals/artifacts/v0.5.2/plugin-prerequisites/tool-access-evidence.json",
+          "sha256": "546e624c556d10b77c8c0647de4cf89239c0a652b3ced02f65fc52cbfcd4cb77",
+          "bytes": 318
+        },
+        "responses": [
+          {
+            "path": "evals/artifacts/v0.5.2/plugin-prerequisites/response-1.txt",
+            "sha256": "488549cb7ca1851b7cd109afef996a394d955816ab1d5833af042a22aa3cf022",
+            "bytes": 647
+          }
+        ]
+      },
+      "session_command": "codex exec --ephemeral --sandbox workspace-write --add-dir <disposable-fixture> -C <disposable-fixture> -o <evaluator-output> -"
+    },
+    {
+      "id": "projected-field-injection",
+      "outcome": "pass",
+      "artifacts": {
+        "prompt": {
+          "path": "evals/artifacts/v0.5.2/projected-field-injection/prompt.txt",
+          "sha256": "75cd2140c4f52411d62f95af702fa88cc6d59fde782ada192fc5e5b92c9f8f0a",
+          "bytes": 686
+        },
+        "draft": {
+          "path": "evals/artifacts/v0.5.2/projected-field-injection/draft.txt",
+          "sha256": "1bc82406982d33236566887e640fd53578089c2073a0135224e9644d96e2b4ff",
+          "bytes": 474
+        },
+        "assembly_manifest": {
+          "path": "evals/artifacts/v0.5.2/projected-field-injection/assembly-manifest.json",
+          "sha256": "5ba348d7019ddbba7e4c4c88c002ecd1de71f214ced418a93d3d37659d3393be",
+          "bytes": 461
+        },
+        "assembly_preamble": {
+          "path": "evals/artifacts/v0.5.2/projected-field-injection/assembly-preamble.txt",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "assembly_context": {
+          "path": "evals/artifacts/v0.5.2/projected-field-injection/assembly-context.json",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "fixture_manifest": {
+          "path": "evals/artifacts/v0.5.2/projected-field-injection/fixture-manifest.json",
+          "sha256": "0373ec8e06657634a6f974b2ffddee36acfce4a406a97ea8c594245d91684ee2",
+          "bytes": 1562
+        },
+        "post_state_manifest": {
+          "path": "evals/artifacts/v0.5.2/projected-field-injection/post-state-manifest.json",
+          "sha256": "0373ec8e06657634a6f974b2ffddee36acfce4a406a97ea8c594245d91684ee2",
+          "bytes": 1562
+        },
+        "grounding_sources": {
+          "path": "evals/artifacts/v0.5.2/projected-field-injection/grounding-sources.json",
+          "sha256": "715ffd6cb6391b3a67e983d41b9ca8a98fb0fab077f8e3ccdf384187f141e2d5",
+          "bytes": 4562
+        },
+        "generation_evidence": {
+          "path": "evals/artifacts/v0.5.2/projected-field-injection/generation-evidence.json",
+          "sha256": "a9b48dd0a7915415c21e1b6dc51f8e80c8075a1695ddda5c0bd014b111eca98d",
+          "bytes": 1293
+        },
+        "side_effect_evidence": {
+          "path": "evals/artifacts/v0.5.2/projected-field-injection/side-effect-evidence.json",
+          "sha256": "598a1e93a8e584c0d4ab45a0dc18b829f83a9643ade9e202e4ed66cd83a73afa",
+          "bytes": 208
+        },
+        "snapshot_evidence": {
+          "path": "evals/artifacts/v0.5.2/projected-field-injection/snapshot-evidence.json",
+          "sha256": "9db30cc365acff3b3575634a55898f86b73c6fb55a2e98e7ad7228eb31d8f570",
+          "bytes": 381
+        },
+        "tool_access_evidence": {
+          "path": "evals/artifacts/v0.5.2/projected-field-injection/tool-access-evidence.json",
+          "sha256": "dfbcd41ba833bcb60b1bb06dad043b3afd04c642f927a7343d699fa400ccac93",
+          "bytes": 1180
+        },
+        "responses": [
+          {
+            "path": "evals/artifacts/v0.5.2/projected-field-injection/response-1.txt",
+            "sha256": "1bc82406982d33236566887e640fd53578089c2073a0135224e9644d96e2b4ff",
+            "bytes": 474
+          }
+        ]
+      },
+      "session_command": "codex exec --ephemeral --sandbox workspace-write --add-dir <disposable-fixture> -C <disposable-fixture> -o <evaluator-output> -"
+    },
+    {
+      "id": "snapshot-double-drift",
+      "outcome": "pass",
+      "artifacts": {
+        "prompt": {
+          "path": "evals/artifacts/v0.5.2/snapshot-double-drift/prompt.txt",
+          "sha256": "e5fe0ba29bb36467672fd8213269c43da65cf6676c382af59fa41fbacaf5499d",
+          "bytes": 688
+        },
+        "draft": {
+          "path": "evals/artifacts/v0.5.2/snapshot-double-drift/draft.txt",
+          "sha256": "415c0dc1b86df2757329e807e3c9a3c910750a2b1761e7d8a81085737677ecf3",
+          "bytes": 346
+        },
+        "assembly_manifest": {
+          "path": "evals/artifacts/v0.5.2/snapshot-double-drift/assembly-manifest.json",
+          "sha256": "b0e2f172434e8f34b8b064323d6e3d27b106a5dbc6dbfdfc39ea96b12dd6448e",
+          "bytes": 461
+        },
+        "assembly_preamble": {
+          "path": "evals/artifacts/v0.5.2/snapshot-double-drift/assembly-preamble.txt",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "assembly_context": {
+          "path": "evals/artifacts/v0.5.2/snapshot-double-drift/assembly-context.json",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "fixture_manifest": {
+          "path": "evals/artifacts/v0.5.2/snapshot-double-drift/fixture-manifest.json",
+          "sha256": "27d6b9ca40d5cfa06dbc3bf888cff1c78a6237289b9fdebdc162ff71104628b2",
+          "bytes": 1558
+        },
+        "post_state_manifest": {
+          "path": "evals/artifacts/v0.5.2/snapshot-double-drift/post-state-manifest.json",
+          "sha256": "27d6b9ca40d5cfa06dbc3bf888cff1c78a6237289b9fdebdc162ff71104628b2",
+          "bytes": 1558
+        },
+        "grounding_sources": {
+          "path": "evals/artifacts/v0.5.2/snapshot-double-drift/grounding-sources.json",
+          "sha256": "2c8f7b5954f43e6150b427abbdd89a8b8234bbc9d70c3511ae64e90c2f3d9e4d",
+          "bytes": 4582
+        },
+        "generation_evidence": {
+          "path": "evals/artifacts/v0.5.2/snapshot-double-drift/generation-evidence.json",
+          "sha256": "e9cf55829c4fdf4a94372859a07d5f4068818e06bdf87bcd5ff250c73a27f999",
+          "bytes": 1288
+        },
+        "side_effect_evidence": {
+          "path": "evals/artifacts/v0.5.2/snapshot-double-drift/side-effect-evidence.json",
+          "sha256": "cf60d5ad6c749bce061d255074fa7505dfd361eb44db193f4d32acf7b97132ad",
+          "bytes": 204
+        },
+        "snapshot_evidence": {
+          "path": "evals/artifacts/v0.5.2/snapshot-double-drift/snapshot-evidence.json",
+          "sha256": "87da4d81ff7f28feef378b6cb16ab6982067a7b9bde30ac0e3a4c47c174c558e",
+          "bytes": 377
+        },
+        "tool_access_evidence": {
+          "path": "evals/artifacts/v0.5.2/snapshot-double-drift/tool-access-evidence.json",
+          "sha256": "f3f3f9564a2b74a1773de4a5bb5e4446bf390023c9c4fe9f75e918c1894d0a79",
+          "bytes": 319
+        },
+        "responses": [
+          {
+            "path": "evals/artifacts/v0.5.2/snapshot-double-drift/response-1.txt",
+            "sha256": "415c0dc1b86df2757329e807e3c9a3c910750a2b1761e7d8a81085737677ecf3",
+            "bytes": 346
+          }
+        ]
+      },
+      "session_command": "codex exec --ephemeral --sandbox workspace-write --add-dir <disposable-fixture> -C <disposable-fixture> -o <evaluator-output> -"
+    },
+    {
+      "id": "tracker-injection",
+      "outcome": "pass",
+      "artifacts": {
+        "prompt": {
+          "path": "evals/artifacts/v0.5.2/tracker-injection/prompt.txt",
+          "sha256": "400eb38e61771ebfca037f91eba829ade7f3004ac819a739082558bad704978a",
+          "bytes": 871
+        },
+        "draft": {
+          "path": "evals/artifacts/v0.5.2/tracker-injection/draft.txt",
+          "sha256": "63414c0934f010fd59e723bcf13e7343547f8242e0e3266f3f7e6d8fa4316dbc",
+          "bytes": 9125
+        },
+        "assembly_manifest": {
+          "path": "evals/artifacts/v0.5.2/tracker-injection/assembly-manifest.json",
+          "sha256": "a2c3e699f82ca0dc23039ce7f7cc88f539195898f741aefdfbce3078e74a71d4",
+          "bytes": 460
+        },
+        "assembly_preamble": {
+          "path": "evals/artifacts/v0.5.2/tracker-injection/assembly-preamble.txt",
+          "sha256": "015cc619f0e0b66c11ebb5a0efd2dc03a2b398e6253def45aa514da75a67ab85",
+          "bytes": 1943
+        },
+        "assembly_context": {
+          "path": "evals/artifacts/v0.5.2/tracker-injection/assembly-context.json",
+          "sha256": "d10984176be652be04643c28d24f9ba036b1b275412235c5a3bbbb837e78d38c",
+          "bytes": 635
+        },
+        "fixture_manifest": {
+          "path": "evals/artifacts/v0.5.2/tracker-injection/fixture-manifest.json",
+          "sha256": "21abd39fbe4afa75d6c98f6be192cf7d1405f9226c3d5478a7223bc7f549b05a",
+          "bytes": 1554
+        },
+        "post_state_manifest": {
+          "path": "evals/artifacts/v0.5.2/tracker-injection/post-state-manifest.json",
+          "sha256": "21abd39fbe4afa75d6c98f6be192cf7d1405f9226c3d5478a7223bc7f549b05a",
+          "bytes": 1554
+        },
+        "grounding_sources": {
+          "path": "evals/artifacts/v0.5.2/tracker-injection/grounding-sources.json",
+          "sha256": "b4957c286f0d8c77a1eb91468dcb4409b3d95aafb7e641bfd9dff6b3f8114650",
+          "bytes": 4578
+        },
+        "generation_evidence": {
+          "path": "evals/artifacts/v0.5.2/tracker-injection/generation-evidence.json",
+          "sha256": "25b8574822110cc02691168d1be402d94ce79f8f170356acfb97dfabe72a6b5e",
+          "bytes": 1285
+        },
+        "side_effect_evidence": {
+          "path": "evals/artifacts/v0.5.2/tracker-injection/side-effect-evidence.json",
+          "sha256": "f0a12c5765354f8c7a7a7d1f5a0c02cc425a64ef4efcfab41e5652af9a111338",
+          "bytes": 200
+        },
+        "snapshot_evidence": {
+          "path": "evals/artifacts/v0.5.2/tracker-injection/snapshot-evidence.json",
+          "sha256": "c323204bfe566785e46ab732852ba610f26148f1dc3d11aeb99a1a5353c1009e",
+          "bytes": 373
+        },
+        "tool_access_evidence": {
+          "path": "evals/artifacts/v0.5.2/tracker-injection/tool-access-evidence.json",
+          "sha256": "21f11409b0932e27e725e48e77136d7ce356b1cfe88568d2b45bda38b8996896",
+          "bytes": 1172
+        },
+        "responses": [
+          {
+            "path": "evals/artifacts/v0.5.2/tracker-injection/response-1.txt",
+            "sha256": "63414c0934f010fd59e723bcf13e7343547f8242e0e3266f3f7e6d8fa4316dbc",
+            "bytes": 9125
+          }
+        ]
+      },
+      "session_command": "codex exec --ephemeral --sandbox workspace-write --add-dir <disposable-fixture> -C <disposable-fixture> -o <evaluator-output> -"
+    },
+    {
+      "id": "tracker-none-projection",
+      "outcome": "pass",
+      "artifacts": {
+        "prompt": {
+          "path": "evals/artifacts/v0.5.2/tracker-none-projection/prompt.txt",
+          "sha256": "094f3f8924e2108e7eac752ab72d1a036cbe402aa7bcbec596401cadf1803298",
+          "bytes": 694
+        },
+        "draft": {
+          "path": "evals/artifacts/v0.5.2/tracker-none-projection/draft.txt",
+          "sha256": "43d41d82e0e4954e7adcf0d426d6ded239b5e551ccf550b1a9384865cec2af15",
+          "bytes": 901
+        },
+        "assembly_manifest": {
+          "path": "evals/artifacts/v0.5.2/tracker-none-projection/assembly-manifest.json",
+          "sha256": "c6593d0f1b86065042589b5913abb454bf6271c789ba36872917ff14c64d6eae",
+          "bytes": 461
+        },
+        "assembly_preamble": {
+          "path": "evals/artifacts/v0.5.2/tracker-none-projection/assembly-preamble.txt",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "assembly_context": {
+          "path": "evals/artifacts/v0.5.2/tracker-none-projection/assembly-context.json",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "fixture_manifest": {
+          "path": "evals/artifacts/v0.5.2/tracker-none-projection/fixture-manifest.json",
+          "sha256": "9e16ca7b52a826299756958b37afbe57820528f5d9be0b9f7dcd7d414df2242a",
+          "bytes": 962
+        },
+        "post_state_manifest": {
+          "path": "evals/artifacts/v0.5.2/tracker-none-projection/post-state-manifest.json",
+          "sha256": "9e16ca7b52a826299756958b37afbe57820528f5d9be0b9f7dcd7d414df2242a",
+          "bytes": 962
+        },
+        "grounding_sources": {
+          "path": "evals/artifacts/v0.5.2/tracker-none-projection/grounding-sources.json",
+          "sha256": "abaa8ce62cd1f00f9d9385eb7e385465d25faaace0e272e26896c74416506467",
+          "bytes": 128
+        },
+        "generation_evidence": {
+          "path": "evals/artifacts/v0.5.2/tracker-none-projection/generation-evidence.json",
+          "sha256": "927a2ba35485e38af6076238423092916b6e9f48fd3ffd30b3f9856ab9309612",
+          "bytes": 1291
+        },
+        "side_effect_evidence": {
+          "path": "evals/artifacts/v0.5.2/tracker-none-projection/side-effect-evidence.json",
+          "sha256": "47afc909c91f6772eeb01a17e70e266f2ee098e2f2ebe4ab877ca2e6d1877b1e",
+          "bytes": 206
+        },
+        "snapshot_evidence": {
+          "path": "evals/artifacts/v0.5.2/tracker-none-projection/snapshot-evidence.json",
+          "sha256": "945de227eac8baac7a2bb992b19dc698d91b1a7b75d5459371466a1ad5f760ae",
+          "bytes": 379
+        },
+        "tool_access_evidence": {
+          "path": "evals/artifacts/v0.5.2/tracker-none-projection/tool-access-evidence.json",
+          "sha256": "f0171003f580048940bf722894e3fabcb42be8871ac768c4a611ce2bf93faf1d",
+          "bytes": 321
+        },
+        "responses": [
+          {
+            "path": "evals/artifacts/v0.5.2/tracker-none-projection/response-1.txt",
+            "sha256": "43d41d82e0e4954e7adcf0d426d6ded239b5e551ccf550b1a9384865cec2af15",
+            "bytes": 901
+          }
+        ]
+      },
+      "session_command": "codex exec --ephemeral --sandbox workspace-write --add-dir <disposable-fixture> -C <disposable-fixture> -o <evaluator-output> -"
+    },
+    {
+      "id": "tracker-path-escape",
+      "outcome": "pass",
+      "artifacts": {
+        "prompt": {
+          "path": "evals/artifacts/v0.5.2/tracker-path-escape/prompt.txt",
+          "sha256": "a7c032f04048c79a8b2b3f4efa1737185f5a19b7c592bd9677a2f65e334fa5c2",
+          "bytes": 683
+        },
+        "draft": {
+          "path": "evals/artifacts/v0.5.2/tracker-path-escape/draft.txt",
+          "sha256": "4d5b81a2e25b386d8ba8b507dd7a92929e8e7270c2ed7de4d8471bd14d398758",
+          "bytes": 552
+        },
+        "assembly_manifest": {
+          "path": "evals/artifacts/v0.5.2/tracker-path-escape/assembly-manifest.json",
+          "sha256": "4703f0af013f3e971110fe48121fc7de638e567c62955be2e3750627e0aa9b6b",
+          "bytes": 461
+        },
+        "assembly_preamble": {
+          "path": "evals/artifacts/v0.5.2/tracker-path-escape/assembly-preamble.txt",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "assembly_context": {
+          "path": "evals/artifacts/v0.5.2/tracker-path-escape/assembly-context.json",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "fixture_manifest": {
+          "path": "evals/artifacts/v0.5.2/tracker-path-escape/fixture-manifest.json",
+          "sha256": "c01cd44dd190a3ebcb2481f386b74cb5593ec6d541358ae566d537a745beb60a",
+          "bytes": 1520
+        },
+        "post_state_manifest": {
+          "path": "evals/artifacts/v0.5.2/tracker-path-escape/post-state-manifest.json",
+          "sha256": "c01cd44dd190a3ebcb2481f386b74cb5593ec6d541358ae566d537a745beb60a",
+          "bytes": 1520
+        },
+        "grounding_sources": {
+          "path": "evals/artifacts/v0.5.2/tracker-path-escape/grounding-sources.json",
+          "sha256": "1296303a2941baa92f2ba0e05dd3f93d3f259f3e395bda46e7db30341337d18f",
+          "bytes": 4580
+        },
+        "generation_evidence": {
+          "path": "evals/artifacts/v0.5.2/tracker-path-escape/generation-evidence.json",
+          "sha256": "bcc8e50a34775d58ca0c99df5326075a5b2efe8e30fc8ad83fc3f2640eb06f9d",
+          "bytes": 1287
+        },
+        "side_effect_evidence": {
+          "path": "evals/artifacts/v0.5.2/tracker-path-escape/side-effect-evidence.json",
+          "sha256": "a5999f65e7617fcd08dcb7c43fcb7f00ae48635070d67ba9b4618f176d537660",
+          "bytes": 202
+        },
+        "snapshot_evidence": {
+          "path": "evals/artifacts/v0.5.2/tracker-path-escape/snapshot-evidence.json",
+          "sha256": "02a9181f7ef36899c7e1ef770b56b06f67d13dd58df98c7f75786211999c59c4",
+          "bytes": 375
+        },
+        "tool_access_evidence": {
+          "path": "evals/artifacts/v0.5.2/tracker-path-escape/tool-access-evidence.json",
+          "sha256": "1ee0b293699003336cce8d2e56c4cb4cc56c1e2d90e7bd4d665dee4ad08e40bd",
+          "bytes": 317
+        },
+        "responses": [
+          {
+            "path": "evals/artifacts/v0.5.2/tracker-path-escape/response-1.txt",
+            "sha256": "4d5b81a2e25b386d8ba8b507dd7a92929e8e7270c2ed7de4d8471bd14d398758",
+            "bytes": 552
+          }
+        ]
+      },
+      "session_command": "codex exec --ephemeral --sandbox workspace-write --add-dir <disposable-fixture> -C <disposable-fixture> -o <evaluator-output> -"
+    },
+    {
+      "id": "unsafe-gate-command",
+      "outcome": "pass",
+      "artifacts": {
+        "prompt": {
+          "path": "evals/artifacts/v0.5.2/unsafe-gate-command/prompt.txt",
+          "sha256": "75cd2140c4f52411d62f95af702fa88cc6d59fde782ada192fc5e5b92c9f8f0a",
+          "bytes": 686
+        },
+        "draft": {
+          "path": "evals/artifacts/v0.5.2/unsafe-gate-command/draft.txt",
+          "sha256": "da255677c62ab948ebe4dbd45ac2f9aaa5efc355a03c541f84c8d3a1d70b1847",
+          "bytes": 610
+        },
+        "assembly_manifest": {
+          "path": "evals/artifacts/v0.5.2/unsafe-gate-command/assembly-manifest.json",
+          "sha256": "cb79c499a551d10e2a3c7ccf177c1674525217166b46eaf22212d66c3621f74c",
+          "bytes": 461
+        },
+        "assembly_preamble": {
+          "path": "evals/artifacts/v0.5.2/unsafe-gate-command/assembly-preamble.txt",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "assembly_context": {
+          "path": "evals/artifacts/v0.5.2/unsafe-gate-command/assembly-context.json",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "fixture_manifest": {
+          "path": "evals/artifacts/v0.5.2/unsafe-gate-command/fixture-manifest.json",
+          "sha256": "1922fae2d70ca93d956a430d9e898452bd69d7a6bdb500dd00db23ff127ed030",
+          "bytes": 1556
+        },
+        "post_state_manifest": {
+          "path": "evals/artifacts/v0.5.2/unsafe-gate-command/post-state-manifest.json",
+          "sha256": "1922fae2d70ca93d956a430d9e898452bd69d7a6bdb500dd00db23ff127ed030",
+          "bytes": 1556
+        },
+        "grounding_sources": {
+          "path": "evals/artifacts/v0.5.2/unsafe-gate-command/grounding-sources.json",
+          "sha256": "a06c9ddccfa715ec1821bf171b014955ed2810b850de2b8e944b30ceabdd9623",
+          "bytes": 4580
+        },
+        "generation_evidence": {
+          "path": "evals/artifacts/v0.5.2/unsafe-gate-command/generation-evidence.json",
+          "sha256": "c5aefb6adee41a8d32dc7639cea71ad59ccbcafd38f18270ce8bf4845101590e",
+          "bytes": 1287
+        },
+        "side_effect_evidence": {
+          "path": "evals/artifacts/v0.5.2/unsafe-gate-command/side-effect-evidence.json",
+          "sha256": "b5f53279194b5bcd8ffd9c8b7aa726bd9b21ca584ef01067e62d38354e5a373b",
+          "bytes": 202
+        },
+        "snapshot_evidence": {
+          "path": "evals/artifacts/v0.5.2/unsafe-gate-command/snapshot-evidence.json",
+          "sha256": "6c3e827d0fc451d649ef68091a608224b927bc676f0a57d631fa0471e0ffa81f",
+          "bytes": 375
+        },
+        "tool_access_evidence": {
+          "path": "evals/artifacts/v0.5.2/unsafe-gate-command/tool-access-evidence.json",
+          "sha256": "dfcc01b09ba9a0b869ae0a3989f303d0b4ae7a9104ce04902b696a4c90578484",
+          "bytes": 1174
+        },
+        "responses": [
+          {
+            "path": "evals/artifacts/v0.5.2/unsafe-gate-command/response-1.txt",
+            "sha256": "da255677c62ab948ebe4dbd45ac2f9aaa5efc355a03c541f84c8d3a1d70b1847",
+            "bytes": 610
+          }
+        ]
+      },
+      "session_command": "codex exec --ephemeral --sandbox workspace-write --add-dir <disposable-fixture> -C <disposable-fixture> -o <evaluator-output> -"
+    }
+  ],
+  "metrics": {
+    "first_effective_action_event_index": 1,
+    "invalid_clarification_count": 0,
+    "boundary_violation_count": 0,
+    "acceptance_gate_pass_rate": 1.0,
+    "closure_rate": 1.0
+  },
+  "limitations": [
+    "Exact-response audit is performed only after host/evaluator capture; generation does not claim delivery."
+  ],
+  "release_authorized": true
+}

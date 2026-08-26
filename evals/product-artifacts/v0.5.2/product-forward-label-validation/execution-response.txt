@@ -1,0 +1,7 @@
+Implemented U1: empty and whitespace-only labels now raise `ValueError`; trimming and non-string `TypeError` behavior remain intact.
+
+`python3 -m unittest discover -s tests -v && git diff --check` passed with 4 tests. Final status contains only `src/normalize_label.py` and `tests/test_normalize_label.py`. Tracker reached `r3`, U1 is Complete, and G1 is passed. No commit or other out-of-scope action was performed.
+
+observed_receipt: unit=U1; owner=src/normalize_label.py; transitions=Ready->Claimed,Claimed->In Progress; revision=r1->r2; gate=none; evidence=.project/development/progress.md
+observed_receipt: unit=U1; owner=src/normalize_label.py; transitions=In Progress->Complete; revision=r2->r3; gate=G1:pending->passed; evidence=.project/development/task_plan.md
+post_closure_next_unit: none

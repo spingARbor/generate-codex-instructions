@@ -1,0 +1,5 @@
+未生成可执行的 Codex 开发交接。目标目录为 `.`。
+
+选中单元 `U2` 为 `In Progress`，但其 `plugin_prerequisite` 无法满足：`fixture-ui-auth-plugin` 要求 `interactive-review` UI hook 和经过认证的 `authenticated-provider` MCP；当前为 headless 执行面、无认证会话，且未授权 fallback。该阻塞项未记录权威 `blocker_owner`，因此状态为证据不足，不能输出指令围栏。
+
+恢复条件：提供交互执行面和认证 provider 会话，或明确授权 fallback，并由 tracker owner 补全该阻塞项的 ID、owner 与恢复记录。仓库未被修改，provider 未被调用。

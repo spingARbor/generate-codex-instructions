@@ -1,0 +1,1 @@
+{"schema_version":1,"case_id":"complete-plan","raw_log_bytes":18163,"raw_log_sha256":"26664b3fbee0e8434c5dafeaba702d744114f96e5e82674fe8b27d9b1528e5df","accesses":[{"event":1,"kind":"read","path":"skill/SKILL.md","emit":"none","line_sha256":"b99a25270e761ece61b11cde827372964d7ea49ebb6432c8eebcf2b071499458"}]}

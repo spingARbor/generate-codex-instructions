@@ -1,0 +1,1 @@
+{"schema_version":1,"case_id":"tracker-path-escape","raw_log_bytes":13338,"raw_log_sha256":"63499f61bbfb83de0fd1618bb4b5ff983f0ad59b6cf7c6ab0d5e21e4326ae91e","accesses":[{"event":1,"kind":"read","path":"skill/SKILL.md","emit":"none","line_sha256":"1202a5d86ddccda80ec6e30716009113af67605231e7bda1d079ee20ff1f3638"}]}

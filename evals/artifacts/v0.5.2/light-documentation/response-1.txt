@@ -1,0 +1,55 @@
+状态：部分阻塞（U2 可执行）
+Snapshot: tracker_revision=33; branch=feature/mixed-plan; head=617ed0f7457f0d3773ea501b834dd6ab1cb8f209; status_fingerprint=005c4ecd7d9f4f0065c1f184ab8fb7a281d98319c8ba1d1e911e3d3e0d69db05
+Unit counts: Complete=1; In Progress=1; Claimed=0; Ready=1; Blocked=1; Failed=0
+Gate counts: passed=1; pending=1; failed=0; unknown-definition=1; conflicting=0
+Selection basis: Continue U2 because it is the sole valid claimed In Progress unit and is independently executable despite U4.
+Current executable unit: U2; dependency_evidence=none
+Selected unit: U2
+Selected required gates: [{"id":"G1","state":"passed"},{"id":"G2","state":"pending"}]
+Evidence reads: used=5; ceiling=6; extension=0; reason=none
+Evidence ledger: {"sha256":"704caeaedb0d341f016fa52118727dbb83224fed48ca0d8cafaee18444b1a6c6","rows":[{"id":".project/development/evidence/G1.pass","role":"gate-evidence"},{"id":".project/development/task_plan.md","role":"tracker"},{"id":"AGENTS.md","role":"authority"},{"id":"docs/design.md","role":"owner"},{"id":"package.json","role":"regression"}]}
+Open inventory: {"units":[{"id":"U2","state":"In Progress","claim":"worker-a","dependency":"none","next":"G2 passes with focused contract evidence at the current unit result."},{"id":"U3","state":"Ready","claim":"none","dependency":"U2","next":"U2 is Complete, then an owner claims U3."},{"id":"U4","state":"Blocked","claim":"none","dependency":"none","next":"The schema owner records authoritative approval and G3 status."}],"gates":[{"id":"G2","state":"pending","command_or_recovery":"npm test"},{"id":"G3","state":"unknown-definition","command_or_recovery":"The schema owner records approval and an authoritative gate result."}],"blockers":[{"id":"B1","owner":"schema-owner","detail":"Missing schema approval.","recovery":"The schema owner records approval and the authoritative G3 result."}]}
+```text
+Protocol profile: Light
+Repository: .
+Unit: U2
+Capability: 编辑选中 owner/test、运行选中 Gates、持久化 governing tracker receipts; fallback=none
+Authoritative inputs: [".project/development/evidence/G1.pass",".project/development/task_plan.md","AGENTS.md","docs/design.md","package.json"]
+Owner boundary: ["docs/design.md","package.json"]
+Invariants: Non-string inputs still raise TypeError; valid labels still return trimmed text; the public export stays stable.
+Non-goals: Schema, packaging, dependency, unrelated API, and broad refactor changes.
+Requirement -> Baseline -> Root cause/design gap -> Owner change -> Invariant -> Test -> Gate -> Evidence
+Clarify the existing label normalization contract. -> docs/design.md: 已说明修剪有效标签、以 RangeError 拒绝空结果、保留 normalizeLabel 并以 TypeError 拒绝非字符串 -> docs/design.md: G2 缺少当前通过证据及 .project/development/evidence/G2.pass 收据 -> docs/design.md: 保持当前契约行为并取得绑定当前输入的 G2 passed 收据 -> Non-string inputs still raise TypeError; valid labels still return trimmed text; the public export stays stable. -> package.json: 执行 npm test 和 git diff --check -> G1,G2 -> package.json; gate_evidence=.project/development/evidence/G1.pass
+Permission matrix:
+Implementation | Tests | Update tracker | Local commit | Change version | Tag | Push/release
+authorized: request | authorized: request | authorized: request | not authorized: absent | not authorized: absent | not authorized: absent | not authorized: absent
+Step: 1
+Action: test: 验证当前契约与回归检查
+Command: npm test && git diff --check
+Files/boundary: ["docs/design.md","package.json"]
+Acceptance Gate: 当前 owner/test 输入通过选中 Gate 命令及 diff 检查; exit=0
+Expected transition: unit=U2; owner=docs/design.md; transitions=none; from_revision=33; gate=none
+Evidence required: receipt=none; artifacts=test-output,diff-check-output
+Failure/recovery: stop=任一检查失败; recovery=保留 In Progress/pending 并依据新失败证据重新规划
+Step: 2
+Action: tracker: 持久化 G2 收据并关闭 U2
+Command: none: persist the verified tracker closure
+Files/boundary: [".project/development/evidence/G2.pass",".project/development/task_plan.md"]
+Acceptance Gate: 收据绑定当前 command、revision、input_fingerprint，且 tracker 记录 G2 passed 与 U2 Complete; exit=n/a
+Expected transition: unit=U2; owner=docs/design.md; transitions=In Progress->Complete; from_revision=33; gate=G2:pending->passed
+Evidence required: receipt=.project/development/evidence/G2.pass; artifacts=.project/development/evidence/G2.pass,.project/development/task_plan.md
+Failure/recovery: stop=收据或 revision 不一致; recovery=保留原状态并用一致证据重试
+Step: 3
+Action: observe: 检查最终仓库状态
+Command: git status --porcelain=v1 --untracked-files=all
+Files/boundary: [".project/development/evidence/G2.pass",".project/development/task_plan.md","docs/design.md","package.json"]
+Acceptance Gate: 输出仅包含授权边界内的预期变化且无意外路径; exit=0
+Expected transition: unit=U2; owner=docs/design.md; transitions=none; from_revision=observed-prior; gate=none
+Evidence required: receipt=none; artifacts=final-status
+Failure/recovery: stop=出现意外路径或状态; recovery=停止并保留无关变更，核对边界后再继续
+Closure condition: docs/design.md 保持目标契约，package.json 回归通过，integration=none，G1 保持 passed，G2 取得绑定收据，最终 diff/status 与输出证据一致
+Tracker target state: U2=Complete; next_convergence_condition=converged
+Observed receipt requirements: initial_revision=33; unit=U2; owner=docs/design.md; unit_edges=In Progress->Complete; gate_edges=G2:pending->passed; paths=[".project/development/evidence/G2.pass"]; revision_rule=33->34
+Post-closure next unit: U3; U2 Complete 满足其依赖，且 U3 是唯一 dependency-ready Ready Unit，本交接不 claim
+Out of scope: U4/schema、边界外编辑、非选中命令、Git commit、version、tag、push/release、network、provider、deployment
+```

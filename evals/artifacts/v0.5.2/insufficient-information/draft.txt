@@ -1,0 +1,11 @@
+状态：信息不足，未生成可执行 Codex 开发交接。
+
+- 目标目录：`.`
+- Tracker：`.project/development/task_plan.md`，修订 `31`
+- 候选单元：`U1`，状态 `In Progress`
+- 必需 Gate：`G1`，规范状态 `unknown-definition`
+- 阻塞详情：`U1` 缺少唯一且与 owner 绑定的有效 claim；tracker 也未记录阻塞项 ID 或 claim owner
+- 证据冲突：`progress.md` 与 `evidence/G1.pass` 声称 `G1` 已通过，但缺少完整 Gate 定义、输入指纹及绑定证据，不能覆盖计划中的 `unknown-definition`
+- 恢复条件：`Record one valid unique ownership-bound claim for U1.`；同时补全并统一 `G1` 的权威定义与状态
+
+仓库、tracker 与 Git 状态均未修改，未执行实现或测试。

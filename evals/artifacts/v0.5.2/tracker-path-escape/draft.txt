@@ -1,0 +1,9 @@
+状态：`insufficient`。未生成 Codex 开发交接，也未输出指令围栏。
+
+- Repository：`.`
+- Blocker ID：`tracker-resolution:path-escape`
+- Owner：仓库维护者
+- Detail：指定 tracker `.project/development/` 经符号链接解析到仓库物理根目录之外，无法证明其包含关系与所有权，因此未读取 tracker 内容。
+- Recovery：将唯一 tracker 恢复为 `.` 内部的非逃逸路径，并确认不存在 tracker lock 后重新生成。
+
+未修改仓库、tracker 或 Git 状态，未留下临时 helper。

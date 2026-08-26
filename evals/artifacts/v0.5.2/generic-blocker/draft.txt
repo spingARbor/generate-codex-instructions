@@ -1,0 +1,13 @@
+状态：部分阻塞
+目标目录：`.`
+Tracker：`.project/development/task_plan.md`，revision `32`
+仓库：`feature/mixed-plan`，HEAD `617ed0f7457f0d3773ea501b834dd6ab1cb8f209`
+
+可执行 Unit：无。`U1` 状态为 `Blocked`；其必需 Gate `G1` 状态为 `unknown-definition`。
+
+阻塞 ID：`G1`
+Owner：`U1`
+详情：`API schema approval is missing.`
+恢复条件：`The schema owner records approval and the authoritative G1 result.`
+
+`progress.md` 与 `evidence/G1.pass` 中的 `passed` 记录不能消除该阻塞：治理锚点仍未记录权威 schema 批准，Gate 定义也缺少所需的输入指纹与绑定证据。当前没有可生成指令围栏的已证明可执行 Unit；不得开始实现、测试或 Git 操作。

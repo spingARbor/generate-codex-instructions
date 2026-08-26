@@ -1,0 +1,1 @@
+{"schema_version":1,"case_id":"migration-permission-release-blocker","raw_log_bytes":21779,"raw_log_sha256":"73813929fd4e5072c3e50631e348baa84953a216ad9f8b74e41bcce2eb342615","accesses":[{"event":1,"kind":"read","path":"skill/SKILL.md","emit":"none","line_sha256":"f63c6c93d58a51b146add93ffd91e8350a94d5fcb65f3080e1a2e1c87a9ed66a"}]}

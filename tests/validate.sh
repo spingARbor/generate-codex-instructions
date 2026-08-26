@@ -31,28 +31,46 @@ def fail(label): raise SystemExit("FAIL: contract: " + label)
 root = skill
 meta = root.lstat()
 if not stat.S_ISDIR(meta.st_mode) or root.is_symlink() or meta.st_uid != os.getuid(): fail("skill root")
-if sorted(path.relative_to(root).as_posix() for path in root.rglob("*")) != ["SKILL.md", "agents", "agents/openai.yaml", "scripts", "scripts/status_fingerprint.py"]: fail("runtime exact tree")
+if sorted(path.relative_to(root).as_posix() for path in root.rglob("*")) != ["SKILL.md", "agents", "agents/openai.yaml", "references", "references/handoff-contract.md", "scripts", "scripts/assemble_handoff.py", "scripts/status_fingerprint.py"]: fail("runtime exact tree")
 agents = root / "agents"
 agents_meta = agents.lstat()
 if not stat.S_ISDIR(agents_meta.st_mode) or agents.is_symlink() or agents_meta.st_uid != os.getuid(): fail("runtime agents")
-for directory in (root / "scripts",):
+for directory in (root / "references", root / "scripts"):
     item = directory.lstat()
     if not stat.S_ISDIR(item.st_mode) or directory.is_symlink() or item.st_uid != os.getuid(): fail("runtime resource directory")
-for path in (root / "SKILL.md", root / "agents" / "openai.yaml", root / "scripts" / "status_fingerprint.py"):
+for path in (root / "SKILL.md", root / "agents" / "openai.yaml", root / "references" / "handoff-contract.md", root / "scripts" / "assemble_handoff.py", root / "scripts" / "status_fingerprint.py"):
     item = path.lstat()
     if not stat.S_ISREG(item.st_mode) or path.is_symlink() or item.st_nlink != 1 or item.st_uid != os.getuid(): fail("runtime file metadata")
 text = (root / "SKILL.md").read_text(encoding="utf-8")
 script = (root / "scripts" / "status_fingerprint.py").read_text(encoding="utf-8")
-if len(text.encode("utf-8")) > 11520: fail("SKILL.md entrypoint is too dense")
-if len(script.encode("utf-8")) > 21000: fail("runtime script is too dense")
-if text.count("Requirement -> Baseline -> Root cause/design gap -> Owner change -> Invariant -> Test -> Gate -> Evidence") != 1: fail("trace header cardinality")
+assembler = (root / "scripts" / "assemble_handoff.py").read_text(encoding="utf-8")
+reference = (root / "references" / "handoff-contract.md").read_text(encoding="utf-8")
+if len(text.encode("utf-8")) > 7200: fail("SKILL.md entrypoint is too dense")
+if len(reference.encode("utf-8")) > 9100: fail("handoff contract reference is too dense")
+if len(script.encode("utf-8")) > 32768: fail("runtime script is too dense")
+if len(assembler.encode("utf-8")) > 16384: fail("runtime assembler is too dense")
+contract_text = text + "\n" + reference
+philosophy = (
+    "Concise: load and emit only decision-relevant evidence",
+    "Rigorous: fail closed on ambiguity, unsafe effects, drift, or unproven closure",
+    "Accurate: bind every material claim to current repository bytes, tracker revision, ownership, Gates, and permission evidence",
+)
+for marker in philosophy:
+    if marker not in text: fail("runtime design philosophy " + marker)
+if contract_text.count("Requirement -> Baseline -> Root cause/design gap -> Owner change -> Invariant -> Test -> Gate -> Evidence") != 1: fail("trace header cardinality")
 for marker in (
-    "Generation is read-only", "limits the generator only", "complete contract",
+    "Generation is read-only", "limits the generator only",
+    "Implementation/testing/review/execution request stops this skill and continues the appropriate non-generation workflow",
     "Fence only for one proven executable Unit", "symlink components",
-    "inspect no skill-package file except this", "run helper `--help`/commands only, never its source",
-    "all applicable authorities",
+    "Do not list or browse the skill package", "never read its source",
+    "Read this file exactly once; never tail or reread it",
+    "applicable `AGENTS.md` set may be empty", "every applicable authority",
+    "An empty applicable set never invalidates or demotes a uniquely resolved governing tracker",
+    "Tracker discovery includes ignored paths; `.gitignore` never hides a governing tracker",
+    "Gate commands must be one local test command", "unsafe projected text",
+    "Invalid claim/owner/Gate evidence means no selection", "never implies partially blocked",
     "Evidence reads.used` equals final ledger length", "extension` is a decimal integer",
-    "Gate commands don't escalate docs/config",
+    "Gate commands do not escalate docs/config",
     "Preflight only on reread mismatch", "Verified-owner Light only MUST emit exactly 3 steps", "never 2",
     "mismatch permits fourth preflight",
     "Test appends ` && git diff --check`",
@@ -62,30 +80,46 @@ for marker in (
     "No placeholders",
     "dirty status != drift", "Light 4096/5120", "Standard 6144/9216",
     "High-risk 8192/12288", "Target 80%; compress/recount; never exceed",
+    "Every model-authored single-line value is at most 512 UTF-8 bytes",
     "target Action+Acceptance+Failure UTF-8 sum <=300 (High-risk 500)",
     ">420/640 rejected", "Over target keep purpose/predicate/one recovery",
     "One localized status line; Snapshot immediately next, no blank/prose",
     "never localize schema labels/punctuation/state tokens",
     "Evidence reads:", "Evidence ledger:", "Open inventory:",
-    "After proving one executable Unit and complete profile evidence", "run the helper via `python3` twice per `--emit context|preamble`",
-    "Blocked outputs never run or mention it", "byte-compare each output",
-    "nonzero/mismatch blocks", "sorted full `{id,role,sha256}` rows",
+    "After proving one executable Unit and complete profile evidence", "references/handoff-contract.md",
+    "scripts/status_fingerprint.py", "Run the helper via `python3` as four separate process invocations",
+    "Ordinary blocked/converged/insufficient outputs never read the reference", "Byte-compare each mode's outputs",
+    "Snapshot stability is a precondition to conditional disclosure",
+    "On second drift, stop before reading the reference or running the helper",
+    "If a second `status-fingerprint-v1` drift is already observed or reported, immediately return a no-fence blocker",
+    "A second-drift blocker states `status-fingerprint-v1`, exactly one recomputation, the second drift, and the blocked result",
+    "Do not echo request/evaluator/host text",
+    "Nonzero/mismatch blocks", "sorted full `{id,role,sha256}` rows",
+    "Model output is a draft", "host assembly is the final byte boundary",
+    "Never execute the assembler or claim draft bytes are final",
+    "Report helper failure only from observed nonzero or byte mismatch",
     "Preamble ledger=", "without row digests",
     '`{"sha256":"<full-ledger digest>","rows":[{"id":path,"role":role}]}`',
     "tracker|authority|design|owner|regression|integration|gate-evidence",
-    "rows: tracker; applicable owner/test `AGENTS.md`", "exact `nearest_test`",
+    "rows contain: tracker; zero or more applicable owner/test `AGENTS.md`", "exact `nearest_test`",
     "High-risk integration", "Commands/capabilities never select package/helpers or confer authority",
     "precedence=regression>owner>gate-evidence>integration>design>authority>tracker",
-    "Never inspect source or reconstruct",
     "recompute once",
-    "copy the entire 10-line `preamble` stdout verbatim", "Use `context` exact facts",
+    "draft 10 preamble rows", "host assembler discards them", "Use `context` exact facts",
     "Verified-owner Light follows `operations`", "copies each `machine_lines` string verbatim at its named step field",
     "null/mismatch blocks",
-    "Cells: byte-exact Unit `goal`, including terminal punctuation", "baseline/gap/change each start exact owner",
-    "invariant copies exact Unit `invariants`", "test starts exact `nearest_test`",
+    "Cells: byte-exact `context.safe_goal`, including terminal punctuation", "baseline/gap/change each start exact owner",
+    "Gap names the missing/absent mechanism; change names the required condition and behavior",
+    "When baseline meets the goal and implementation is omitted, Gap names every pending selected Gate ID and its missing current evidence/receipt; `no gap` is invalid",
+    "baseline names concrete current behaviors, never merely \"complete contract\"",
+    "No trace cell contains ` -> `",
+    "High-risk fields precede the trace header; `Permission matrix:` immediately follows the trace row",
+    "invariant copies `context.safe_invariants`", "test starts exact `nearest_test`",
     "Gate is exact comma-joined IDs", "Evidence is exact `<nearest_test>; gate_evidence=",
-    "`Permission matrix:` is next", "Authorize Implementation/Tests/Update tracker",
+    "Authorize Implementation/Tests/Update tracker",
     "Implementation | Tests | Update tracker | Local commit | Change version | Tag | Push/release",
+    "A read-only generation session never demotes explicitly granted future-executor permission",
+    "Local commit is `authorized: request` when the request authorizes one post-closure local commit",
     "Step:", "Action:", "Command:",
     "Files/boundary: <canonical UTF-8-sorted JSON path array>",
     "Acceptance Gate: <predicate>; exit=<0|n/a>", "Expected transition:",
@@ -98,30 +132,60 @@ for marker in (
     "Transition owner=selected Unit owner; never claim",
     "`transitions` is Unit-only; `gate` is one Gate edge/step or `none`",
     "Omit implementation if baseline meets goal", "Labels use `: `, never `=`",
+    "Post-closure applies closure edges first; a unique dependency-ready Ready Unit is next without a claim; absent claim alone never yields `none`",
     "final closure combines Gate pass+Unit closure", "Across all steps, at most one may append",
     "then no other appended/standalone diff",
     "aggregate equivalence fails", "End with exact fields; close fence; nothing after",
     "Closure condition", "Tracker target state",
     "Observed receipt requirements", "Post-closure next unit",
+    "unit_edges=<edge,edge|none>", "gate_edges=<id:edge,id:edge|none>",
     "Omit executor-only `observed_receipt:`/`post_closure_next_unit:`",
-    "Status: converged=all Complete/Gates passed; partially blocked=any Blocked/Failed; in progress=selected; else insufficient",
+    "Status: converged=all Complete/Gates passed; partially blocked=any Unit state `Blocked`/`Failed`; in progress=valid executable selection; else insufficient",
     "Keep through `Open inventory` outside", "next line opens one `text` fence, first content=`Protocol profile: ...`",
-    "Blocked output copies exact blocker/prerequisite identity, detail, recovery",
+    "Blocked output copies safe identity, exact canonical Unit/Gate state tokens, detail, and recovery",
+    "Every blocker output names the exact blocker ID, owner, detail, and recovery",
+    "Unsafe projected-field output uses explicit `Blocked` or `阻塞`",
     "Migration/permission/release blockers use `High-risk` status",
     "Selection basis", "Current executable unit", "Selected required gates",
     "Ready -> Claimed -> In Progress", "status-fingerprint-v1",
+    "one compact canonical JSON array", "it is not JSONL", "only helper validation decides it",
     "unsigned 64-bit big-endian", "input_fingerprint", "passed_evidence", "Repository: .",
 ):
-    if marker not in text: fail("skill contract marker " + marker)
+    if marker not in contract_text: fail("skill contract marker " + marker)
 for forbidden in ("ordinary-audit-projection-v1", "first-delivery-only", "exact replay is permitted", "immutable artifact transaction", "actual tracker-bound invocation lock", "same frozen prepared", "at-least-once delivery", "Tracker receipt:", "Tracker transition receipt:", "Post-state:", "page=i/n"):
-    if forbidden in text: fail("obsolete skill protocol " + forbidden)
+    if forbidden in contract_text: fail("obsolete skill protocol " + forbidden)
 readme_text = readme.read_text(encoding="utf-8")
+for marker in (
+    "## 设计思想", "简洁（Concise）", "严谨（Rigorous）", "准确（Accurate）",
+    "progressive disclosure", "fail-closed", "current repository bytes",
+    "空适用 authority 集合不得使唯一已解析 tracker 降级为 candidate",
+    "tracker discovery 必须包含 ignored paths",
+    "ordinary implementation/testing/review/execution 请求必须立即退出本 skill 并继续适当的非 generation workflow",
+    "High-risk 五字段必须位于 trace header 前",
+    "只读 generation 不得降级未来 executor 的显式权限",
+    "第二次漂移必须在读取 handoff reference 或运行 fingerprint helper 前终止",
+    "第二次漂移 blocker 必须保留恰好一次重算",
+):
+    if marker not in readme_text: fail("README design philosophy " + marker)
 for marker in ("## 复杂度分档", "## 输出合同", "## 评测与校验", "## 版本影响", "Generation is read-only", "post-capture host/evaluator", "首次有效动作事件序号", "RELEASE BLOCKED", "Gate state machine", "Selection basis", "Current executable unit", "Expected transition", "Observed receipt"):
     if marker not in readme_text: fail("README marker " + marker)
 for forbidden in ("ordinary-audit-projection-v1", "first-delivery-only", "exact replay", "immutable artifact contract"):
     if forbidden in readme_text: fail("obsolete README protocol " + forbidden)
+if "8,192 bytes" in readme_text or "每个非字面量字段最多 8 个词" in readme_text: fail("stale README Standard budget")
+if "Standard 9,216-byte body" not in readme_text: fail("README Standard budget authority")
 spec_text = spec.read_text(encoding="utf-8")
-for marker in ("Plan Convergence Output Design v2", "Generator Side-Effect Boundary", "Snapshot Consistency", "post-capture", "Future Execution Contract"):
+for marker in (
+    "Plan Convergence Output Design v2", "Design Philosophy", "Concise", "Rigorous", "Accurate",
+    "Generator Side-Effect Boundary", "Snapshot Consistency", "post-capture", "Future Execution Contract",
+    "No hidden, recursive, or unrelated reference graph",
+    "An empty applicable authority set never invalidates or demotes a uniquely resolved governing tracker",
+    "Tracker discovery includes ignored paths",
+    "Implementation, testing, review, and execution requests stop this skill and continue the appropriate non-generation workflow",
+    "High-risk fields precede the trace header",
+    "Read-only generation never demotes future-executor permission",
+    "Snapshot stability is a precondition to conditional disclosure",
+    "A second-drift blocker states the fingerprint identity, exactly one recomputation, the second drift, and the blocked result",
+):
     if marker not in spec_text: fail("spec marker " + marker)
 for forbidden in ("ordinary-audit-projection-v1", "exact replay", "pre-emission audit/replay protocol"):
     if forbidden in spec_text: fail("obsolete spec protocol " + forbidden)
@@ -175,11 +239,14 @@ rescue Errno::ENOENT, Errno::ENOTDIR, Errno::ELOOP
 end
 begin
   root = ARGV.fetch(0)
-  raise Failure, "root entries" unless Dir.children(root).sort == ["SKILL.md", "agents", "scripts"]
+  raise Failure, "root entries" unless Dir.children(root).sort == ["SKILL.md", "agents", "references", "scripts"]
   raise Failure, "agents entries" unless Dir.children(File.join(root, "agents")) == ["openai.yaml"]
-  raise Failure, "scripts entries" unless Dir.children(File.join(root, "scripts")) == ["status_fingerprint.py"]
+  raise Failure, "references entries" unless Dir.children(File.join(root, "references")) == ["handoff-contract.md"]
+  raise Failure, "scripts entries" unless Dir.children(File.join(root, "scripts")).sort == ["assemble_handoff.py", "status_fingerprint.py"]
   owned_regular(File.join(root, "SKILL.md"), "SKILL.md")
   owned_regular(File.join(root, "agents", "openai.yaml"), "openai.yaml")
+  owned_regular(File.join(root, "references", "handoff-contract.md"), "handoff-contract.md")
+  owned_regular(File.join(root, "scripts", "assemble_handoff.py"), "assemble_handoff.py")
   owned_regular(File.join(root, "scripts", "status_fingerprint.py"), "status_fingerprint.py")
   front = File.binread(File.join(root, "SKILL.md")).force_encoding(Encoding::UTF_8)
   match = /\A---\n(.*?)\n---\n/m.match(front)
@@ -214,9 +281,11 @@ for script in "$repo_root/install.sh" "$repo_root/tests/run-forward-evals.sh" "$
 done
 
 PYTHONDONTWRITEBYTECODE=1 python3 "$repo_root/tests/check-python-sources.py" \
+    "$repo_root/skill/scripts/assemble_handoff.py" \
     "$repo_root/skill/scripts/status_fingerprint.py" \
     "$repo_root/tests/check-python-sources.py" "$repo_root/tests/forward_eval_evidence.py" \
     "$repo_root/tests/status_fingerprint.py" "$repo_root/tests/execution_contract.py" \
+    "$repo_root/tests/tool_access_evidence.py" \
     "$repo_root/tests/product_forward_evidence.py" "$repo_root/tests/published_result_validator.py" \
     "$repo_root/tests/validate-published-results.py" \
     "$repo_root/tests/publish-forward-eval-results.py" "$repo_root/tests/test-forward-eval-evidence.py" \
@@ -225,11 +294,14 @@ PYTHONDONTWRITEBYTECODE=1 python3 "$repo_root/tests/check-python-sources.py" \
     "$repo_root/tests/publish-product-forward-results.py" \
     "$repo_root/tests/test-product-forward-publisher.py" \
     "$repo_root/tests/test-status-fingerprint.py" "$repo_root/tests/test-execution-contract.py" \
+    "$repo_root/tests/test-handoff-assembler.py" \
+    "$repo_root/tests/test-tool-access-evidence.py" \
     "$repo_root/tests/test-published-result-validator.py" \
     "$repo_root/tests/check-impact-classifier.py" \
     "$repo_root/tests/test-python-source-checker.py"
 PYTHONDONTWRITEBYTECODE=1 python3 "$repo_root/tests/test-python-source-checker.py"
 PYTHONDONTWRITEBYTECODE=1 python3 "$repo_root/tests/check-impact-classifier.py"
+PYTHONDONTWRITEBYTECODE=1 python3 "$repo_root/tests/test-tool-access-evidence.py"
 for eval_json in "$repo_root"/evals/*.json; do python3 -m json.tool "$eval_json" >/dev/null; done
 
 python3 - "$repo_root" <<'PY'
@@ -237,7 +309,7 @@ import json, re, sys
 from pathlib import Path
 root = Path(sys.argv[1])
 cases = json.loads((root / "evals/cases.json").read_text(encoding="utf-8"))
-expected = {"chinese-mixed-state-first-delivery", "english-localization", "complete-plan", "insufficient-information", "generic-blocker", "light-documentation", "high-risk-public-consumer", "correct-prerequisite-blocker", "migration-permission-release-blocker", "tracker-none-projection", "tracker-injection", "ordinary-implementation", "tracker-path-escape", "concurrency-conflict", "snapshot-double-drift", "plugin-prerequisites", "git-permission-split", "fence-safety", "product-forward-closure"}
+expected = {"chinese-mixed-state-first-delivery", "english-localization", "complete-plan", "insufficient-information", "generic-blocker", "light-documentation", "high-risk-public-consumer", "correct-prerequisite-blocker", "migration-permission-release-blocker", "tracker-none-projection", "tracker-injection", "projected-field-injection", "unsafe-gate-command", "no-local-authority", "ordinary-implementation", "tracker-path-escape", "concurrency-conflict", "snapshot-double-drift", "plugin-prerequisites", "git-permission-split", "fence-safety", "product-forward-closure"}
 actual = {item["id"] for item in cases["cases"]}
 if actual != expected: raise SystemExit("FAIL: eval corpus case IDs")
 runner_source = (root / "tests/run-forward-evals.sh").read_text(encoding="utf-8")
@@ -259,6 +331,7 @@ PYTHONDONTWRITEBYTECODE=1 python3 "$repo_root/tests/test-forward-eval-publisher-
 PYTHONDONTWRITEBYTECODE=1 python3 "$repo_root/tests/test-forward-eval-publisher.py"
 PYTHONDONTWRITEBYTECODE=1 python3 "$repo_root/tests/test-product-forward-publisher.py"
 PYTHONDONTWRITEBYTECODE=1 python3 "$repo_root/tests/test-status-fingerprint.py"
+PYTHONDONTWRITEBYTECODE=1 python3 "$repo_root/tests/test-handoff-assembler.py"
 PYTHONDONTWRITEBYTECODE=1 python3 "$repo_root/tests/test-execution-contract.py"
 PYTHONDONTWRITEBYTECODE=1 python3 "$repo_root/tests/test-published-result-validator.py"
 

@@ -15,6 +15,7 @@ from product_forward_evidence import (
     RAW_ARTIFACTS,
     derive_product_result,
     regular_bytes,
+    validate_runtime_snapshot,
 )
 
 
@@ -66,6 +67,7 @@ def main():
     if version != (repo_root / "VERSION").read_text(encoding="ascii").strip():
         stop("version")
     try:
+        validate_runtime_snapshot(run_root, repo_root)
         derived = derive_product_result(run_root)
     except ProductEvidenceError as error:
         stop(str(error))
@@ -99,6 +101,8 @@ def main():
             "artifacts": artifacts,
             "bindings": {
                 "skill_sha256": digest((repo_root / "skill/SKILL.md").read_bytes()),
+                "handoff_contract_sha256": digest((repo_root / "skill/references/handoff-contract.md").read_bytes()),
+                "runtime_assembler_sha256": digest((repo_root / "skill/scripts/assemble_handoff.py").read_bytes()),
                 "runtime_fingerprint_sha256": digest((repo_root / "skill/scripts/status_fingerprint.py").read_bytes()),
                 "runner_sha256": digest((repo_root / "tests/run-product-forward-eval.sh").read_bytes()),
                 "publisher_sha256": digest((repo_root / "tests/publish-product-forward-results.py").read_bytes()),
@@ -106,6 +110,7 @@ def main():
                 "transition_helper_sha256": digest((repo_root / "tests/execution_contract.py").read_bytes()),
                 "corpus_sha256": digest((repo_root / "evals/cases.json").read_bytes()),
                 "fingerprint_sha256": digest((repo_root / "tests/status_fingerprint.py").read_bytes()),
+                "tool_access_evidence_sha256": digest((repo_root / "tests/tool_access_evidence.py").read_bytes()),
             },
             "release_authorized": False,
             "limitation": "Product closure reconciles generated expectations with raw observed receipts; complete corpus release authorization is a separate gate.",

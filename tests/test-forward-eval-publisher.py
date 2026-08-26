@@ -22,6 +22,7 @@ from execution_contract import (
 )
 from forward_eval_evidence import derive_side_effect_evidence
 from status_fingerprint import fingerprint
+from tool_access_evidence import project_tool_access
 
 
 CASE_ID = "chinese-mixed-state-first-delivery"
@@ -163,7 +164,7 @@ def response_and_artifacts():
         "Invariants: Preserve the public contract.\n"
         "Non-goals: schema work, dependencies, commit, version, or publication\n"
         "Requirement -> Baseline -> Root cause/design gap -> Owner change -> Invariant -> Test -> Gate -> Evidence\n"
-        "Reject blank normalized labels at the owner boundary -> src/normalize-label.js: returns empty text -> src/normalize-label.js: the documented guard is absent -> src/normalize-label.js: add the guard and update tests/normalize-label.test.js -> Preserve the public contract. -> tests/normalize-label.test.js: positive and negative test -> G1,G2 -> tests/normalize-label.test.js; gate_evidence=.project/development/evidence/G1.pass\n"
+        "Reject blank normalized labels at the owner boundary -> src/normalize-label.js: currently returns an empty result -> src/normalize-label.js: the documented empty-result guard is absent -> src/normalize-label.js: trim once, add the empty-result RangeError guard, and update tests/normalize-label.test.js -> Preserve the public contract. -> tests/normalize-label.test.js: cover empty and whitespace-only inputs -> G1,G2 -> tests/normalize-label.test.js; gate_evidence=.project/development/evidence/G1.pass\n"
         "Permission matrix:\n"
         "Implementation | Tests | Update tracker | Local commit | Change version | Tag | Push/release\n"
         "authorized: user | authorized: user | authorized: AGENTS.md | not authorized: absent | not authorized: absent | not authorized: absent | not authorized: absent\n\n"
@@ -178,7 +179,7 @@ def response_and_artifacts():
         + step(5, "tracker", "persist G2 and U2 closure", "none: authorized structured tracker edit", [".project/development/task_plan.md"], "unit=U2; owner=" + owner + "; transitions=In Progress->Complete; from_revision=observed-prior; gate=G2:pending->passed", ".project/development/task_plan.md")
         + "\n\nClosure condition: owner behavior, regression, G2, diff/status, and output are evidenced\n"
         "Tracker target state: U2 Complete and G1/G2 passed\n"
-        "Observed receipt requirements: start 17; executor supplies changed revision and exact boundary evidence\n"
+        'Observed receipt requirements: initial_revision=17; unit=U2; owner=src/normalize-label.js; unit_edges=In Progress->Complete; gate_edges=G1:passed->pending,G1:pending->passed,G2:pending->passed; paths=[".project/development/task_plan.md"]; revision_rule=each receipt uses actual before/after revisions without skips\n'
         "Post-closure next unit: U3; dependency U2 becomes Complete\n"
         "Out of scope: schema, unrelated code, commit, version, tag, push, release, deployment, and providers\n"
     )
@@ -223,9 +224,13 @@ def response_parts(value):
 def copy_forward_sources(source, repo):
     for relative in (
         "skill/agents/openai.yaml",
+        "skill/references/handoff-contract.md",
+        "skill/scripts/assemble_handoff.py",
+        "skill/scripts/status_fingerprint.py",
         "tests/run-forward-evals.sh",
         "tests/publish-forward-eval-results.py",
         "tests/forward_eval_evidence.py",
+        "tests/tool_access_evidence.py",
         "tests/published_result_validator.py",
     ):
         target = repo / relative
@@ -244,7 +249,7 @@ def write_pending_indexes(repo):
         "schema_version": 4,
         "version": "0.0.0",
         "status": "pending-fresh-eval",
-        "runtime": ["skill/SKILL.md", "skill/agents/openai.yaml", "skill/scripts/status_fingerprint.py"],
+        "runtime": ["skill/SKILL.md", "skill/agents/openai.yaml", "skill/references/handoff-contract.md", "skill/scripts/assemble_handoff.py", "skill/scripts/status_fingerprint.py"],
         "bindings": core,
         "cases": [],
         "metrics": None,
@@ -268,12 +273,15 @@ def write_snapshot(run_root, repo):
     entries = []
     mapping = {
         "skill/SKILL.md": repo / "skill/SKILL.md",
+        "skill/references/handoff-contract.md": repo / "skill/references/handoff-contract.md",
+        "skill/scripts/assemble_handoff.py": repo / "skill/scripts/assemble_handoff.py",
         "skill/scripts/status_fingerprint.py": repo / "skill/scripts/status_fingerprint.py",
         "runner.sh": repo / "tests/run-forward-evals.sh",
         "cases.json": repo / "evals/cases.json",
         "status_fingerprint.py": repo / "tests/status_fingerprint.py",
         "execution_contract.py": repo / "tests/execution_contract.py",
         "forward_eval_evidence.py": repo / "tests/forward_eval_evidence.py",
+        "tool_access_evidence.py": repo / "tests/tool_access_evidence.py",
     }
     for relative, source in mapping.items():
         value = source.read_bytes()
@@ -299,6 +307,11 @@ def without_passed_gate_invalidation(response):
     text = text.replace(
         "transitions=In Progress->Complete; from_revision=observed-prior; gate=G2:pending->passed",
         "transitions=In Progress->Complete; from_revision=17; gate=G2:pending->passed",
+        1,
+    )
+    text = text.replace(
+        "gate_edges=G1:passed->pending,G1:pending->passed,G2:pending->passed",
+        "gate_edges=G2:pending->passed",
         1,
     )
     return text.encode("utf-8")
@@ -328,11 +341,24 @@ def write_case(run_root, source_digests, *, tamper_grounding=False, sensitive_gr
         )
     write_canonical(case / "grounding-sources.json", grounding)
     (case / "response-1.txt").write_bytes(response)
+    (case / "draft.txt").write_bytes(response)
+    response_lines = response.splitlines(keepends=True)
+    preamble = b"".join(response_lines[1:11])
+    context = b"{}\n"
+    (case / "assembly-preamble.txt").write_bytes(preamble)
+    (case / "assembly-context.json").write_bytes(context)
+    assembly = {
+        "schema_version": 1, "mode": "executable",
+        "draft_sha256": digest(response), "final_sha256": digest(response),
+        "preamble_sha256": digest(preamble), "context_sha256": digest(context),
+        "assembler_sha256": source_digests["skill/scripts/assemble_handoff.py"],
+    }
+    write_canonical(case / "assembly-manifest.json", assembly)
     summary, body = response_parts(response)
     snapshot_manifest = (run_root / "snapshot/manifest.json").read_bytes()
     tracker_digest = digest(tracker_text().encode("utf-8"))
     generation = {
-        "schema_version": 5,
+        "schema_version": 6,
         "case_id": CASE_ID,
         "generation_read_only": True,
         "lock_state": "absent",
@@ -341,6 +367,9 @@ def write_case(run_root, source_digests, *, tamper_grounding=False, sensitive_gr
         "response_bytes": [len(response)],
         "summary_sha256": [digest(summary)],
         "body_sha256": [digest(body)],
+        "draft_sha256": digest(response),
+        "assembly_manifest_sha256": digest((case / "assembly-manifest.json").read_bytes()),
+        "assembly_mode": "executable",
         "snapshot_manifest_sha256": digest(snapshot_manifest),
         "post_state_manifest_sha256": digest((case / "post-state-manifest.json").read_bytes()),
         "grounding_sources_sha256": digest((case / "grounding-sources.json").read_bytes()),
@@ -365,6 +394,15 @@ def write_case(run_root, source_digests, *, tamper_grounding=False, sensitive_gr
     write_canonical(case / "generation-evidence.json", generation)
     write_canonical(case / "side-effect-evidence.json", side_effect)
     write_canonical(case / "snapshot-evidence.json", snapshot_evidence)
+    tool_log = "\n".join((
+        "/usr/bin/zsh -lc 'sed -n 1,80p ../../../snapshot/skill/SKILL.md' in /tmp/fixture",
+        "/usr/bin/zsh -lc 'sed -n 1,220p ../../../snapshot/skill/references/handoff-contract.md' in /tmp/fixture",
+        "/usr/bin/zsh -lc 'python3 ../../../snapshot/skill/scripts/status_fingerprint.py --repository . --tracker .project/development/task_plan.md --unit U2 --profile Standard --emit context' in /tmp/fixture",
+        "/usr/bin/zsh -lc 'python3 ../../../snapshot/skill/scripts/status_fingerprint.py --repository . --tracker .project/development/task_plan.md --unit U2 --profile Standard --emit context' in /tmp/fixture",
+        "/usr/bin/zsh -lc 'python3 ../../../snapshot/skill/scripts/status_fingerprint.py --repository . --tracker .project/development/task_plan.md --unit U2 --profile Standard --emit preamble' in /tmp/fixture",
+        "/usr/bin/zsh -lc 'python3 ../../../snapshot/skill/scripts/status_fingerprint.py --repository . --tracker .project/development/task_plan.md --unit U2 --profile Standard --emit preamble' in /tmp/fixture",
+    )).encode("utf-8")
+    write_canonical(case / "tool-access-evidence.json", project_tool_access(CASE_ID, tool_log))
     (case / ".complete").write_text("complete\n", encoding="ascii")
 
 
@@ -382,7 +420,7 @@ def make_environment(source, root, name, *, tamper_grounding=False, sensitive_gr
         json.dumps(corpus, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
-    capture = vectors["make_capture"](root, name + "-product-capture")
+    capture = vectors["make_capture"](root, name + "-product-capture", repo)
     product = vectors["publish"](repo, capture)
     if product.returncode != 0:
         fail("product precondition rejected: " + product.stderr)

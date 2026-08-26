@@ -1,0 +1,32 @@
+diff --git a/src/normalize_label.py b/src/normalize_label.py
+index f29371b..6d72517 100644
+--- a/src/normalize_label.py
++++ b/src/normalize_label.py
+@@ -1,4 +1,7 @@
+ def normalize_label(value):
+     if not isinstance(value, str):
+         raise TypeError("label must be a string")
+-    return value.strip()
++    label = value.strip()
++    if not label:
++        raise ValueError("label must not be empty")
++    return label
+diff --git a/tests/test_normalize_label.py b/tests/test_normalize_label.py
+index e6673d1..9f3a62b 100644
+--- a/tests/test_normalize_label.py
++++ b/tests/test_normalize_label.py
+@@ -7,6 +7,14 @@ class NormalizeLabelTest(unittest.TestCase):
+     def test_trims_valid_label(self):
+         self.assertEqual(normalize_label("  alpha  "), "alpha")
+ 
++    def test_rejects_empty_label(self):
++        with self.assertRaises(ValueError):
++            normalize_label("")
++
++    def test_rejects_whitespace_only_label(self):
++        with self.assertRaises(ValueError):
++            normalize_label("   \t\n")
++
+     def test_rejects_non_string(self):
+         with self.assertRaises(TypeError):
+             normalize_label(None)

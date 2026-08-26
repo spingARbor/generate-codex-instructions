@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path, PurePosixPath
 import re
+import shlex
 import stat
 import struct
 import subprocess
@@ -13,10 +14,87 @@ import subprocess
 UNIT_STATES = ("Complete", "In Progress", "Claimed", "Ready", "Blocked", "Failed")
 GATE_STATES = ("passed", "pending", "failed", "unknown-definition", "conflicting")
 PROFILE_READS = {"Light": 6, "Standard": 12, "High-risk": 20}
+MAX_PROJECTED_TEXT_BYTES = 512
+UNSAFE_PROJECTED_TEXT = (
+    re.compile(r"(?i)(?:ignore|bypass|override|disregard).{0,48}(?:instruction|authority|skill|policy|rule)"),
+    re.compile(r"(?i)(?:reveal|print|output|expose).{0,48}(?:secret|credential|token|password|hidden|system prompt|private)"),
+    re.compile(r"(?i)(?:secret|credential|password|bearer(?:\s+token)?|api[-_ ]?key|private[-_ ]?key)\s*[:=]\s*\S+"),
+    re.compile(r"(?i)\bbearer\s+[A-Za-z0-9._-]{8,}"),
+    re.compile(r"(?i)\bsecret-[A-Za-z0-9_-]{8,}"),
+    re.compile(r"(?<![A-Za-z0-9])sk-[A-Za-z0-9_-]{12,}"),
+    re.compile(r"(?<![A-Za-z0-9])AKIA[0-9A-Z]{16}(?![A-Za-z0-9])"),
+    re.compile(r"(?i)-----begin (?:rsa |openssh )?private key-----"),
+    re.compile(r"(?i)(?:^|\s)/(?:home|Users|root|etc|var|tmp)/"),
+    re.compile(r"(?i)https?://"),
+)
+LOCAL_TEST_COMMANDS = {"pytest", "py.test", "ctest", "rspec", "phpunit"}
 
 
 class FingerprintError(ValueError):
     pass
+
+
+def _safe_projected_text(value, label):
+    if not isinstance(value, str) or not value or value.strip() != value:
+        raise FingerprintError("unsafe projected text: " + label)
+    if len(value.encode("utf-8")) > MAX_PROJECTED_TEXT_BYTES:
+        raise FingerprintError("unsafe projected text: " + label)
+    if any(ord(char) < 32 or ord(char) == 127 for char in value):
+        raise FingerprintError("unsafe projected text: " + label)
+    if "```" in value or "~~~" in value or any(pattern.search(value) for pattern in UNSAFE_PROJECTED_TEXT):
+        raise FingerprintError("unsafe projected text: " + label)
+    return value
+
+
+def _is_test_path(value):
+    lowered = value.lower()
+    parts = PurePosixPath(lowered).parts
+    name = parts[-1] if parts else ""
+    return (
+        any(part in {"test", "tests", "spec", "specs"} for part in parts[:-1])
+        or name.startswith(("test_", "test-", "spec_", "spec-"))
+        or ".test." in name
+        or ".spec." in name
+    )
+
+
+def _safe_gate_command(value, inputs):
+    value = _safe_projected_text(value, "Gate command")
+    if re.search(r"[;&|<>`]|\$\(", value):
+        raise FingerprintError("unsafe Gate command")
+    try:
+        arguments = shlex.split(value, posix=True)
+    except ValueError as error:
+        raise FingerprintError("unsafe Gate command") from error
+    if not arguments:
+        raise FingerprintError("unsafe Gate command")
+    executable, rest = arguments[0], arguments[1:]
+    safe = executable in LOCAL_TEST_COMMANDS
+    if executable in {"python", "python3"}:
+        safe = len(rest) >= 2 and rest[0] == "-m" and rest[1] in {"unittest", "pytest", "compileall"}
+        safe = safe or (bool(rest) and rest[0] in inputs and _is_test_path(rest[0]))
+    elif executable == "node":
+        safe = bool(rest) and rest[0] == "--test"
+    elif executable in {"npm", "pnpm", "yarn", "bun"}:
+        if rest and rest[0] == "test":
+            safe = True
+        elif len(rest) >= 2 and rest[0] == "run":
+            safe = re.search(r"(?i)(?:test|check|lint|verify|type)", rest[1]) is not None
+    elif executable == "go":
+        safe = bool(rest) and rest[0] in {"test", "vet"}
+    elif executable == "cargo":
+        safe = bool(rest) and rest[0] in {"test", "check", "clippy"}
+    elif executable in {"make", "dotnet", "mvn", "mvnw", "gradle", "gradlew", "rake"}:
+        safe = bool(rest) and any(token in {"test", "tests", "check", "verify", "lint"} for token in rest)
+    elif executable in {"sh", "bash", "dash"}:
+        safe = bool(rest) and rest[0] in inputs and _is_test_path(rest[0])
+    elif executable == "busybox":
+        safe = len(rest) >= 2 and rest[0] == "sh" and rest[1] in inputs and _is_test_path(rest[1])
+    elif executable in inputs and _is_test_path(executable):
+        safe = True
+    if not safe:
+        raise FingerprintError("unsafe Gate command")
+    return value
 
 
 def _field(value):
@@ -105,8 +183,6 @@ def _applicable_authorities(root, paths):
         if os.path.lexists(absolute):
             _regular_input(root, candidate)
             authorities.append(candidate)
-    if not authorities:
-        raise FingerprintError("instruction authority")
     return authorities
 
 
@@ -116,6 +192,8 @@ def tracker_projection(raw, tracker_path, selected_id, profile, root):
     except UnicodeError as error:
         raise FingerprintError("tracker UTF-8") from error
     tracker_revision = _root_value(text, "tracker_revision")
+    if re.fullmatch(r"[A-Za-z0-9._-]{1,128}", tracker_revision) is None:
+        raise FingerprintError("tracker revision")
     units = _tracker_registry(text, "Unit registry", "Required gate registry")
     gates = _tracker_registry(text, "Required gate registry", "Decisions and blockers")
     if selected_id not in units:
@@ -155,6 +233,9 @@ def tracker_projection(raw, tracker_path, selected_id, profile, root):
             raise FingerprintError("Gate command/recovery")
         if _tracker_json_paths(fields, "inputs_json", "Gate inputs") != gate_inputs:
             raise FingerprintError("Gate input coverage")
+        _safe_gate_command(fields["command"], gate_inputs)
+        if fields.get("recovery_condition"):
+            _safe_projected_text(fields["recovery_condition"], "Gate recovery")
         digests = {
             path: hashlib.sha256(_regular_input(root, path)).hexdigest()
             for path in gate_inputs
@@ -199,19 +280,32 @@ def tracker_projection(raw, tracker_path, selected_id, profile, root):
     for unit_id, fields in units.items():
         if fields["state"] == "Complete":
             continue
+        claim = fields.get("claim", "none")
+        if re.fullmatch(r"[A-Za-z0-9._@/-]{1,128}", claim) is None:
+            raise FingerprintError("unsafe projected text: Unit claim")
+        dependency = fields.get("dependency", "none")
+        if dependency != "none":
+            dependency = ",".join(_tracker_ids(dependency, "Unit dependency"))
         open_units.append({
             "id": unit_id,
             "state": fields["state"],
-            "claim": fields.get("claim", "none"),
-            "dependency": fields.get("dependency", "none"),
-            "next": fields.get("next_convergence_condition", ""),
+            "claim": claim,
+            "dependency": dependency,
+            "next": _safe_projected_text(
+                fields.get("next_convergence_condition", ""), "Unit next condition"
+            ),
         })
         if "blocker" in fields:
             blockers.append({
                 "id": fields.get("blocker_id", unit_id + "-blocker"),
-                "owner": fields.get("blocker_owner", fields.get("owner", "unassigned")),
-                "detail": fields["blocker"],
-                "recovery": fields.get("recovery_condition", ""),
+                "owner": _safe_projected_text(
+                    fields.get("blocker_owner", fields.get("owner", "unassigned")),
+                    "blocker owner",
+                ),
+                "detail": _safe_projected_text(fields["blocker"], "blocker detail"),
+                "recovery": _safe_projected_text(
+                    fields.get("recovery_condition", ""), "blocker recovery"
+                ),
             })
     open_gates = []
     for gate_id, fields in gates.items():
@@ -220,6 +314,12 @@ def tracker_projection(raw, tracker_path, selected_id, profile, root):
         command = fields.get("command") or fields.get("recovery_condition")
         if not command:
             raise FingerprintError("Gate command or recovery")
+        if fields.get("command"):
+            command = _safe_gate_command(
+                command, _tracker_json_paths(fields, "inputs_json", "Gate inputs")
+            )
+        else:
+            command = _safe_projected_text(command, "Gate recovery")
         open_gates.append({
             "id": gate_id,
             "state": fields["status"],
@@ -289,11 +389,27 @@ def tracker_projection(raw, tracker_path, selected_id, profile, root):
         "tracker_revision": tracker_revision,
         "unit_counts": unit_counts,
         "gate_counts": gate_counts,
-        "selection_basis": _root_value(text, "selection_decision"),
-        "dependency_evidence": selected.get("dependency", "none"),
+        "selection_basis": _safe_projected_text(
+            _root_value(text, "selection_decision"), "selection decision"
+        ),
+        "dependency_evidence": (
+            "none" if selected.get("dependency", "none") == "none"
+            else ",".join(_tracker_ids(selected.get("dependency"), "selected dependency"))
+        ),
         "selected_required_gates": selected_required_gates,
         "open_inventory": {"units": open_units, "gates": open_gates, "blockers": blockers},
         "verified_owner_light_protocol": light_protocol,
+        "safe_goal": _safe_projected_text(selected.get("goal", ""), "Unit goal"),
+        "safe_invariants": _safe_projected_text(
+            selected.get("invariants", ""), "Unit invariants"
+        ),
+        "safe_high_risk": (
+            {
+                key: _safe_projected_text(_root_value(text, key), key)
+                for key in ("affected_consumer", "compatibility_gate", "rollback_evidence")
+            }
+            if profile == "High-risk" else None
+        ),
         "_owner": owner,
         "_gate_ids": gate_ids,
         "_evidence_specs": evidence_specs,
@@ -475,6 +591,9 @@ def main():
             "passed_evidence": [entry["id"] for entry in ledger if entry["role"] == "gate-evidence"],
             "authoritative_inputs": [entry["id"] for entry in ledger],
             "verified_owner_light_protocol": projection["verified_owner_light_protocol"],
+            "safe_goal": projection["safe_goal"],
+            "safe_invariants": projection["safe_invariants"],
+            "safe_high_risk": projection["safe_high_risk"],
         }
     except (FingerprintError, OSError, StopIteration) as error:
         raise SystemExit("error: " + str(error)) from error

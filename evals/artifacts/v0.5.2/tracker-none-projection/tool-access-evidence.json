@@ -1,0 +1,1 @@
+{"schema_version":1,"case_id":"tracker-none-projection","raw_log_bytes":13803,"raw_log_sha256":"29a0610182550d2c0c4f672e2d18d2f5405a56c00d48cecfcbd9eece0a182f12","accesses":[{"event":1,"kind":"read","path":"skill/SKILL.md","emit":"none","line_sha256":"c1e4f35ed527d170923534a388ecac5693298fff5a8f145fc198a29618abe332"}]}

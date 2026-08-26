@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import hashlib
 import json
 import tempfile
 import base64
@@ -11,6 +12,7 @@ from forward_eval_evidence import (
     EvidenceFailure,
     contains_sensitive_evidence,
     derive_side_effect_evidence,
+    validate_assembly_evidence,
     validate_generation_evidence,
     validate_grounding_source_publication,
     validate_side_effect_evidence,
@@ -21,6 +23,37 @@ def fail(label):
     raise SystemExit("FAIL: forward eval evidence self-test: " + label)
 
 def main():
+    labels = (
+        b"Snapshot: ", b"Unit counts: ", b"Gate counts: ", b"Selection basis: ",
+        b"Current executable unit: ", b"Selected unit: ", b"Selected required gates: ",
+        b"Evidence reads: ", b"Evidence ledger: ", b"Open inventory: ",
+    )
+    draft = b"Status\n" + b"".join(label + b"model\n" for label in labels) + b"```text\nProtocol profile: Standard\n```\n"
+    preamble = b"".join(label + b"trusted\n" for label in labels)
+    final = draft.splitlines(keepends=True)[0] + preamble + b"".join(draft.splitlines(keepends=True)[11:])
+    context = b'{"owner":"src/main.py"}\n'
+    assembler = b"assembler\n"
+    manifest = {
+        "schema_version": 1, "mode": "executable",
+        "draft_sha256": hashlib.sha256(draft).hexdigest(),
+        "final_sha256": hashlib.sha256(final).hexdigest(),
+        "preamble_sha256": hashlib.sha256(preamble).hexdigest(),
+        "context_sha256": hashlib.sha256(context).hexdigest(),
+        "assembler_sha256": hashlib.sha256(assembler).hexdigest(),
+    }
+    validate_assembly_evidence(manifest, draft, final, preamble, context, assembler)
+    passthrough = dict(
+        manifest, mode="passthrough", final_sha256=manifest["draft_sha256"],
+        preamble_sha256=hashlib.sha256(b"").hexdigest(),
+        context_sha256=hashlib.sha256(b"").hexdigest(),
+    )
+    validate_assembly_evidence(passthrough, draft, draft, b"", b"", assembler)
+    try:
+        validate_assembly_evidence(dict(manifest, final_sha256="f" * 64), draft, final, preamble, context, assembler)
+    except EvidenceFailure:
+        pass
+    else:
+        fail("tampered assembly manifest accepted")
     encoded_sensitive_tracker = {
         "schema_version": 1,
         "case_id": "plan-convergence-preamble",
@@ -36,7 +69,7 @@ def main():
     else:
         fail("base64-encoded sensitive grounding accepted")
     valid = {
-        "schema_version": 5,
+        "schema_version": 6,
         "case_id": "plan-convergence-preamble",
         "generation_read_only": True,
         "lock_state": "absent",
@@ -45,6 +78,9 @@ def main():
         "response_bytes": [10],
         "summary_sha256": ["1" * 64],
         "body_sha256": ["2" * 64],
+        "draft_sha256": "6" * 64,
+        "assembly_manifest_sha256": "7" * 64,
+        "assembly_mode": "executable",
         "snapshot_manifest_sha256": "3" * 64,
         "post_state_manifest_sha256": "9" * 64,
         "grounding_sources_sha256": "8" * 64,

@@ -1,0 +1,1 @@
+{"schema_version":1,"case_id":"concurrency-conflict","raw_log_bytes":19392,"raw_log_sha256":"e963baab91038abcd03ff14b04c17db536ac937a28a718c2b1687a71baa8c797","accesses":[{"event":1,"kind":"read","path":"skill/SKILL.md","emit":"none","line_sha256":"a3b28c88f6cee9a201e22dc484f064257ef1c7915f3f5098ebc06998fcd6e309"}]}

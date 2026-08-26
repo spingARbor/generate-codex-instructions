@@ -1,0 +1,10 @@
+Snapshot: tracker_revision=r1; branch=product-forward; head=a45545dcbbf91bfc39cebbaf3e9abddb235d0f40; status_fingerprint=2e675340fe1fef780d7a2c011969fe1f319116648167c9a76e77a3b7753601ff
+Unit counts: Complete=0; In Progress=0; Claimed=0; Ready=1; Blocked=0; Failed=0
+Gate counts: passed=0; pending=1; failed=0; unknown-definition=0; conflicting=0
+Selection basis: Select U1 because it is the sole Ready, independently executable unit and has no unmet dependency.
+Current executable unit: U1; dependency_evidence=none
+Selected unit: U1
+Selected required gates: [{"id":"G1","state":"pending"}]
+Evidence reads: used=5; ceiling=12; extension=0; reason=none
+Evidence ledger: {"sha256":"6facbf803a68bfc113b6ea7b6e03176350b70e7ef930d7a7dcabf6e574233851","rows":[{"id":".project/development/task_plan.md","role":"tracker"},{"id":"AGENTS.md","role":"authority"},{"id":"docs/design.md","role":"design"},{"id":"src/normalize_label.py","role":"owner"},{"id":"tests/test_normalize_label.py","role":"regression"}]}
+Open inventory: {"units":[{"id":"U1","state":"Ready","claim":"none","dependency":"none","next":"G1 passes at the current tracker revision and the owner records U1 Complete."}],"gates":[{"id":"G1","state":"pending","command_or_recovery":"python3 -m unittest discover -s tests -v"}],"blockers":[]}

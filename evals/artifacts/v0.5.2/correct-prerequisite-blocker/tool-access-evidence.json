@@ -1,0 +1,1 @@
+{"schema_version":1,"case_id":"correct-prerequisite-blocker","raw_log_bytes":16569,"raw_log_sha256":"628fc4ff4cc8fbc92f16fd453af33ed65d1ffff5d12c22e0f6d31edcb7194ad3","accesses":[{"event":1,"kind":"read","path":"skill/SKILL.md","emit":"none","line_sha256":"a34bfdb0b7f670cfea7b3c639c53e06b5b24a997ef3e11ca20a379d8267aa4f1"}]}
